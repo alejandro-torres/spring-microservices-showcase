@@ -1,0 +1,1847 @@
+<title>Repaso UML Microservicios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: cuaderno técnico de una columna; barra de secciones fija arriba; cada diagrama en su lámina con notas de repaso debajo */
+  :root {
+    --bg: #f3f5f8;
+    --surface: #ffffff;
+    --fg: #172033;
+    --muted: #556078;
+    --line: #d6dce6;
+    --accent: #1f5fbf;
+    --accent-soft: #e4ecf8;
+    --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+    --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e131b; --surface: #151c27; --fg: #e2e7ef; --muted: #98a3b6;
+      --line: #2a3445; --accent: #82acf2; --accent-soft: #1b2a42; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e131b; --surface: #151c27; --fg: #e2e7ef; --muted: #98a3b6;
+    --line: #2a3445; --accent: #82acf2; --accent-soft: #1b2a42; color-scheme: dark;
+  }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: var(--font-body); font-size: 15px; line-height: 1.55;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; }
+  header.top { padding-block: 40px 24px; }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  h1 {
+    font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 5vw, 46px);
+    line-height: 1.08; margin: 8px 0 12px; text-wrap: balance;
+  }
+  .lede { max-width: 68ch; color: var(--muted); margin: 0; }
+  nav.toc {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter: blur(6px); border-bottom: 1px solid var(--line);
+  }
+  nav.toc .wrap { display: flex; gap: 6px; overflow-x: auto; padding-block: 10px; scrollbar-width: thin; }
+  nav.toc a {
+    flex: none; text-decoration: none; color: var(--fg); font-size: 13px; font-weight: 500;
+    padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface);
+  }
+  nav.toc a:hover, nav.toc a:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
+  main { display: grid; gap: 56px; padding-block: 32px 72px; }
+  section.group { display: grid; gap: 24px; scroll-margin-top: 64px; }
+  .group-head { display: grid; gap: 6px; border-top: 2px solid var(--fg); padding-top: 14px; }
+  .group-head h2 { font-family: var(--font-display); font-weight: 700; font-size: 26px; margin: 0; }
+  .group-head p { margin: 0; color: var(--muted); max-width: 70ch; }
+  figure.sheet {
+    margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    display: grid; min-width: 0; scroll-margin-top: 64px;
+  }
+  .sheet-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; padding: 16px 20px 0; }
+  .sheet-head h3 { font-family: var(--font-display); font-weight: 600; font-size: 19px; margin: 0; }
+  .kind {
+    font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--accent); background: var(--accent-soft); padding: 2px 8px; border-radius: 4px;
+  }
+  .diagram { overflow-x: auto; padding: 16px 20px; min-width: 0; }
+  .diagram pre.mermaid { margin: 0; background: transparent; font-family: var(--font-mono); font-size: 12px; }
+  figcaption {
+    border-top: 1px dashed var(--line); padding: 14px 20px 18px; color: var(--muted); font-size: 14px;
+  }
+  figcaption strong { color: var(--fg); font-weight: 600; }
+  figcaption ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+  code { font-family: var(--font-mono); font-size: .9em; color: var(--fg); }
+  .legend {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0;
+    border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden;
+  }
+  .legend div { display: grid; grid-template-columns: 92px 1fr; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); align-items: baseline; }
+  .legend code { color: var(--accent); font-weight: 500; }
+  .legend span { color: var(--muted); font-size: 14px; }
+  .legend-title { margin: 28px 0 10px; font-family: var(--font-display); font-weight: 600; font-size: 17px; }
+  footer { border-top: 1px solid var(--line); padding-block: 20px 40px; color: var(--muted); font-size: 13px; }
+  @media (max-width: 560px) {
+    .sheet-head, .diagram, figcaption { padding-left: 14px; padding-right: 14px; }
+  }
+</style>
+
+<header class="top wrap">
+  <div class="eyebrow">Arquitectura hexagonal · Spring Boot · 4 microservicios</div>
+  <h1>Repaso UML del proyecto de microservicios</h1>
+  <p class="lede">Los diagramas de los ejemplos que pide el prompt: arquitectura, clases de cada servicio, secuencias del CRUD, seguridad OAuth2, saga con RabbitMQ, gestión de errores, estados y modelo de datos. Debajo de cada diagrama tienes los puntos clave para repasarlo.</p>
+
+  <p class="legend-title">Leyenda de la notación</p>
+  <div class="legend">
+    <div><code>A ..|&gt; B</code><span>A implementa la interfaz B (p. ej. <code>ProductServiceImpl</code> → <code>ProductService</code>)</span></div>
+    <div><code>A --|&gt; B</code><span>A hereda de B (o una interfaz extiende otra)</span></div>
+    <div><code>A --&gt; B</code><span>Asociación: A usa o tiene una referencia a B</span></div>
+    <div><code>A ..&gt; B</code><span>Dependencia: A crea, recibe o devuelve B</span></div>
+    <div><code>A *-- B</code><span>Composición: B no existe sin A (pedido y sus líneas)</span></div>
+    <div><code>&lt;&lt;interface&gt;&gt;</code><span>Estereotipo: tipo de clase (interface, record, enumeration...)</span></div>
+    <div><code>-&gt;&gt;  --&gt;&gt;</code><span>Secuencia: llamada (línea continua) y respuesta (discontinua)</span></div>
+    <div><code>alt / loop / par</code><span>Secuencia: caminos alternativos, repeticiones y ejecución en paralelo</span></div>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Secciones">
+  <div class="wrap">
+    <a href="#arquitectura">Arquitectura</a>
+    <a href="#clases">Clases</a>
+    <a href="#crud">Secuencias CRUD</a>
+    <a href="#seguridad">Seguridad</a>
+    <a href="#mensajeria">Mensajería y saga</a>
+    <a href="#errores">Errores</a>
+    <a href="#estados">Estados</a>
+    <a href="#datos">Modelo de datos</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ============================ ARQUITECTURA ============================ -->
+<section class="group" id="arquitectura">
+  <div class="group-head">
+    <h2>Arquitectura</h2>
+    <p>La vista general: qué piezas hay, cómo se despliegan y cómo se organizan las capas dentro de cada microservicio.</p>
+  </div>
+
+  <figure class="sheet" id="d-componentes">
+    <div class="sheet-head"><span class="kind">Componentes</span><h3>Visión general del sistema</h3></div>
+    <div class="diagram"><pre class="mermaid">
+flowchart LR
+  client([Cliente / Frontend])
+  gw[api-gateway&lt;br/&gt;JWT · rate limiting · circuit breaker]
+  eureka[(discovery-service&lt;br/&gt;Eureka)]
+  subgraph negocio[Microservicios de negocio]
+    auth[auth-service&lt;br/&gt;OAuth2 · usuarios · roles]
+    prod[product-service ×3]
+    cust[customer-service]
+    ord[order-service ×2]
+  end
+  subgraph datos[Datos]
+    adb[(auth_db)]
+    pdb[(product_db)]
+    cdb[(customer_db)]
+    odb[(order_db)]
+    redis[(Redis)]
+  end
+  mq{{RabbitMQ}}
+  subgraph obs[Observabilidad]
+    zipkin[Zipkin]
+    prom[Prometheus]
+    loki[Loki]
+    graf[Grafana]
+  end
+  client --> gw
+  gw --> auth
+  gw --> prod
+  gw --> cust
+  gw --> ord
+  gw -. rate limit y tokens revocados .-> redis
+  ord -- Feign --> prod
+  ord -- Feign --> cust
+  auth --> adb
+  prod --> pdb
+  cust --> cdb
+  ord --> odb
+  prod -. lock distribuido .-> redis
+  auth -- eventos --> mq
+  ord -- eventos --> mq
+  prod -- eventos --> mq
+  mq -- consume --> prod
+  mq -- consume --> cust
+  mq -- consume --> ord
+  negocio -. registro .-> eureka
+  gw -. descubre .-> eureka
+  negocio -. trazas .-> zipkin
+  prom -. scrape .-> negocio
+  graf --> prom
+  graf --> loki
+  graf --> zipkin
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>El gateway es el único punto de entrada: valida el JWT, aplica el rate limiting y enruta por Eureka.</li>
+        <li>Cada servicio tiene su propia base de datos (patrón <em>Database per Service</em>); nadie lee la base de datos de otro.</li>
+        <li>Feign para las consultas síncronas y RabbitMQ para los cambios de estado entre servicios.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-despliegue">
+    <div class="sheet-head"><span class="kind">Despliegue</span><h3>Contenedores en docker-compose</h3></div>
+    <div class="diagram"><pre class="mermaid">
+flowchart TB
+  user([Navegador / curl])
+  subgraph host[Máquina local · puertos publicados]
+    p8080[":8080 api-gateway"]
+    p8761[":8761 Eureka"]
+    p3000[":3000 Grafana"]
+    p9090[":9090 Prometheus"]
+    p9411[":9411 Zipkin"]
+    p15672[":15672 RabbitMQ consola"]
+  end
+  subgraph red[Red interna de Docker]
+    direction TB
+    subgraph apps[Aplicaciones]
+      a1[auth-service]
+      pr1[product-service réplica 1]
+      pr2[product-service réplica 2]
+      pr3[product-service réplica 3]
+      c1[customer-service]
+      o1[order-service réplica 1]
+      o2[order-service réplica 2]
+    end
+    subgraph infra[Infraestructura]
+      pg[(PostgreSQL&lt;br/&gt;4 bases de datos)]
+      rd[(Redis)]
+      rb{{RabbitMQ}}
+    end
+    subgraph observ[Observabilidad]
+      zk[Zipkin]
+      pm[Prometheus]
+      lk[Loki]
+      pt[Promtail]
+      gf[Grafana]
+    end
+  end
+  user --> p8080
+  user --> p3000
+  p8080 --> apps
+  apps --> pg
+  apps --> rd
+  apps --> rb
+  apps -. trazas .-> zk
+  pm -. métricas .-> apps
+  pt -. logs de los contenedores .-> lk
+  gf --> pm
+  gf --> lk
+  gf --> zk
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>Las réplicas no publican puertos: solo el gateway (y las consolas de herramientas) son accesibles desde fuera.</li>
+        <li>Un único contenedor de PostgreSQL con una base de datos por servicio, creadas por <code>init-databases.sh</code>.</li>
+        <li>Promtail lee los logs de todos los contenedores y los manda a Loki; Prometheus encuentra las réplicas solo.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-capas">
+    <div class="sheet-head"><span class="kind">Paquetes</span><h3>Capas hexagonales de un microservicio</h3></div>
+    <div class="diagram"><pre class="mermaid">
+flowchart LR
+  subgraph entrada[Adaptadores de entrada · infrastructure]
+    ctrl[rest.controller&lt;br/&gt;ProductController]
+    lis[messaging.listener&lt;br/&gt;OrderEventsListener]
+  end
+  subgraph app[application]
+    svc[service&lt;br/&gt;«interface» ProductService]
+    impl[service.impl&lt;br/&gt;ProductServiceImpl]
+    lockI[lock&lt;br/&gt;«interface» DistributedLockManager]
+    cliI[client&lt;br/&gt;«interface» ProductClient]
+  end
+  subgraph dom[domain]
+    model[model&lt;br/&gt;Product · Category]
+    exc[exception]
+    evt[event]
+    repoI[repository&lt;br/&gt;«interface» ProductRepository]
+    pubI[messaging&lt;br/&gt;«interface» ProductEventPublisher]
+  end
+  subgraph salida[Adaptadores de salida · infrastructure]
+    repoImpl[persistence.repository.impl&lt;br/&gt;ProductRepositoryImpl]
+    jpa[persistence.repository&lt;br/&gt;ProductJpaRepository]
+    pubImpl[messaging.publisher.impl&lt;br/&gt;ProductEventPublisherImpl]
+    lockImpl[lock.impl&lt;br/&gt;RedissonDistributedLockManagerImpl]
+    cliImpl[client.impl&lt;br/&gt;ProductClientImpl]
+  end
+  ctrl --> svc
+  lis --> svc
+  impl -. implementa .-> svc
+  impl --> model
+  impl --> repoI
+  impl --> pubI
+  impl --> lockI
+  impl --> cliI
+  repoImpl -. implementa .-> repoI
+  repoImpl --> jpa
+  pubImpl -. implementa .-> pubI
+  lockImpl -. implementa .-> lockI
+  cliImpl -. implementa .-> cliI
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>Todas las flechas apuntan hacia dentro: la infraestructura depende de la aplicación y el dominio, nunca al revés.</li>
+        <li>Las interfaces viven en <code>domain</code> o <code>application</code>; las implementaciones, siempre en una carpeta <code>impl</code> de infraestructura (salvo <code>service.impl</code>).</li>
+        <li>Controllers y listeners son adaptadores de entrada equivalentes: los dos solo llaman a la interfaz del servicio.</li>
+      </ul>
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ============================ CLASES ============================ -->
+<section class="group" id="clases">
+  <div class="group-head">
+    <h2>Diagramas de clases</h2>
+    <p>Las clases principales de cada servicio y de las piezas compartidas. <code>product-service</code> se muestra en detalle porque es la referencia que copian los demás.</p>
+  </div>
+
+  <figure class="sheet" id="d-product-cadena">
+    <div class="sheet-head"><span class="kind">Clases</span><h3>product-service · cadena del CRUD</h3></div>
+    <div class="diagram"><pre class="mermaid">
+classDiagram
+  direction TB
+  class ProductController {
+    -ProductService productService
+    -ProductRestMapper mapper
+    +create(CreateProductRequestDTO) ResponseEntity
+    +findById(Long id) ResponseEntity
+    +findAll(page, size, sort, direction) ResponseEntity
+    +search(ProductSearchFilterDTO, page, size) ResponseEntity
+    +update(Long id, UpdateProductRequestDTO) ResponseEntity
+    +delete(Long id) ResponseEntity
+  }
+  class ProductService {
+    &lt;&lt;interface&gt;&gt;
+    +create(Product) Product
+    +findById(Long) Product
+    +findAll(PageQuery) PageResult~Product~
+    +search(ProductFilter, PageQuery) PageResult~Product~
+    +update(Long, Product) Product
+    +delete(Long) void
+  }
+  class ProductServiceImpl {
+    &lt;&lt;Service&gt;&gt;
+    -ProductRepository productRepository
+    -CategoryRepository categoryRepository
+    -ProductMetrics metrics
+    -Clock clock
+    +create(Product) Product
+    +findById(Long) Product
+    +findAll(PageQuery) PageResult~Product~
+    +update(Long, Product) Product
+    +delete(Long) void
+  }
+  class ProductRepository {
+    &lt;&lt;interface&gt;&gt;
+    +save(Product) Product
+    +findById(Long) Optional~Product~
+    +findAll(PageQuery) PageResult~Product~
+    +search(ProductFilter, PageQuery) PageResult~Product~
+    +existsByName(String) boolean
+    +existsActiveByCategoryId(Long) boolean
+  }
+  class CategoryRepository {
+    &lt;&lt;interface&gt;&gt;
+    +existsById(Long) boolean
+    +findById(Long) Optional~Category~
+  }
+  class ProductRepositoryImpl {
+    &lt;&lt;Repository&gt;&gt;
+    -ProductJpaRepository jpaRepository
+    -ProductEntityMapper mapper
+    -toPageable(PageQuery) Pageable
+  }
+  class ProductJpaRepository {
+    &lt;&lt;interface&gt;&gt;
+    +findByIdAndActiveTrue(Long) Optional~ProductEntity~
+    +findAllByActiveTrue(Pageable) Page~ProductEntity~
+    +existsByNameIgnoreCase(String) boolean
+  }
+  class JpaRepository {
+    &lt;&lt;Spring Data&gt;&gt;
+  }
+  class JpaSpecificationExecutor {
+    &lt;&lt;Spring Data&gt;&gt;
+  }
+  ProductController --> ProductService : usa la interfaz
+  ProductServiceImpl ..|> ProductService : implementa
+  ProductServiceImpl --> ProductRepository : usa la interfaz
+  ProductServiceImpl --> CategoryRepository
+  ProductRepositoryImpl ..|> ProductRepository : implementa
+  ProductRepositoryImpl --> ProductJpaRepository : delega
+  ProductJpaRepository --|> JpaRepository
+  ProductJpaRepository --|> JpaSpecificationExecutor
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>El controller conoce <code>ProductService</code>, no <code>ProductServiceImpl</code>; el servicio conoce <code>ProductRepository</code>, no Spring Data.</li>
+        <li><code>ProductServiceImpl</code> lleva <code>@Transactional(readOnly = true)</code> a nivel de clase y <code>@Transactional</code> en create, update y delete.</li>
+        <li><code>ProductRepositoryImpl</code> es el único sitio donde aparecen <code>Pageable</code> y <code>Page</code>.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-product-modelo">
+    <div class="sheet-head"><span class="kind">Clases</span><h3>product-service · dominio, entidades, DTOs y mappers</h3></div>
+    <div class="diagram"><pre class="mermaid">
+classDiagram
+  direction LR
+  class CreateProductRequestDTO {
+    &lt;&lt;record · dto.request&gt;&gt;
+    +String name
+    +String description
+    +BigDecimal price
+    +int stock
+    +Long categoryId
+  }
+  class UpdateProductRequestDTO {
+    &lt;&lt;record · dto.request&gt;&gt;
+    +String name
+    +String description
+    +BigDecimal price
+    +Long version
+  }
+  class ProductResponseDTO {
+    &lt;&lt;record · dto.response&gt;&gt;
+    +Long id
+    +String name
+    +BigDecimal price
+    +int stock
+    +String categoryName
+    +Long version
+  }
+  class ProductRestMapper {
+    &lt;&lt;MapStruct&gt;&gt;
+    +toDomain(CreateProductRequestDTO) Product
+    +toDomain(UpdateProductRequestDTO) Product
+    +toResponse(Product) ProductResponseDTO
+  }
+  class Product {
+    &lt;&lt;domain.model&gt;&gt;
+    -Long id
+    -String name
+    -BigDecimal price
+    -int stock
+    -Long categoryId
+    -boolean active
+    -Long version
+    +reserveStock(int quantity) void
+    +releaseStock(int quantity) void
+    +update(name, description, price) void
+    +deactivate() void
+  }
+  class Category {
+    &lt;&lt;domain.model&gt;&gt;
+    -Long id
+    -String name
+    -boolean active
+    +deactivate() void
+  }
+  class ProductEntityMapper {
+    &lt;&lt;MapStruct&gt;&gt;
+    +toEntity(Product) ProductEntity
+    +toDomain(ProductEntity) Product
+  }
+  class ProductEntity {
+    &lt;&lt;Entity&gt;&gt;
+    -Long id
+    -String name
+    -BigDecimal price
+    -int stock
+    -CategoryEntity category
+    -boolean active
+    -Long version
+    -Instant createdAt
+    -String createdBy
+  }
+  class CategoryEntity {
+    &lt;&lt;Entity&gt;&gt;
+    -Long id
+    -String name
+    -boolean active
+  }
+  ProductRestMapper ..> CreateProductRequestDTO
+  ProductRestMapper ..> UpdateProductRequestDTO
+  ProductRestMapper ..> ProductResponseDTO
+  ProductRestMapper ..> Product
+  ProductEntityMapper ..> Product
+  ProductEntityMapper ..> ProductEntity
+  Product "0..*" --> "1" Category : categoryId
+  ProductEntity "0..*" --> "1" CategoryEntity : ManyToOne
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>Tres representaciones del mismo producto: DTO (API), modelo de dominio (negocio) y entidad JPA (base de datos). Los mappers son la frontera entre ellas.</li>
+        <li>Las reglas de negocio viven en el modelo: <code>reserveStock</code> lanza <code>InsufficientStockException</code> si no hay stock.</li>
+        <li><code>version</code> viaja en <code>UpdateProductRequestDTO</code> y en la entidad (<code>@Version</code>) para el bloqueo optimista.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-excepciones">
+    <div class="sheet-head"><span class="kind">Clases</span><h3>Jerarquía de excepciones y manejo de errores</h3></div>
+    <div class="diagram"><pre class="mermaid">
+classDiagram
+  direction TB
+  class RuntimeException
+  class DomainException {
+    &lt;&lt;abstract&gt;&gt;
+    -ErrorCode errorCode
+    -List~Object~ args
+    +getErrorCode() ErrorCode
+    +getArgs() List~Object~
+  }
+  class ErrorCode {
+    &lt;&lt;interface&gt;&gt;
+    +code() String
+    +messageKey() String
+  }
+  class CommonErrorCode {
+    &lt;&lt;enumeration&gt;&gt;
+    VALIDATION_ERROR
+    MALFORMED_REQUEST
+    RESOURCE_NOT_FOUND
+    CONCURRENT_MODIFICATION
+    RATE_LIMIT_EXCEEDED
+    SERVICE_UNAVAILABLE
+    INTERNAL_ERROR
+  }
+  class ProductErrorCode {
+    &lt;&lt;enumeration&gt;&gt;
+    PRODUCT_NOT_FOUND
+    CATEGORY_NOT_FOUND
+    CATEGORY_HAS_PRODUCTS
+    DUPLICATE_PRODUCT_NAME
+    INSUFFICIENT_STOCK
+  }
+  class ResourceNotFoundException
+  class DuplicateResourceException
+  class BusinessRuleException
+  class InvalidRequestException
+  class UnauthorizedException
+  class ForbiddenException
+  class ExternalServiceException
+  class AccountLockedException
+  class ProductNotFoundException
+  class InsufficientStockException
+  class GlobalExceptionHandler {
+    &lt;&lt;RestControllerAdvice&gt;&gt;
+    +handleDomain(DomainException, Locale) ResponseEntity
+    +handleValidation(MethodArgumentNotValidException) ResponseEntity
+    +handleOptimisticLock(ObjectOptimisticLockingFailureException) ResponseEntity
+    +handleDataIntegrity(DataIntegrityViolationException) ResponseEntity
+    +handleUnexpected(Exception) ResponseEntity
+  }
+  class ErrorCodeHttpStatusMapper {
+    +toStatus(ErrorCode) HttpStatus
+  }
+  class ErrorResponseDTO {
+    &lt;&lt;record · dto.response&gt;&gt;
+    +Instant timestamp
+    +int status
+    +String error
+    +String code
+    +String message
+    +String path
+    +String traceId
+    +List~FieldErrorDTO~ errors
+  }
+  class FieldErrorDTO {
+    &lt;&lt;record · dto.response&gt;&gt;
+    +String field
+    +String message
+  }
+  RuntimeException &lt;|-- DomainException
+  DomainException &lt;|-- ResourceNotFoundException
+  DomainException &lt;|-- DuplicateResourceException
+  DomainException &lt;|-- BusinessRuleException
+  DomainException &lt;|-- InvalidRequestException
+  DomainException &lt;|-- UnauthorizedException
+  DomainException &lt;|-- ForbiddenException
+  DomainException &lt;|-- ExternalServiceException
+  DomainException &lt;|-- AccountLockedException
+  ResourceNotFoundException &lt;|-- ProductNotFoundException
+  BusinessRuleException &lt;|-- InsufficientStockException
+  DomainException --> ErrorCode
+  ErrorCode &lt;|.. CommonErrorCode
+  ErrorCode &lt;|.. ProductErrorCode
+  GlobalExceptionHandler ..> DomainException : captura
+  GlobalExceptionHandler --> ErrorCodeHttpStatusMapper
+  GlobalExceptionHandler ..> ErrorResponseDTO : construye
+  ErrorResponseDTO *-- FieldErrorDTO
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>El dominio solo conoce <code>ErrorCode</code>; el código HTTP lo decide <code>ErrorCodeHttpStatusMapper</code> en infraestructura (404, 409, 422, 423...).</li>
+        <li>Añadir una excepción nueva = clase nueva + valor en el enum + mensaje en <code>messages_*.properties</code>; el handler no se toca.</li>
+        <li><code>handleUnexpected</code> es la red final: cualquier error de Java sale como 500 genérico, sin stack trace.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-paginacion">
+    <div class="sheet-head"><span class="kind">Clases</span><h3>Paginación: de los parámetros HTTP a <code>Page</code> y vuelta</h3></div>
+    <div class="diagram"><pre class="mermaid">
+classDiagram
+  direction LR
+  class PageQuery {
+    &lt;&lt;record · common-lib domain&gt;&gt;
+    +int page
+    +int size
+    +String sort
+    +Direction direction
+  }
+  class PageResult~T~ {
+    &lt;&lt;record · common-lib domain&gt;&gt;
+    +List~T~ content
+    +int page
+    +int size
+    +long totalElements
+    +int totalPages
+    +boolean first
+    +boolean last
+    +map(Function) PageResult
+  }
+  class PageResponseDTO~T~ {
+    &lt;&lt;record · dto.response&gt;&gt;
+    +List~T~ content
+    +int page
+    +int size
+    +long totalElements
+    +int totalPages
+    +boolean first
+    +boolean last
+  }
+  class Pageable {
+    &lt;&lt;Spring&gt;&gt;
+  }
+  class PageRequest {
+    &lt;&lt;Spring&gt;&gt;
+    +of(page, size, Sort) PageRequest
+  }
+  class Page~T~ {
+    &lt;&lt;Spring&gt;&gt;
+    +getContent() List
+    +getTotalElements() long
+    +getTotalPages() int
+    +map(Function) Page
+  }
+  class ProductController
+  class ProductRepositoryImpl
+  class ProductJpaRepository
+  PageRequest ..|> Pageable
+  ProductController ..> PageQuery : 1 crea con page, size, sort, direction
+  ProductRepositoryImpl ..> PageRequest : 2 PageQuery a PageRequest
+  ProductJpaRepository ..> Page : 3 devuelve Page de entidades
+  ProductRepositoryImpl ..> PageResult : 4 page.map a PageResult de dominio
+  ProductController ..> PageResponseDTO : 5 PageResult a PageResponseDTO
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li><code>domain</code> y <code>application</code> solo ven <code>PageQuery</code> y <code>PageResult</code>; las clases de Spring se quedan en el adaptador.</li>
+        <li>El controller valida <code>size</code> (1 a 100) y que <code>sort</code> esté en la lista blanca antes de crear el <code>PageQuery</code>.</li>
+        <li>Spring lanza dos consultas por página: la de datos (<code>LIMIT/OFFSET</code>) y la de <code>count</code> para los totales.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-auth">
+    <div class="sheet-head"><span class="kind">Clases</span><h3>auth-service · usuarios, roles y seguridad</h3></div>
+    <div class="diagram"><pre class="mermaid">
+classDiagram
+  direction TB
+  class User {
+    -Long id
+    -String username
+    -String email
+    -String passwordHash
+    -boolean enabled
+    -int failedAttempts
+    -Instant lockedUntil
+    -Set~Role~ roles
+    +registerFailedLogin(int max, Duration lock, Instant now) void
+    +resetFailedLogins() void
+    +isLocked(Instant now) boolean
+    +assignRole(Role) void
+    +removeRole(Role) void
+    +changePassword(String newHash) void
+    +disable() void
+  }
+  class Role {
+    -Long id
+    -String name
+    -Set~Permission~ permissions
+  }
+  class Permission {
+    -Long id
+    -String name
+  }
+  class PasswordHistory {
+    -Long userId
+    -String passwordHash
+    -Instant createdAt
+  }
+  class SecurityAuditLog {
+    -Long id
+    -SecurityEventType type
+    -String username
+    -String ip
+    -String userAgent
+    -String traceId
+    -Instant occurredAt
+  }
+  class SecurityEventType {
+    &lt;&lt;enumeration&gt;&gt;
+    LOGIN_SUCCESS
+    LOGIN_FAILURE
+    ACCOUNT_LOCKED
+    ACCOUNT_UNLOCKED
+    PASSWORD_CHANGED
+    ROLE_ASSIGNED
+    ROLE_REMOVED
+    TOKEN_REVOKED
+    USER_DISABLED
+  }
+  class LoginAttemptService {
+    &lt;&lt;interface&gt;&gt;
+    +onSuccess(String username) void
+    +onFailure(String username) void
+  }
+  class LoginAttemptServiceImpl {
+    +onFailure(String username) void
+  }
+  class SecurityAuditService {
+    &lt;&lt;interface&gt;&gt;
+    +record(SecurityEventType, String username, RequestInfo) void
+  }
+  class TokenRevocationService {
+    &lt;&lt;interface&gt;&gt;
+    +revoke(String jti, Instant expiresAt) void
+    +revokeAllForUser(Long userId) void
+    +isRevoked(String jti) boolean
+  }
+  class RevokedTokenRepository {
+    &lt;&lt;interface&gt;&gt;
+  }
+  class RedisRevokedTokenRepositoryImpl
+  class JwtTokenCustomizer {
+    &lt;&lt;OAuth2TokenCustomizer&gt;&gt;
+    +customize(JwtEncodingContext) void
+  }
+  User "*" --> "*" Role
+  Role "*" --> "*" Permission
+  User "1" --> "0..*" PasswordHistory
+  SecurityAuditLog --> SecurityEventType
+  LoginAttemptServiceImpl ..|> LoginAttemptService
+  LoginAttemptServiceImpl --> SecurityAuditService : REQUIRES_NEW
+  LoginAttemptServiceImpl ..> User
+  TokenRevocationService --> RevokedTokenRepository
+  RedisRevokedTokenRepositoryImpl ..|> RevokedTokenRepository
+  JwtTokenCustomizer ..> Role : añade roles y permisos al JWT
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>La lógica del bloqueo está en el modelo (<code>registerFailedLogin</code>, <code>isLocked</code>) y recibe <code>now</code> para poder probarla con un <code>Clock</code> fijo.</li>
+        <li>La auditoría usa <code>REQUIRES_NEW</code>: se guarda aunque la operación principal haga rollback.</li>
+        <li>Los permisos tienen nombres como <code>product:write</code> y acaban como claims en el JWT gracias a <code>JwtTokenCustomizer</code>.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-customer">
+    <div class="sheet-head"><span class="kind">Clases</span><h3>customer-service · clientes y direcciones</h3></div>
+    <div class="diagram"><pre class="mermaid">
+classDiagram
+  direction LR
+  class Customer {
+    -Long id
+    -Long userId
+    -String firstName
+    -String lastName
+    -String email
+    -String phone
+    -boolean active
+    -Long version
+    -List~Address~ addresses
+    +addAddress(Address) void
+    +removeAddress(Long addressId) void
+    +setMainAddress(Long addressId) void
+    +deactivate() void
+  }
+  class Address {
+    -Long id
+    -String street
+    -String city
+    -String postalCode
+    -String country
+    -boolean main
+  }
+  class CustomerService {
+    &lt;&lt;interface&gt;&gt;
+    +create(Customer) Customer
+    +createFromUser(UserRegistration) Customer
+    +findById(Long) Customer
+    +findByUserId(Long) Customer
+    +findAll(PageQuery) PageResult~Customer~
+    +update(Long, Customer) Customer
+    +delete(Long) void
+  }
+  class CustomerServiceImpl
+  class AddressService {
+    &lt;&lt;interface&gt;&gt;
+    +add(Long customerId, Address) Address
+    +update(Long customerId, Long addressId, Address) Address
+    +delete(Long customerId, Long addressId) void
+  }
+  class AuthEventsListener {
+    &lt;&lt;RabbitListener&gt;&gt;
+    +onUserRegistered(EventEnvelopeDTO) void
+    +onUserDisabled(EventEnvelopeDTO) void
+  }
+  class ProcessedEventRepository {
+    &lt;&lt;interface&gt;&gt;
+    +exists(UUID eventId) boolean
+    +save(UUID eventId) void
+  }
+  Customer "1" *-- "0..*" Address
+  CustomerServiceImpl ..|> CustomerService
+  CustomerServiceImpl --> ProcessedEventRepository : idempotencia
+  AuthEventsListener --> CustomerService
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>Composición: una dirección no existe sin su cliente (cascada y <code>orphanRemoval</code> en la entidad JPA).</li>
+        <li>El cliente se crea solo al registrarse un usuario, a partir del evento <code>UserRegistered</code>.</li>
+        <li>La comprobación de idempotencia y el alta van en la misma transacción.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-order">
+    <div class="sheet-head"><span class="kind">Clases</span><h3>order-service · pedidos, saga y clientes Feign</h3></div>
+    <div class="diagram"><pre class="mermaid">
+classDiagram
+  direction TB
+  class Order {
+    -Long id
+    -Long customerId
+    -OrderStatus status
+    -List~OrderItem~ items
+    -BigDecimal total
+    -String rejectionReason
+    -Long version
+    +create(Long customerId, List~OrderItem~ items) Order
+    +confirm() void
+    +reject(String reason) void
+    +cancel() void
+    +calculateTotal() BigDecimal
+  }
+  class OrderItem {
+    -Long productId
+    -String productName
+    -BigDecimal unitPrice
+    -int quantity
+    +subtotal() BigDecimal
+  }
+  class OrderStatus {
+    &lt;&lt;enumeration&gt;&gt;
+    PENDING
+    CONFIRMED
+    REJECTED
+    CANCELLED
+  }
+  class OrderService {
+    &lt;&lt;interface&gt;&gt;
+    +create(Order) Order
+    +findById(Long) Order
+    +findAll(PageQuery) PageResult~Order~
+    +findByCustomer(Long, PageQuery) PageResult~Order~
+    +update(Long, Order) Order
+    +cancel(Long) Order
+    +delete(Long) void
+  }
+  class OrderSagaService {
+    &lt;&lt;interface&gt;&gt;
+    +onStockReserved(Long orderId, UUID eventId) void
+    +onStockReservationFailed(Long orderId, String reason, UUID eventId) void
+  }
+  class OrderServiceImpl
+  class ProductClient {
+    &lt;&lt;interface · application.client&gt;&gt;
+    +findByIds(List~Long~ ids) List~ProductSummary~
+  }
+  class CustomerClient {
+    &lt;&lt;interface · application.client&gt;&gt;
+    +exists(Long customerId) boolean
+  }
+  class ProductClientImpl {
+    -ProductFeignClient feign
+  }
+  class ProductFeignClient {
+    &lt;&lt;FeignClient&gt;&gt;
+    +findByIds(List~Long~ ids) List~ProductClientResponseDTO~
+  }
+  class OrderEventPublisher {
+    &lt;&lt;interface&gt;&gt;
+    +publish(OrderCreatedEvent) void
+    +publish(OrderCancelledEvent) void
+  }
+  class StockEventsListener {
+    &lt;&lt;RabbitListener&gt;&gt;
+  }
+  Order "1" *-- "1..*" OrderItem
+  Order --> OrderStatus
+  OrderServiceImpl ..|> OrderService
+  OrderServiceImpl ..|> OrderSagaService
+  OrderServiceImpl --> ProductClient
+  OrderServiceImpl --> CustomerClient
+  OrderServiceImpl --> OrderEventPublisher
+  ProductClientImpl ..|> ProductClient
+  ProductClientImpl --> ProductFeignClient
+  StockEventsListener --> OrderSagaService
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li><code>OrderServiceImpl</code> usa las interfaces <code>ProductClient</code> y <code>CustomerClient</code>; Feign queda escondido en <code>client.impl</code>.</li>
+        <li>Los cambios de estado son métodos del modelo (<code>confirm</code>, <code>reject</code>, <code>cancel</code>) que validan la transición.</li>
+        <li><code>OrderItem</code> guarda nombre y precio copiados en el momento del pedido: si el producto cambia después, el pedido no.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-mensajeria-clases">
+    <div class="sheet-head"><span class="kind">Clases</span><h3>Mensajería: evento de dominio, outbox y MessageDTO</h3></div>
+    <div class="diagram"><pre class="mermaid">
+classDiagram
+  direction LR
+  class OrderCreatedEvent {
+    &lt;&lt;record · domain.event&gt;&gt;
+    +Long orderId
+    +Long customerId
+    +List~OrderLine~ lines
+    +Instant occurredAt
+  }
+  class OrderEventPublisher {
+    &lt;&lt;interface · domain.messaging&gt;&gt;
+    +publish(OrderCreatedEvent) void
+  }
+  class OrderEventPublisherImpl {
+    -OutboxEventJpaRepository outbox
+    -IntegrationEventMapper mapper
+    +publish(OrderCreatedEvent) void
+  }
+  class IntegrationEventMapper {
+    +toMessage(OrderCreatedEvent) EventEnvelopeDTO
+  }
+  class OutboxEventEntity {
+    &lt;&lt;Entity&gt;&gt;
+    -UUID id
+    -String aggregateType
+    -String aggregateId
+    -String exchange
+    -String routingKey
+    -String payload
+    -OutboxStatus status
+    -Instant createdAt
+    -Instant sentAt
+  }
+  class OutboxPublisher {
+    &lt;&lt;Scheduled · SchedulerLock&gt;&gt;
+    -RabbitTemplate rabbitTemplate
+    +publishPending() void
+  }
+  class EventEnvelopeDTO~T~ {
+    &lt;&lt;record · events-contract&gt;&gt;
+    +UUID eventId
+    +String eventType
+    +int version
+    +Instant occurredAt
+    +String source
+    +T payload
+  }
+  class OrderCreatedMessageDTO {
+    &lt;&lt;record · events-contract&gt;&gt;
+    +Long orderId
+    +Long customerId
+    +List~OrderLineMessageDTO~ lines
+  }
+  class RabbitTemplate {
+    &lt;&lt;Spring AMQP&gt;&gt;
+  }
+  OrderEventPublisherImpl ..|> OrderEventPublisher
+  OrderEventPublisher ..> OrderCreatedEvent
+  OrderEventPublisherImpl --> IntegrationEventMapper
+  IntegrationEventMapper ..> EventEnvelopeDTO
+  EventEnvelopeDTO *-- OrderCreatedMessageDTO : payload
+  OrderEventPublisherImpl ..> OutboxEventEntity : guarda en la misma transacción
+  OutboxPublisher ..> OutboxEventEntity : lee pendientes
+  OutboxPublisher --> RabbitTemplate : envía
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>El servicio crea un <code>OrderCreatedEvent</code> (interno); el mapper lo convierte en <code>OrderCreatedMessageDTO</code> (contrato público).</li>
+        <li><code>OrderEventPublisherImpl</code> no envía nada a RabbitMQ: guarda en el outbox con <code>Propagation.MANDATORY</code>.</li>
+        <li><code>OutboxPublisher</code> es el único que habla con RabbitMQ, y ShedLock garantiza que solo lo ejecuta una réplica.</li>
+      </ul>
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ============================ CRUD ============================ -->
+<section class="group" id="crud">
+  <div class="group-head">
+    <h2>Secuencias del CRUD</h2>
+    <p>Las cinco operaciones de <code>product-service</code> de principio a fin. Los demás servicios siguen exactamente el mismo recorrido.</p>
+  </div>
+
+  <figure class="sheet" id="d-post">
+    <div class="sheet-head"><span class="kind">Secuencia</span><h3>POST · crear un producto</h3></div>
+    <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  actor C as Cliente
+  participant GW as api-gateway
+  participant PC as ProductController
+  participant PS as ProductServiceImpl
+  participant CR as CategoryRepository
+  participant PR as ProductRepositoryImpl
+  participant DB as PostgreSQL
+  C->>GW: POST /api/v1/products (Bearer JWT, CreateProductRequestDTO)
+  GW->>GW: valida JWT, rate limiting, genera traceId
+  GW->>PC: reenvía la petición (TokenRelay)
+  PC->>PC: @PreAuthorize product:write y @Valid
+  alt datos inválidos
+    PC-->>C: 400 VALIDATION_ERROR con la lista errors
+  end
+  PC->>PS: create(product)
+  Note over PS,DB: @Transactional · BEGIN
+  PS->>CR: existsById(categoryId)
+  alt la categoría no existe
+    PS-->>PC: CategoryNotFoundException
+    Note over PS,DB: ROLLBACK
+    PC-->>C: 404 CATEGORY_NOT_FOUND
+  end
+  PS->>PR: existsByName(name)
+  alt nombre duplicado
+    PS-->>PC: DuplicateResourceException
+    PC-->>C: 409 DUPLICATE_PRODUCT_NAME
+  end
+  PS->>PR: save(product)
+  PR->>DB: INSERT INTO products ... (version 0, created_by del JWT)
+  Note over PS,DB: COMMIT
+  PS-->>PC: Product
+  PC-->>GW: 201 Created, Location /api/v1/products/42
+  GW-->>C: 201 + ProductResponseDTO + X-Trace-Id
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>Validación en dos niveles: formato en el controller (<code>@Valid</code>) y reglas de negocio en el servicio.</li>
+        <li>Cualquier excepción dentro del método <code>@Transactional</code> provoca rollback: no queda nada a medias.</li>
+        <li>La respuesta es 201 con la cabecera <code>Location</code> apuntando al recurso nuevo.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-get-id">
+    <div class="sheet-head"><span class="kind">Secuencia</span><h3>GET · obtener un producto por id</h3></div>
+    <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  actor C as Cliente
+  participant PC as ProductController
+  participant PS as ProductServiceImpl
+  participant PR as ProductRepositoryImpl
+  participant JPA as ProductJpaRepository
+  participant DB as PostgreSQL
+  C->>PC: GET /api/v1/products/25 (Accept-Language en)
+  PC->>PS: findById(25)
+  Note over PS,DB: @Transactional(readOnly = true)
+  PS->>PR: findById(25)
+  PR->>JPA: findByIdAndActiveTrue(25)
+  JPA->>DB: SELECT ... WHERE id = 25 AND active = true
+  alt existe
+    JPA-->>PR: Optional con ProductEntity
+    PR-->>PS: Optional con Product (vía ProductEntityMapper)
+    PS-->>PC: Product
+    PC-->>C: 200 ProductResponseDTO
+  else no existe o está borrado
+    JPA-->>PR: Optional vacío
+    PS-->>PC: ProductNotFoundException(PRODUCT_NOT_FOUND, 25)
+    PC-->>C: 404 Product with id 25 not found
+  end
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li><code>readOnly = true</code>: Hibernate no revisa cambios en las entidades al terminar y la operación es más ligera.</li>
+        <li>Un producto con <code>active = false</code> se trata como inexistente (404).</li>
+        <li>El mensaje sale en inglés porque la petición trae <code>Accept-Language: en</code>; el campo <code>code</code> no cambia.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-get-page">
+    <div class="sheet-head"><span class="kind">Secuencia</span><h3>GET paginado · listar productos con <code>Page</code></h3></div>
+    <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  actor C as Cliente
+  participant PC as ProductController
+  participant PS as ProductServiceImpl
+  participant PR as ProductRepositoryImpl
+  participant JPA as ProductJpaRepository
+  participant DB as PostgreSQL
+  C->>PC: GET /api/v1/products?page=0&amp;size=10&amp;sort=name&amp;direction=ASC
+  PC->>PC: valida size entre 1 y 100 y sort en la lista blanca
+  alt sort o size inválido
+    PC-->>C: 400 INVALID_PAGINATION
+  end
+  PC->>PS: findAll(PageQuery 0, 10, name, ASC)
+  Note over PS,DB: @Transactional(readOnly = true)
+  PS->>PR: findAll(pageQuery)
+  PR->>PR: PageRequest.of(0, 10, Sort.by(ASC, name))
+  PR->>JPA: findAllByActiveTrue(pageable)
+  JPA->>DB: SELECT ... ORDER BY name LIMIT 10 OFFSET 0
+  JPA->>DB: SELECT count(*) ... WHERE active = true
+  JPA-->>PR: Page de ProductEntity (57 elementos, 6 páginas)
+  PR->>PR: page.map(mapper::toDomain) y conversión a PageResult
+  PR-->>PS: PageResult de Product
+  PS-->>PC: PageResult de Product
+  PC->>PC: PageResult a PageResponseDTO de ProductResponseDTO
+  PC-->>C: 200 content, page 0, size 10, totalElements 57, totalPages 6
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>La conversión <code>PageQuery → PageRequest</code> y <code>Page → PageResult</code> ocurre solo en <code>ProductRepositoryImpl</code>.</li>
+        <li>Validar <code>sort</code> evita la <code>PropertyReferenceException</code> de Spring y devuelve un 400 controlado.</li>
+        <li>Con <code>Specification</code> (búsqueda con filtros) el recorrido es el mismo, cambiando <code>findAllByActiveTrue</code> por <code>findAll(spec, pageable)</code>.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-put">
+    <div class="sheet-head"><span class="kind">Secuencia</span><h3>PUT · actualizar con bloqueo optimista</h3></div>
+    <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  actor A as Cliente A
+  actor B as Cliente B
+  participant PC as ProductController
+  participant PS as ProductServiceImpl
+  participant DB as PostgreSQL
+  A->>PC: GET /products/42
+  PC-->>A: 200 (version 3)
+  B->>PC: GET /products/42
+  PC-->>B: 200 (version 3)
+  B->>PC: PUT /products/42 (price 19.99, version 3)
+  PC->>PS: update(42, product)
+  Note over PS,DB: @Transactional · BEGIN
+  PS->>DB: UPDATE products SET price = 19.99, version = 4 WHERE id = 42 AND version = 3
+  DB-->>PS: 1 fila actualizada
+  Note over PS,DB: COMMIT
+  PC-->>B: 200 ProductResponseDTO (version 4)
+  A->>PC: PUT /products/42 (price 17.50, version 3)
+  PC->>PS: update(42, product)
+  Note over PS,DB: @Transactional · BEGIN
+  PS->>DB: UPDATE ... WHERE id = 42 AND version = 3
+  DB-->>PS: 0 filas actualizadas
+  PS-->>PC: ObjectOptimisticLockingFailureException
+  Note over PS,DB: ROLLBACK
+  PC-->>A: 409 CONCURRENT_MODIFICATION (recarga el producto y vuelve a intentarlo)
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>Sin <code>@Version</code>, el cambio de A machacaría el de B sin que nadie se enterase (<em>lost update</em>).</li>
+        <li>El cliente envía la <code>version</code> que leyó; si alguien la cambió antes, recibe 409 en lugar de sobrescribir.</li>
+        <li>Si el producto no existe, el servicio lanza <code>ProductNotFoundException</code> antes del UPDATE (404).</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-delete">
+    <div class="sheet-head"><span class="kind">Secuencia</span><h3>DELETE · borrado lógico de una categoría</h3></div>
+    <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  actor C as Administrador
+  participant CC as CategoryController
+  participant CS as CategoryServiceImpl
+  participant CR as CategoryRepository
+  participant PR as ProductRepository
+  participant DB as PostgreSQL
+  C->>CC: DELETE /api/v1/categories/3
+  CC->>CC: @PreAuthorize hasRole ADMIN
+  alt no es ADMIN
+    CC-->>C: 403 FORBIDDEN
+  end
+  CC->>CS: delete(3)
+  Note over CS,DB: @Transactional · BEGIN
+  CS->>CR: findById(3)
+  alt no existe o ya está borrada
+    CS-->>CC: CategoryNotFoundException
+    CC-->>C: 404 CATEGORY_NOT_FOUND
+  end
+  CS->>PR: existsActiveByCategoryId(3)
+  alt tiene productos activos
+    CS-->>CC: CategoryHasProductsException
+    Note over CS,DB: ROLLBACK
+    CC-->>C: 409 CATEGORY_HAS_PRODUCTS
+  end
+  CS->>CS: category.deactivate()
+  CS->>CR: save(category)
+  CR->>DB: UPDATE categories SET active = false, version = version + 1
+  Note over CS,DB: COMMIT
+  CC-->>C: 204 No Content
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>Es un borrado lógico: un UPDATE de <code>active</code>, nunca un DELETE físico. Los datos siguen para auditoría.</li>
+        <li>Se comprueban las dependencias activas antes de borrar: 409 si la categoría aún tiene productos.</li>
+        <li>Respuesta 204 sin cuerpo; un segundo DELETE sobre la misma categoría devuelve 404.</li>
+      </ul>
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ============================ SEGURIDAD ============================ -->
+<section class="group" id="seguridad">
+  <div class="group-head">
+    <h2>Seguridad</h2>
+    <p>Cómo se obtiene y se valida un token OAuth2, y cómo funciona el bloqueo de cuentas con auditoría.</p>
+  </div>
+
+  <figure class="sheet" id="d-oauth">
+    <div class="sheet-head"><span class="kind">Secuencia</span><h3>OAuth2 · authorization code con PKCE y validación del token</h3></div>
+    <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  actor U as Usuario
+  participant F as Frontend
+  participant AS as auth-service
+  participant GW as api-gateway
+  participant R as Redis
+  participant PS as product-service
+  F->>F: genera code_verifier y code_challenge (PKCE)
+  F->>AS: GET /oauth2/authorize?response_type=code&amp;client_id=web&amp;code_challenge=...
+  AS-->>U: formulario de login
+  U->>AS: usuario y contraseña
+  AS->>AS: comprueba bloqueo, valida con BCrypt, registra LOGIN_SUCCESS
+  AS-->>F: 302 redirect_uri?code=abc123
+  F->>AS: POST /oauth2/token (code + code_verifier)
+  AS->>AS: JwtTokenCustomizer añade roles y permisos
+  AS-->>F: access_token JWT (15 min) + refresh_token
+  F->>GW: GET /api/v1/products (Authorization Bearer)
+  GW->>AS: GET /oauth2/jwks (se cachea)
+  GW->>GW: valida firma RSA y expiración
+  GW->>R: ¿el jti está revocado?
+  alt token revocado o caducado
+    GW-->>F: 401 INVALID_TOKEN
+  end
+  GW->>PS: reenvía con el token (TokenRelay)
+  PS->>PS: valida el JWT, JwtAuthenticationConverter, @PreAuthorize
+  alt sin el permiso necesario
+    PS-->>F: 403 FORBIDDEN (RestAccessDeniedHandler)
+  end
+  PS-->>F: 200
+  Note over F,AS: Al caducar, POST /oauth2/token con grant refresh_token. El refresh token rota en cada uso.
+  Note over GW,PS: Entre servicios (order a product) se usa grant client_credentials o se propaga el token del usuario
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>El 302 es uno de los pocos 3xx del sistema: es parte del flujo OAuth2, no un error.</li>
+        <li>Los servicios validan el JWT por su cuenta con la clave pública (JWKS): no llaman a auth-service en cada petición.</li>
+        <li>La revocación se comprueba en Redis por <code>jti</code>, porque un JWT por sí solo no se puede invalidar antes de que caduque.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-login">
+    <div class="sheet-head"><span class="kind">Secuencia</span><h3>Login fallido, bloqueo de cuenta y auditoría</h3></div>
+    <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  actor U as Usuario
+  participant AS as Spring Security
+  participant LA as LoginAttemptServiceImpl
+  participant UR as UserRepository
+  participant SA as SecurityAuditServiceImpl
+  participant OB as outbox_event
+  participant DB as auth_db
+  U->>AS: login con contraseña incorrecta
+  AS->>LA: onFailure(alice)
+  Note over LA,DB: @Transactional(noRollbackFor = InvalidCredentialsException)
+  LA->>UR: findByUsername(alice)
+  LA->>LA: user.registerFailedLogin(5, 15 min, now)
+  LA->>UR: save(user) · failed_attempts + 1
+  alt llega a 5 intentos
+    LA->>LA: lockedUntil = now + 15 min
+    LA->>SA: record(ACCOUNT_LOCKED)
+    Note over SA,DB: REQUIRES_NEW · transacción propia
+    SA->>DB: INSERT security_audit_log
+    LA->>OB: INSERT AccountLockedEvent
+    AS-->>U: 423 ACCOUNT_LOCKED
+  else menos de 5
+    LA->>SA: record(LOGIN_FAILURE)
+    Note over SA,DB: REQUIRES_NEW · transacción propia
+    SA->>DB: INSERT security_audit_log
+    AS-->>U: 401 INVALID_CREDENTIALS
+  end
+  Note over LA,DB: COMMIT del contador aunque se lance la excepción
+  U->>AS: login correcto (cuenta no bloqueada)
+  AS->>LA: onSuccess(alice)
+  LA->>UR: resetFailedLogins y save
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li><code>noRollbackFor</code>: la excepción de credenciales se lanza igual, pero el contador sí se guarda.</li>
+        <li><code>REQUIRES_NEW</code>: el registro de auditoría sobrevive aunque la transacción principal falle.</li>
+        <li>El desbloqueo automático lo hace una tarea <code>@Scheduled</code> con ShedLock, o un ADMIN con <code>PUT /users/{id}/unlock</code>.</li>
+      </ul>
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ============================ MENSAJERÍA ============================ -->
+<section class="group" id="mensajeria">
+  <div class="group-head">
+    <h2>Mensajería y saga</h2>
+    <p>Los flujos asíncronos con RabbitMQ: alta de cliente, saga de pedidos, compensación y el publicador del outbox con varias réplicas.</p>
+  </div>
+
+  <figure class="sheet" id="d-registro">
+    <div class="sheet-head"><span class="kind">Secuencia</span><h3>Registro de usuario y alta automática de cliente</h3></div>
+    <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  actor U as Usuario
+  participant RS as RegistrationServiceImpl (auth)
+  participant ADB as auth_db
+  participant OP as OutboxPublisher (auth)
+  participant MQ as RabbitMQ
+  participant AL as AuthEventsListener (customer)
+  participant CS as CustomerServiceImpl
+  participant CDB as customer_db
+  U->>RS: POST /auth/register
+  Note over RS,ADB: @Transactional
+  RS->>ADB: INSERT users, user_roles (USER), password_history
+  RS->>ADB: INSERT outbox_event (user.registered)
+  RS-->>U: 201 Created
+  OP->>ADB: lee eventos pendientes
+  OP->>MQ: publica en auth.events con routing key user.registered
+  MQ->>AL: cola customer-service.user-registered
+  AL->>CS: createFromUser(userId, email, eventId)
+  Note over CS,CDB: @Transactional
+  CS->>CDB: ¿existe processed_event con este eventId?
+  alt ya procesado (mensaje duplicado)
+    CS-->>AL: se ignora
+  else nuevo
+    CS->>CDB: INSERT customers + INSERT processed_event
+  end
+  AL-->>MQ: ACK
+  opt fallo temporal (base de datos caída)
+    MQ->>AL: 3 reintentos con backoff 1 s, 2 s, 4 s
+    MQ->>MQ: después, a customer-service.user-registered.dlq
+  end
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>El usuario recibe el 201 sin esperar a customer-service: es consistencia eventual.</li>
+        <li>RabbitMQ entrega "al menos una vez", por eso la tabla <code>processed_event</code> evita crear el cliente dos veces.</li>
+        <li>Los mensajes que fallan siempre acaban en la DLQ, donde un ADMIN puede revisarlos y reenviarlos.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-saga">
+    <div class="sheet-head"><span class="kind">Secuencia</span><h3>Saga de creación de pedido y reserva de stock</h3></div>
+    <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  actor C as Cliente
+  participant OS as OrderServiceImpl
+  participant CL as Product y Customer Client
+  participant ODB as order_db
+  participant MQ as RabbitMQ
+  participant SS as StockServiceImpl (product)
+  participant LK as Redis (lock)
+  participant PDB as product_db
+  participant SL as StockEventsListener (order)
+  C->>OS: POST /api/v1/orders
+  OS->>CL: ¿existe el cliente? datos y precios de los productos (Feign)
+  alt cliente o producto inexistente
+    OS-->>C: 404 o 422
+  else servicio caído (circuit breaker abierto)
+    OS-->>C: 503 SERVICE_UNAVAILABLE
+  end
+  Note over OS,ODB: @Transactional(timeout = 5) · las llamadas Feign quedan fuera
+  OS->>ODB: INSERT orders (PENDING) + order_items
+  OS->>ODB: INSERT outbox_event (order.created)
+  Note over OS,ODB: COMMIT
+  OS-->>C: 201 Created (status PENDING)
+  ODB-->>MQ: OutboxPublisher publica order.created
+  MQ->>SS: OrderCreatedMessageDTO
+  SS->>LK: tryLock MultiLock product:1 y product:5 (ordenados por id)
+  Note over SS,PDB: TransactionTemplate · BEGIN (después del lock)
+  SS->>PDB: ¿processed_event? (idempotencia)
+  alt hay stock de todas las líneas
+    SS->>PDB: UPDATE stock de cada producto
+    SS->>PDB: INSERT processed_event + outbox (stock.reserved)
+  else falta stock en alguna línea
+    SS->>PDB: sin cambios en el stock
+    SS->>PDB: INSERT processed_event + outbox (stock.reservation-failed)
+  end
+  Note over SS,PDB: COMMIT
+  SS->>LK: unlock (en el finally)
+  PDB-->>MQ: OutboxPublisher de product publica la respuesta
+  MQ->>SL: StockReservedMessageDTO o StockReservationFailedMessageDTO
+  SL->>OS: onStockReserved u onStockReservationFailed
+  OS->>ODB: order.confirm() a CONFIRMED u order.reject(reason) a REJECTED
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>Saga por coreografía: no hay un orquestador central; cada servicio reacciona a los eventos del otro.</li>
+        <li>Orden lock, transacción, commit, unlock: así ninguna réplica lee el stock antes de que se confirme el cambio.</li>
+        <li>Las llamadas Feign van antes de abrir la transacción para no tener una conexión a la base de datos bloqueada esperando a la red.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-cancel">
+    <div class="sheet-head"><span class="kind">Secuencia</span><h3>Cancelación de pedido y liberación de stock (compensación)</h3></div>
+    <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  actor C as Cliente
+  participant OS as OrderServiceImpl
+  participant ODB as order_db
+  participant MQ as RabbitMQ
+  participant SS as StockServiceImpl (product)
+  participant LK as Redis (lock)
+  participant PDB as product_db
+  C->>OS: PUT /api/v1/orders/7/cancel
+  Note over OS,ODB: @Transactional
+  OS->>ODB: findById(7)
+  alt el pedido no está CONFIRMED
+    OS-->>C: 422 ORDER_NOT_CANCELLABLE
+  end
+  OS->>OS: order.cancel()
+  OS->>ODB: UPDATE orders SET status = CANCELLED
+  OS->>ODB: INSERT outbox_event (order.cancelled)
+  Note over OS,ODB: COMMIT
+  OS-->>C: 200 (status CANCELLED)
+  ODB-->>MQ: OutboxPublisher publica order.cancelled
+  MQ->>SS: OrderCancelledMessageDTO
+  SS->>LK: tryLock de los productos del pedido
+  Note over SS,PDB: TransactionTemplate
+  SS->>PDB: UPDATE stock = stock + cantidad
+  SS->>PDB: INSERT processed_event + outbox (stock.released)
+  SS->>LK: unlock
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>En una saga no hay rollback global: se deshace con una acción contraria, la <em>compensación</em> (devolver el stock).</li>
+        <li>Solo se cancelan pedidos <code>CONFIRMED</code>; un <code>PENDING</code> tiene la saga en curso y se rechaza con 422.</li>
+        <li>El cambio de estado y el evento se guardan juntos: o pasan las dos cosas o ninguna.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-outbox">
+    <div class="sheet-head"><span class="kind">Secuencia</span><h3>Publicador del outbox con ShedLock y dos réplicas</h3></div>
+    <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant R1 as order-service réplica 1
+  participant R2 as order-service réplica 2
+  participant SH as tabla shedlock
+  participant OB as tabla outbox_event
+  participant MQ as RabbitMQ
+  par cada 5 segundos en las dos réplicas
+    R1->>SH: UPDATE shedlock SET lock_until = now + 30 s WHERE name = outboxPublisher AND lock_until &lt;= now
+    SH-->>R1: 1 fila · lock conseguido
+  and
+    R2->>SH: el mismo UPDATE
+    SH-->>R2: 0 filas · se salta esta ejecución
+  end
+  R1->>OB: SELECT ... WHERE status = PENDING LIMIT 100 FOR UPDATE SKIP LOCKED
+  loop por cada evento del lote
+    R1->>MQ: publish (exchange y routing key del evento)
+    alt publisher confirm OK
+      MQ-->>R1: ack
+      R1->>OB: UPDATE status = SENT, sent_at = now
+    else RabbitMQ no responde
+      R1->>OB: se queda PENDING y se reintenta en la siguiente ejecución
+    end
+  end
+  R1->>SH: libera el lock (respetando lockAtLeastFor)
+  Note over R1,R2: Si R1 muere con el lock, lockAtMostFor lo libera a los 30 s y R2 toma el relevo
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>Sin ShedLock, cada réplica publicaría los mismos eventos: duplicados multiplicados por el número de réplicas.</li>
+        <li><code>FOR UPDATE SKIP LOCKED</code> es la segunda protección: dos procesos nunca cogen las mismas filas.</li>
+        <li>Si RabbitMQ cae, los eventos esperan en la tabla; no se pierde nada.</li>
+      </ul>
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ============================ ERRORES ============================ -->
+<section class="group" id="errores">
+  <div class="group-head">
+    <h2>Gestión de errores</h2>
+    <p>El recorrido de una excepción hasta la respuesta JSON, con traducción e identificador de traza.</p>
+  </div>
+
+  <figure class="sheet" id="d-error-flow">
+    <div class="sheet-head"><span class="kind">Secuencia</span><h3>De la excepción a <code>ErrorResponseDTO</code></h3></div>
+    <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  actor C as Cliente
+  participant SF as Filtros de Spring Security
+  participant PC as ProductController
+  participant PS as ProductServiceImpl
+  participant H as GlobalExceptionHandler
+  participant M as ErrorCodeHttpStatusMapper
+  participant MS as MessageSource
+  participant L as Log (Loki)
+  C->>SF: GET /api/v1/products/25 (Accept-Language en)
+  alt sin token o token inválido
+    SF-->>C: 401 vía RestAuthenticationEntryPoint (mismo formato JSON)
+  end
+  SF->>PC: petición autenticada
+  PC->>PS: findById(25)
+  PS-->>PC: throw ProductNotFoundException(PRODUCT_NOT_FOUND, 25)
+  PC-->>H: la excepción sube hasta el handler
+  H->>M: toStatus(PRODUCT_NOT_FOUND)
+  M-->>H: 404 NOT_FOUND
+  H->>MS: getMessage(error.PRODUCT_NOT_FOUND, args 25, locale en)
+  MS-->>H: Product with id 25 not found
+  H->>L: WARN con traceId (sin stack trace en los 4xx)
+  H-->>C: 404 ErrorResponseDTO (code, message, path, traceId)
+  alt excepción inesperada (NullPointerException, error de SQL...)
+    H->>L: ERROR con stack trace completo y traceId
+    H-->>C: 500 INTERNAL_ERROR Internal server error (sin detalles de Java)
+  end
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>Los errores de los filtros de seguridad no llegan al <code>@RestControllerAdvice</code>: por eso hay un entry point y un access denied handler propios.</li>
+        <li>El cliente recibe un mensaje traducido y seguro; el detalle técnico solo va al log.</li>
+        <li>Con el <code>traceId</code> de la respuesta se busca la traza en Zipkin y los logs en Loki.</li>
+      </ul>
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ============================ ESTADOS ============================ -->
+<section class="group" id="estados">
+  <div class="group-head">
+    <h2>Diagramas de estados</h2>
+    <p>Los ciclos de vida que controlan las reglas de negocio de los pedidos y de las cuentas de usuario.</p>
+  </div>
+
+  <figure class="sheet" id="d-estado-pedido">
+    <div class="sheet-head"><span class="kind">Estados</span><h3>Ciclo de vida de un pedido</h3></div>
+    <div class="diagram"><pre class="mermaid">
+stateDiagram-v2
+  direction LR
+  [*] --> PENDING : POST /orders
+  PENDING --> CONFIRMED : StockReserved
+  PENDING --> REJECTED : StockReservationFailed
+  CONFIRMED --> CANCELLED : cancelar pedido, libera el stock
+  REJECTED --> [*]
+  CANCELLED --> [*]
+  CONFIRMED --> [*]
+  note right of PENDING
+    Saga en curso, esperando
+    la respuesta de product-service.
+    No se puede cancelar (422).
+  end note
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>Cada transición es un método del modelo <code>Order</code>; una transición no permitida lanza <code>BusinessRuleException</code> (422).</li>
+        <li><code>REJECTED</code> y <code>CANCELLED</code> son estados finales.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-estado-cuenta">
+    <div class="sheet-head"><span class="kind">Estados</span><h3>Ciclo de vida de una cuenta de usuario</h3></div>
+    <div class="diagram"><pre class="mermaid">
+stateDiagram-v2
+  direction LR
+  [*] --> ACTIVE : registro
+  ACTIVE --> LOCKED : 5 intentos fallidos
+  LOCKED --> ACTIVE : pasan 15 min o desbloqueo de ADMIN
+  ACTIVE --> DISABLED : ADMIN desactiva, se revocan sus tokens
+  LOCKED --> DISABLED : ADMIN desactiva
+  DISABLED --> ACTIVE : ADMIN reactiva
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li><code>LOCKED</code> devuelve 423 al intentar entrar; <code>DISABLED</code> devuelve 401 y además invalida los tokens activos.</li>
+        <li>Cada cambio de estado deja un registro en <code>security_audit_log</code>.</li>
+      </ul>
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ============================ DATOS ============================ -->
+<section class="group" id="datos">
+  <div class="group-head">
+    <h2>Modelo de datos</h2>
+    <p>Las tablas de cada base de datos tal como las crean las migraciones de Flyway. Las relaciones entre servicios distintos no son claves foráneas, porque están en bases de datos diferentes.</p>
+  </div>
+
+  <figure class="sheet" id="d-er-auth">
+    <div class="sheet-head"><span class="kind">Entidad-relación</span><h3>auth_db</h3></div>
+    <div class="diagram"><pre class="mermaid">
+erDiagram
+  USERS ||--o{ USER_ROLES : tiene
+  ROLES ||--o{ USER_ROLES : asignado
+  ROLES ||--o{ ROLE_PERMISSIONS : incluye
+  PERMISSIONS ||--o{ ROLE_PERMISSIONS : pertenece
+  USERS ||--o{ PASSWORD_HISTORY : guarda
+  USERS {
+    bigint id PK
+    varchar username UK
+    varchar email UK
+    varchar password_hash
+    boolean enabled
+    int failed_attempts
+    timestamptz locked_until
+    bigint version
+    timestamptz created_at
+    timestamptz updated_at
+  }
+  ROLES {
+    bigint id PK
+    varchar name UK
+  }
+  PERMISSIONS {
+    bigint id PK
+    varchar name UK
+  }
+  USER_ROLES {
+    bigint user_id PK, FK
+    bigint role_id PK, FK
+  }
+  ROLE_PERMISSIONS {
+    bigint role_id PK, FK
+    bigint permission_id PK, FK
+  }
+  PASSWORD_HISTORY {
+    bigint id PK
+    bigint user_id FK
+    varchar password_hash
+    timestamptz created_at
+  }
+  SECURITY_AUDIT_LOG {
+    bigint id PK
+    varchar event_type
+    varchar username
+    varchar ip
+    varchar user_agent
+    varchar trace_id
+    timestamptz occurred_at
+  }
+  OAUTH2_REGISTERED_CLIENT {
+    varchar id PK
+    varchar client_id UK
+    varchar client_secret
+    varchar authorization_grant_types
+    varchar scopes
+  }
+  OUTBOX_EVENT {
+    uuid id PK
+    varchar routing_key
+    jsonb payload
+    varchar status
+  }
+  SHEDLOCK {
+    varchar name PK
+    timestamptz lock_until
+    timestamptz locked_at
+    varchar locked_by
+  }
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li><code>USER_ROLES</code> y <code>ROLE_PERMISSIONS</code> son las tablas intermedias de las relaciones muchos a muchos.</li>
+        <li><code>SECURITY_AUDIT_LOG</code> guarda el <code>username</code> sin FK para conservar el histórico aunque el usuario cambie.</li>
+        <li>Los tokens revocados no están aquí: van en Redis con TTL.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-er-product">
+    <div class="sheet-head"><span class="kind">Entidad-relación</span><h3>product_db</h3></div>
+    <div class="diagram"><pre class="mermaid">
+erDiagram
+  CATEGORIES ||--o{ PRODUCTS : contiene
+  CATEGORIES {
+    bigint id PK
+    varchar name UK
+    boolean active
+    bigint version
+    timestamptz created_at
+    varchar created_by
+  }
+  PRODUCTS {
+    bigint id PK
+    varchar name UK
+    text description
+    numeric price
+    int stock
+    bigint category_id FK
+    boolean active
+    bigint version
+    timestamptz created_at
+    timestamptz updated_at
+    varchar created_by
+    varchar updated_by
+  }
+  OUTBOX_EVENT {
+    uuid id PK
+    varchar aggregate_type
+    varchar aggregate_id
+    varchar exchange
+    varchar routing_key
+    jsonb payload
+    varchar status
+    timestamptz created_at
+    timestamptz sent_at
+  }
+  PROCESSED_EVENT {
+    uuid event_id PK
+    timestamptz processed_at
+  }
+  SHEDLOCK {
+    varchar name PK
+    timestamptz lock_until
+    timestamptz locked_at
+    varchar locked_by
+  }
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li><code>version</code> es la columna del bloqueo optimista; <code>active</code>, la del borrado lógico.</li>
+        <li>Conviene una restricción <code>CHECK (stock &gt;= 0)</code> como última red de seguridad.</li>
+        <li>Índices recomendados: <code>category_id</code>, <code>active</code> y las columnas por las que se ordena la paginación.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-er-customer">
+    <div class="sheet-head"><span class="kind">Entidad-relación</span><h3>customer_db</h3></div>
+    <div class="diagram"><pre class="mermaid">
+erDiagram
+  CUSTOMERS ||--o{ ADDRESSES : tiene
+  CUSTOMERS {
+    bigint id PK
+    bigint user_id UK
+    varchar first_name
+    varchar last_name
+    varchar email UK
+    varchar phone
+    boolean active
+    bigint version
+    timestamptz created_at
+    varchar created_by
+  }
+  ADDRESSES {
+    bigint id PK
+    bigint customer_id FK
+    varchar street
+    varchar city
+    varchar postal_code
+    varchar country
+    boolean main
+  }
+  PROCESSED_EVENT {
+    uuid event_id PK
+    timestamptz processed_at
+  }
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li><code>user_id</code> apunta a un usuario de auth_db, pero no es FK: solo es único para garantizar un cliente por usuario.</li>
+        <li><code>created_by</code> vale <code>system:customer-service</code> cuando el cliente lo crea el listener.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-er-order">
+    <div class="sheet-head"><span class="kind">Entidad-relación</span><h3>order_db</h3></div>
+    <div class="diagram"><pre class="mermaid">
+erDiagram
+  ORDERS ||--|{ ORDER_ITEMS : contiene
+  ORDERS {
+    bigint id PK
+    bigint customer_id
+    varchar status
+    numeric total
+    varchar rejection_reason
+    bigint version
+    timestamptz created_at
+    timestamptz updated_at
+    varchar created_by
+  }
+  ORDER_ITEMS {
+    bigint id PK
+    bigint order_id FK
+    bigint product_id
+    varchar product_name
+    numeric unit_price
+    int quantity
+  }
+  OUTBOX_EVENT {
+    uuid id PK
+    varchar routing_key
+    jsonb payload
+    varchar status
+    timestamptz created_at
+  }
+  PROCESSED_EVENT {
+    uuid event_id PK
+    timestamptz processed_at
+  }
+  SHEDLOCK {
+    varchar name PK
+    timestamptz lock_until
+    timestamptz locked_at
+    varchar locked_by
+  }
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li><code>customer_id</code> y <code>product_id</code> no son FK: esos datos viven en otras bases de datos.</li>
+        <li><code>||--|{</code> significa "uno o más": un pedido siempre tiene al menos una línea.</li>
+        <li>Índice recomendado en <code>(customer_id, created_at)</code> para la consulta paginada de pedidos por cliente.</li>
+      </ul>
+    </figcaption>
+  </figure>
+</section>
+
+</main>
+
+<footer class="wrap">
+  Diagramas basados en el prompt del proyecto. Si cambias el prompt (nombres de clases, endpoints o flujos), conviene actualizar también estos diagramas para que sigan coincidiendo.
+</footer>
