@@ -320,8 +320,7 @@ classDiagram
     -ProductRestMapper mapper
     +create(CreateProductRequestDTO) ResponseEntity
     +findById(Long id) ResponseEntity
-    +findAll(page, size, sort, direction) ResponseEntity
-    +search(ProductSearchFilterDTO, page, size) ResponseEntity
+    +findAll(List~String~ filter, page, size, sort, direction) ResponseEntity
     +update(Long id, UpdateProductRequestDTO) ResponseEntity
     +delete(Long id) ResponseEntity
   }
@@ -329,8 +328,7 @@ classDiagram
     &lt;&lt;interface&gt;&gt;
     +create(Product) Product
     +findById(Long) Product
-    +findAll(PageQuery) PageResult~Product~
-    +search(ProductFilter, PageQuery) PageResult~Product~
+    +findAll(List~FilterCriterion~ filters, PageQuery) PageResult~Product~
     +update(Long, Product) Product
     +delete(Long) void
   }
@@ -342,7 +340,7 @@ classDiagram
     -Clock clock
     +create(Product) Product
     +findById(Long) Product
-    +findAll(PageQuery) PageResult~Product~
+    +findAll(List~FilterCriterion~ filters, PageQuery) PageResult~Product~
     +update(Long, Product) Product
     +delete(Long) void
   }
@@ -350,8 +348,7 @@ classDiagram
     &lt;&lt;interface&gt;&gt;
     +save(Product) Product
     +findById(Long) Optional~Product~
-    +findAll(PageQuery) PageResult~Product~
-    +search(ProductFilter, PageQuery) PageResult~Product~
+    +findAll(List~FilterCriterion~ filters, PageQuery) PageResult~Product~
     +existsByName(String) boolean
     +existsActiveByCategoryId(Long) boolean
   }
@@ -364,12 +361,14 @@ classDiagram
     &lt;&lt;Repository&gt;&gt;
     -ProductJpaRepository jpaRepository
     -ProductEntityMapper mapper
+    -ProductFilterMapping filterMapping
+    -GenericSpecificationBuilder specificationBuilder
     -toPageable(PageQuery) Pageable
   }
   class ProductJpaRepository {
     &lt;&lt;interface&gt;&gt;
     +findByIdAndActiveTrue(Long) Optional~ProductEntity~
-    +findAllByActiveTrue(Pageable) Page~ProductEntity~
+    +findAll(Specification, Pageable) Page~ProductEntity~
     +existsByNameIgnoreCase(String) boolean
   }
   class JpaRepository {
@@ -515,6 +514,12 @@ classDiagram
     &lt;&lt;enumeration&gt;&gt;
     VALIDATION_ERROR
     MALFORMED_REQUEST
+    INVALID_PAGINATION
+    INVALID_FILTER_FORMAT
+    FILTER_FIELD_NOT_ALLOWED
+    FILTER_OPERATOR_NOT_ALLOWED
+    INVALID_FILTER_VALUE
+    TOO_MANY_FILTERS
     RESOURCE_NOT_FOUND
     CONCURRENT_MODIFICATION
     RATE_LIMIT_EXCEEDED
@@ -539,6 +544,7 @@ classDiagram
   class AccountLockedException
   class ProductNotFoundException
   class InsufficientStockException
+  class InvalidFilterException
   class GlobalExceptionHandler {
     &lt;&lt;RestControllerAdvice&gt;&gt;
     +handleDomain(DomainException, Locale) ResponseEntity
@@ -577,6 +583,7 @@ classDiagram
   DomainException &lt;|-- AccountLockedException
   ResourceNotFoundException &lt;|-- ProductNotFoundException
   BusinessRuleException &lt;|-- InsufficientStockException
+  InvalidRequestException &lt;|-- InvalidFilterException
   DomainException --> ErrorCode
   ErrorCode &lt;|.. CommonErrorCode
   ErrorCode &lt;|.. ProductErrorCode
@@ -656,6 +663,88 @@ classDiagram
         <li><code>domain</code> y <code>application</code> solo ven <code>PageQuery</code> y <code>PageResult</code>; las clases de Spring se quedan en el adaptador.</li>
         <li>El controller valida <code>size</code> (1 a 100) y que <code>sort</code> esté en la lista blanca antes de crear el <code>PageQuery</code>.</li>
         <li>Spring lanza dos consultas por página: la de datos (<code>LIMIT/OFFSET</code>) y la de <code>count</code> para los totales.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-filtros">
+    <div class="sheet-head"><span class="kind">Clases</span><h3>Filtros dinámicos: de <code>?filter=</code> a <code>Specification</code></h3></div>
+    <div class="diagram"><pre class="mermaid">
+classDiagram
+  direction LR
+  class FilterCriterion {
+    &lt;&lt;record · common-lib domain&gt;&gt;
+    +String field
+    +FilterOperator operator
+    +List~Object~ values
+  }
+  class FilterOperator {
+    &lt;&lt;enumeration · common-lib domain&gt;&gt;
+    EQ
+    NE
+    GT
+    GTE
+    LT
+    LTE
+    BETWEEN
+    LIKE
+    STARTS_WITH
+    IN
+    IS_NULL
+    IS_NOT_NULL
+  }
+  class FilterableField {
+    &lt;&lt;record · common-lib rest&gt;&gt;
+    +String name
+    +Class type
+    +Set~FilterOperator~ allowedOperators
+  }
+  class FilterCriteriaParser {
+    &lt;&lt;common-lib rest&gt;&gt;
+    -int maxFilters
+    +parse(List~String~ raw, FilterFields fields) List~FilterCriterion~
+    -convert(String value, Class type) Object
+  }
+  class FilterFields {
+    &lt;&lt;interface · common-lib rest&gt;&gt;
+    +fields() Map
+  }
+  class ProductFilterFields {
+    &lt;&lt;product-service rest&gt;&gt;
+    name, price, stock, categoryId, categoryName, createdAt
+  }
+  class FilterMapping {
+    &lt;&lt;interface · common-lib persistence&gt;&gt;
+    +toPath(String field) String
+  }
+  class ProductFilterMapping {
+    &lt;&lt;product-service persistence&gt;&gt;
+    categoryId a category.id
+    categoryName a category.name
+  }
+  class GenericSpecificationBuilder~T~ {
+    &lt;&lt;common-lib persistence&gt;&gt;
+    +build(List~FilterCriterion~, FilterMapping, boolean includeInactive) Specification~T~
+    -toPredicate(FilterCriterion, Root, CriteriaBuilder) Predicate
+  }
+  class ProductController
+  class ProductRepositoryImpl
+  ProductFilterFields ..|> FilterFields
+  FilterFields *-- FilterableField
+  FilterableField --> FilterOperator
+  FilterCriterion --> FilterOperator
+  ProductController --> FilterCriteriaParser : 1 parsea los filter
+  FilterCriteriaParser ..> ProductFilterFields : 2 valida con la lista blanca
+  FilterCriteriaParser ..> FilterCriterion : 3 crea con valores tipados
+  ProductFilterMapping ..|> FilterMapping
+  ProductRepositoryImpl --> GenericSpecificationBuilder : 4 construye la Specification
+  GenericSpecificationBuilder ..> ProductFilterMapping : 5 traduce campo a path JPA
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>El mecanismo se escribe una sola vez en <code>common-lib</code>; cada recurso solo aporta su <code>*FilterFields</code> (lista blanca) y su <code>*FilterMapping</code> (paths JPA).</li>
+        <li><code>FilterCriterion</code> es dominio puro: los servicios reciben filtros sin saber nada de JPA ni de <code>Specification</code>.</li>
+        <li>Nombre público y path JPA están separados: la API dice <code>categoryName</code> aunque la entidad tenga <code>category.name</code>.</li>
       </ul>
     </figcaption>
   </figure>
@@ -797,7 +886,7 @@ classDiagram
     +createFromUser(UserRegistration) Customer
     +findById(Long) Customer
     +findByUserId(Long) Customer
-    +findAll(PageQuery) PageResult~Customer~
+    +findAll(List~FilterCriterion~ filters, PageQuery) PageResult~Customer~
     +update(Long, Customer) Customer
     +delete(Long) void
   }
@@ -869,8 +958,8 @@ classDiagram
     &lt;&lt;interface&gt;&gt;
     +create(Order) Order
     +findById(Long) Order
-    +findAll(PageQuery) PageResult~Order~
-    +findByCustomer(Long, PageQuery) PageResult~Order~
+    +findAll(List~FilterCriterion~ filters, PageQuery) PageResult~Order~
+    +findByCustomer(Long, List~FilterCriterion~ filters, PageQuery) PageResult~Order~
     +update(Long, Order) Order
     +cancel(Long) Order
     +delete(Long) void
@@ -1095,40 +1184,51 @@ sequenceDiagram
   </figure>
 
   <figure class="sheet" id="d-get-page">
-    <div class="sheet-head"><span class="kind">Secuencia</span><h3>GET paginado · listar productos con <code>Page</code></h3></div>
+    <div class="sheet-head"><span class="kind">Secuencia</span><h3>GET paginado con filtros dinámicos · listar productos con <code>Page</code></h3></div>
     <div class="diagram"><pre class="mermaid">
 sequenceDiagram
   autonumber
   actor C as Cliente
   participant PC as ProductController
+  participant FP as FilterCriteriaParser
   participant PS as ProductServiceImpl
   participant PR as ProductRepositoryImpl
+  participant SB as GenericSpecificationBuilder
   participant JPA as ProductJpaRepository
   participant DB as PostgreSQL
-  C->>PC: GET /api/v1/products?page=0&amp;size=10&amp;sort=name&amp;direction=ASC
+  C->>PC: GET /api/v1/products?filter=name:like:portatil&amp;filter=price:between:100,500&amp;page=0&amp;size=10&amp;sort=price&amp;direction=DESC
   PC->>PC: valida size entre 1 y 100 y sort en la lista blanca
   alt sort o size inválido
     PC-->>C: 400 INVALID_PAGINATION
   end
-  PC->>PS: findAll(PageQuery 0, 10, name, ASC)
+  PC->>FP: parse(filter, ProductFilterFields)
+  FP->>FP: separa campo, operador y valor y comprueba la lista blanca
+  alt campo u operador no permitido, o valor inválido
+    FP-->>PC: InvalidFilterException(FILTER_FIELD_NOT_ALLOWED...)
+    PC-->>C: 400 con el código del error de filtro
+  end
+  FP-->>PC: 2 FilterCriterion (name LIKE portatil, price BETWEEN 100 y 500 como BigDecimal)
+  PC->>PS: findAll(filters, PageQuery 0, 10, price, DESC)
   Note over PS,DB: @Transactional(readOnly = true)
-  PS->>PR: findAll(pageQuery)
-  PR->>PR: PageRequest.of(0, 10, Sort.by(ASC, name))
-  PR->>JPA: findAllByActiveTrue(pageable)
-  JPA->>DB: SELECT ... ORDER BY name LIMIT 10 OFFSET 0
-  JPA->>DB: SELECT count(*) ... WHERE active = true
-  JPA-->>PR: Page de ProductEntity (57 elementos, 6 páginas)
+  PS->>PR: findAll(filters, pageQuery)
+  PR->>SB: build(filters, ProductFilterMapping, includeInactive false)
+  SB-->>PR: Specification con name LIKE, price BETWEEN y active = true
+  PR->>PR: PageRequest.of(0, 10, Sort.by(DESC, price))
+  PR->>JPA: findAll(specification, pageable)
+  JPA->>DB: SELECT ... WHERE unaccent(lower(name)) LIKE ... AND price BETWEEN 100 AND 500 AND active ORDER BY price DESC LIMIT 10
+  JPA->>DB: SELECT count(*) con el mismo WHERE
+  JPA-->>PR: Page de ProductEntity (14 elementos, 2 páginas)
   PR->>PR: page.map(mapper::toDomain) y conversión a PageResult
   PR-->>PS: PageResult de Product
   PS-->>PC: PageResult de Product
   PC->>PC: PageResult a PageResponseDTO de ProductResponseDTO
-  PC-->>C: 200 content, page 0, size 10, totalElements 57, totalPages 6
+  PC-->>C: 200 content, page 0, size 10, totalElements 14, totalPages 2
 </pre></div>
     <figcaption><strong>Qué repasar</strong>
       <ul>
-        <li>La conversión <code>PageQuery → PageRequest</code> y <code>Page → PageResult</code> ocurre solo en <code>ProductRepositoryImpl</code>.</li>
-        <li>Validar <code>sort</code> evita la <code>PropertyReferenceException</code> de Spring y devuelve un 400 controlado.</li>
-        <li>Con <code>Specification</code> (búsqueda con filtros) el recorrido es el mismo, cambiando <code>findAllByActiveTrue</code> por <code>findAll(spec, pageable)</code>.</li>
+        <li>Los filtros se validan y se tipan en la entrada: si algo está mal, la petición acaba en un 400 antes de llegar al servicio.</li>
+        <li>La conversión a <code>Specification</code>, <code>PageRequest</code> y <code>Page</code> ocurre solo en <code>ProductRepositoryImpl</code>.</li>
+        <li>La consulta de <code>count</code> usa el mismo <code>WHERE</code>, así que los totales de la paginación reflejan los filtros. Sin filtros, el recorrido es idéntico con una lista vacía.</li>
       </ul>
     </figcaption>
   </figure>
