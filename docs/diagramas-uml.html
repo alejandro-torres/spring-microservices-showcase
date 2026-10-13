@@ -320,8 +320,7 @@ classDiagram
     -ProductRestMapper mapper
     +create(CreateProductRequestDTO) ResponseEntity
     +findById(Long id) ResponseEntity
-    +findAll(page, size, sort, direction) ResponseEntity
-    +search(ProductSearchFilterDTO, page, size) ResponseEntity
+    +findAll(List~String~ filter, page, size, sort, direction) ResponseEntity
     +update(Long id, UpdateProductRequestDTO) ResponseEntity
     +delete(Long id) ResponseEntity
   }
@@ -329,8 +328,7 @@ classDiagram
     &lt;&lt;interface&gt;&gt;
     +create(Product) Product
     +findById(Long) Product
-    +findAll(PageQuery) PageResult~Product~
-    +search(ProductFilter, PageQuery) PageResult~Product~
+    +findAll(List~FilterCriterion~ filters, PageQuery) PageResult~Product~
     +update(Long, Product) Product
     +delete(Long) void
   }
@@ -342,7 +340,7 @@ classDiagram
     -Clock clock
     +create(Product) Product
     +findById(Long) Product
-    +findAll(PageQuery) PageResult~Product~
+    +findAll(List~FilterCriterion~ filters, PageQuery) PageResult~Product~
     +update(Long, Product) Product
     +delete(Long) void
   }
@@ -350,8 +348,7 @@ classDiagram
     &lt;&lt;interface&gt;&gt;
     +save(Product) Product
     +findById(Long) Optional~Product~
-    +findAll(PageQuery) PageResult~Product~
-    +search(ProductFilter, PageQuery) PageResult~Product~
+    +findAll(List~FilterCriterion~ filters, PageQuery) PageResult~Product~
     +existsByName(String) boolean
     +existsActiveByCategoryId(Long) boolean
   }
@@ -364,12 +361,14 @@ classDiagram
     &lt;&lt;Repository&gt;&gt;
     -ProductJpaRepository jpaRepository
     -ProductEntityMapper mapper
+    -ProductFilterMapping filterMapping
+    -GenericSpecificationBuilder specificationBuilder
     -toPageable(PageQuery) Pageable
   }
   class ProductJpaRepository {
     &lt;&lt;interface&gt;&gt;
     +findByIdAndActiveTrue(Long) Optional~ProductEntity~
-    +findAllByActiveTrue(Pageable) Page~ProductEntity~
+    +findAll(Specification, Pageable) Page~ProductEntity~
     +existsByNameIgnoreCase(String) boolean
   }
   class JpaRepository {
@@ -797,7 +796,7 @@ classDiagram
     +createFromUser(UserRegistration) Customer
     +findById(Long) Customer
     +findByUserId(Long) Customer
-    +findAll(PageQuery) PageResult~Customer~
+    +findAll(List~FilterCriterion~ filters, PageQuery) PageResult~Customer~
     +update(Long, Customer) Customer
     +delete(Long) void
   }
@@ -869,8 +868,8 @@ classDiagram
     &lt;&lt;interface&gt;&gt;
     +create(Order) Order
     +findById(Long) Order
-    +findAll(PageQuery) PageResult~Order~
-    +findByCustomer(Long, PageQuery) PageResult~Order~
+    +findAll(List~FilterCriterion~ filters, PageQuery) PageResult~Order~
+    +findByCustomer(Long, List~FilterCriterion~ filters, PageQuery) PageResult~Order~
     +update(Long, Order) Order
     +cancel(Long) Order
     +delete(Long) void
