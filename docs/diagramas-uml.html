@@ -659,6 +659,88 @@ classDiagram
     </figcaption>
   </figure>
 
+  <figure class="sheet" id="d-filtros">
+    <div class="sheet-head"><span class="kind">Clases</span><h3>Filtros dinámicos: de <code>?filter=</code> a <code>Specification</code></h3></div>
+    <div class="diagram"><pre class="mermaid">
+classDiagram
+  direction LR
+  class FilterCriterion {
+    &lt;&lt;record · common-lib domain&gt;&gt;
+    +String field
+    +FilterOperator operator
+    +List~Object~ values
+  }
+  class FilterOperator {
+    &lt;&lt;enumeration · common-lib domain&gt;&gt;
+    EQ
+    NE
+    GT
+    GTE
+    LT
+    LTE
+    BETWEEN
+    LIKE
+    STARTS_WITH
+    IN
+    IS_NULL
+    IS_NOT_NULL
+  }
+  class FilterableField {
+    &lt;&lt;record · common-lib rest&gt;&gt;
+    +String name
+    +Class type
+    +Set~FilterOperator~ allowedOperators
+  }
+  class FilterCriteriaParser {
+    &lt;&lt;common-lib rest&gt;&gt;
+    -int maxFilters
+    +parse(List~String~ raw, FilterFields fields) List~FilterCriterion~
+    -convert(String value, Class type) Object
+  }
+  class FilterFields {
+    &lt;&lt;interface · common-lib rest&gt;&gt;
+    +fields() Map
+  }
+  class ProductFilterFields {
+    &lt;&lt;product-service rest&gt;&gt;
+    name, price, stock, categoryId, categoryName, createdAt
+  }
+  class FilterMapping {
+    &lt;&lt;interface · common-lib persistence&gt;&gt;
+    +toPath(String field) String
+  }
+  class ProductFilterMapping {
+    &lt;&lt;product-service persistence&gt;&gt;
+    categoryId a category.id
+    categoryName a category.name
+  }
+  class GenericSpecificationBuilder~T~ {
+    &lt;&lt;common-lib persistence&gt;&gt;
+    +build(List~FilterCriterion~, FilterMapping, boolean includeInactive) Specification~T~
+    -toPredicate(FilterCriterion, Root, CriteriaBuilder) Predicate
+  }
+  class ProductController
+  class ProductRepositoryImpl
+  ProductFilterFields ..|> FilterFields
+  FilterFields *-- FilterableField
+  FilterableField --> FilterOperator
+  FilterCriterion --> FilterOperator
+  ProductController --> FilterCriteriaParser : 1 parsea los filter
+  FilterCriteriaParser ..> ProductFilterFields : 2 valida con la lista blanca
+  FilterCriteriaParser ..> FilterCriterion : 3 crea con valores tipados
+  ProductFilterMapping ..|> FilterMapping
+  ProductRepositoryImpl --> GenericSpecificationBuilder : 4 construye la Specification
+  GenericSpecificationBuilder ..> ProductFilterMapping : 5 traduce campo a path JPA
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>El mecanismo se escribe una sola vez en <code>common-lib</code>; cada recurso solo aporta su <code>*FilterFields</code> (lista blanca) y su <code>*FilterMapping</code> (paths JPA).</li>
+        <li><code>FilterCriterion</code> es dominio puro: los servicios reciben filtros sin saber nada de JPA ni de <code>Specification</code>.</li>
+        <li>Nombre público y path JPA están separados: la API dice <code>categoryName</code> aunque la entidad tenga <code>category.name</code>.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
   <figure class="sheet" id="d-auth">
     <div class="sheet-head"><span class="kind">Clases</span><h3>auth-service · usuarios, roles y seguridad</h3></div>
     <div class="diagram"><pre class="mermaid">
