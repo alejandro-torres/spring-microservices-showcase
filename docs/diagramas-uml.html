@@ -514,6 +514,12 @@ classDiagram
     &lt;&lt;enumeration&gt;&gt;
     VALIDATION_ERROR
     MALFORMED_REQUEST
+    INVALID_PAGINATION
+    INVALID_FILTER_FORMAT
+    FILTER_FIELD_NOT_ALLOWED
+    FILTER_OPERATOR_NOT_ALLOWED
+    INVALID_FILTER_VALUE
+    TOO_MANY_FILTERS
     RESOURCE_NOT_FOUND
     CONCURRENT_MODIFICATION
     RATE_LIMIT_EXCEEDED
@@ -538,6 +544,7 @@ classDiagram
   class AccountLockedException
   class ProductNotFoundException
   class InsufficientStockException
+  class InvalidFilterException
   class GlobalExceptionHandler {
     &lt;&lt;RestControllerAdvice&gt;&gt;
     +handleDomain(DomainException, Locale) ResponseEntity
@@ -576,6 +583,7 @@ classDiagram
   DomainException &lt;|-- AccountLockedException
   ResourceNotFoundException &lt;|-- ProductNotFoundException
   BusinessRuleException &lt;|-- InsufficientStockException
+  InvalidRequestException &lt;|-- InvalidFilterException
   DomainException --> ErrorCode
   ErrorCode &lt;|.. CommonErrorCode
   ErrorCode &lt;|.. ProductErrorCode
