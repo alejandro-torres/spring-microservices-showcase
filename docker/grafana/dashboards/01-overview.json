@@ -1,0 +1,18 @@
+{
+  "uid": "showcase-overview",
+  "title": "1. Visión general del sistema",
+  "description": "Estado de cada servicio y réplica, peticiones por segundo, errores y latencia p95.",
+  "tags": ["showcase"],
+  "timezone": "browser",
+  "schemaVersion": 41,
+  "refresh": "10s",
+  "time": {"from": "now-30m", "to": "now"},
+  "templating": {"list": []},
+  "panels": [
+    {"id":1,"type":"stat","title":"Réplicas activas por servicio","description":"Réplicas registradas en Eureka que responden a Prometheus.","datasource":{"type":"prometheus","uid":"prometheus"},"gridPos":{"x":0,"y":0,"w":24,"h":5},"fieldConfig":{"defaults":{"unit":"none"},"overrides":[]},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"background"},"targets":[{"refId":"A","datasource":{"type":"prometheus","uid":"prometheus"},"expr":"count by (eureka_app) (up{job=\"microservices\"} == 1)","legendFormat":"{{eureka_app}}"}]},
+    {"id":2,"type":"timeseries","title":"Peticiones por segundo","description":"Peticiones HTTP atendidas por servicio (sin el actuator).","datasource":{"type":"prometheus","uid":"prometheus"},"gridPos":{"x":0,"y":5,"w":12,"h":8},"fieldConfig":{"defaults":{"unit":"reqps"},"overrides":[]},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]},"tooltip":{"mode":"multi"}},"targets":[{"refId":"A","datasource":{"type":"prometheus","uid":"prometheus"},"expr":"sum by (application) (rate(http_server_requests_seconds_count{uri!~\"/actuator.*\"}[1m]))","legendFormat":"{{application}}","exemplar":true}]},
+    {"id":3,"type":"timeseries","title":"Errores 5xx por segundo","description":"Respuestas 5xx por servicio.","datasource":{"type":"prometheus","uid":"prometheus"},"gridPos":{"x":12,"y":5,"w":12,"h":8},"fieldConfig":{"defaults":{"unit":"reqps"},"overrides":[]},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]},"tooltip":{"mode":"multi"}},"targets":[{"refId":"A","datasource":{"type":"prometheus","uid":"prometheus"},"expr":"sum by (application) (rate(http_server_requests_seconds_count{status=~\"5..\"}[1m]))","legendFormat":"{{application}}","exemplar":true}]},
+    {"id":4,"type":"timeseries","title":"Latencia p95","description":"Percentil 95 por servicio. Los puntos (exemplars) llevan a la traza en Zipkin.","datasource":{"type":"prometheus","uid":"prometheus"},"gridPos":{"x":0,"y":13,"w":12,"h":8},"fieldConfig":{"defaults":{"unit":"s"},"overrides":[]},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]},"tooltip":{"mode":"multi"}},"targets":[{"refId":"A","datasource":{"type":"prometheus","uid":"prometheus"},"expr":"histogram_quantile(0.95, sum by (application, le) (rate(http_server_requests_seconds_bucket{uri!~\"/actuator.*\"}[5m])))","legendFormat":"{{application}}","exemplar":true}]},
+    {"id":5,"type":"timeseries","title":"Réplicas que responden","description":"1 = Prometheus puede leer sus métricas; 0 = caída.","datasource":{"type":"prometheus","uid":"prometheus"},"gridPos":{"x":12,"y":13,"w":12,"h":8},"fieldConfig":{"defaults":{"unit":"none"},"overrides":[]},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]},"tooltip":{"mode":"multi"}},"targets":[{"refId":"A","datasource":{"type":"prometheus","uid":"prometheus"},"expr":"up{job=\"microservices\"}","legendFormat":"{{eureka_app}} {{instance}}","exemplar":true}]}
+  ]
+}

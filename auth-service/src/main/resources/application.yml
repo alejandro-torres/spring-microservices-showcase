@@ -140,3 +140,12 @@ management:
     health:
       probes:
         enabled: true
+
+# Logs estructurados (cuando se activan con logging.structured.format.console=ecs, como en Docker y en prod):
+# cada línea es un JSON con el servicio, la réplica, el entorno y el traceId/spanId de la petición.
+logging:
+  structured:
+    ecs:
+      service:
+        node-name: ${showcase.instance-id}
+        environment: ${ENVIRONMENT:dev}
