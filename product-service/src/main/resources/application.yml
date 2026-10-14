@@ -35,6 +35,11 @@ spring:
         jwt:
           # Clave pública de auth-service para validar los JWT (se descarga y se cachea).
           jwk-set-uri: ${AUTH_JWK_SET_URI:http://localhost:9000/oauth2/jwks}
+  # Redis para los locks distribuidos (Redisson), el mismo que usan el gateway y auth-service.
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
@@ -70,7 +75,14 @@ spring:
     timeout-per-shutdown-phase: 30s
 
 showcase:
+  lock:
+    # Espera máxima a que otra réplica suelte el lock de un producto (después, RESOURCE_BUSY y reintento) y
+    # caducidad del lock por si la réplica que lo tiene muere.
+    wait-time: 3s
+    lease-time: 10s
   messaging:
+    # Los eventos procesados se guardan 7 días (para descartar duplicados); después los borra una tarea nocturna.
+    processed-event-retention: 7d
     source: ${spring.application.name}
     exchange: product.events
     consumers:
@@ -90,8 +102,9 @@ eureka:
     # Lista de réplicas refrescada cada 5 s (por defecto 30 s).
     registry-fetch-interval-seconds: 5
   instance:
-    # Cada réplica con un id único, para poder tener varias del mismo servicio.
-    instance-id: ${spring.application.name}:${random.uuid}
+    # Id único de cada réplica, calculado una vez al arrancar (common-lib); es el mismo que la cabecera
+    # X-Instance-Id de las respuestas.
+    instance-id: ${showcase.instance-id}
     prefer-ip-address: true
     # Latido cada 5 s; si faltan durante 15 s, Eureka retira la réplica.
     lease-renewal-interval-in-seconds: 5

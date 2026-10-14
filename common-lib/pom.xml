@@ -87,6 +87,17 @@
             <artifactId>spring-boot-starter-aspectj</artifactId>
             <optional>true</optional>
         </dependency>
+        <!-- Opcionales: tareas programadas con una sola réplica a la vez (ShedLock sobre la base de datos) -->
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-spring</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-provider-jdbc-template</artifactId>
+            <optional>true</optional>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

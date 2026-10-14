@@ -10,6 +10,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageBuilder;
 import org.springframework.amqp.core.MessageDeliveryMode;
@@ -24,7 +25,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * Envía a RabbitMQ los eventos pendientes del outbox, en orden de creación y por lotes.
  * <p>
  * Cada lote se lee con {@code SELECT ... FOR UPDATE SKIP LOCKED}: si dos réplicas ejecutan la tarea a la vez,
- * cada una coge filas distintas (en la fase de escalado se añade ShedLock para que además solo la ejecute una).
+ * cada una coge filas distintas. Además, ShedLock hace que en cada ejecución solo la lance una réplica: sin él,
+ * cada réplica repetiría la misma consulta y el trabajo se multiplicaría por el número de réplicas.
  * Los bloqueos se mantienen mientras se envía el lote, que está acotado por {@code batch-size} y por el timeout
  * del publisher confirm.
  * <p>
@@ -65,6 +67,9 @@ public class OutboxPublisher {
 
     @Scheduled(fixedDelayString = "${showcase.messaging.outbox.fixed-delay:5s}",
             initialDelayString = "${showcase.messaging.outbox.initial-delay:5s}")
+    @SchedulerLock(name = "outboxPublisher",
+            lockAtMostFor = "${showcase.messaging.outbox.lock-at-most-for:PT30S}",
+            lockAtLeastFor = "${showcase.messaging.outbox.lock-at-least-for:PT1S}")
     public void publishPending() {
         if (!settings.enabled()) {
             return;

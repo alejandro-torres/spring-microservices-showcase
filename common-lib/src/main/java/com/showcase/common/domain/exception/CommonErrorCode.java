@@ -26,6 +26,7 @@ public enum CommonErrorCode implements ErrorCode {
     DATA_CONFLICT(ErrorCategory.CONFLICT),
     CONCURRENT_MODIFICATION(ErrorCategory.CONFLICT),
     RATE_LIMIT_EXCEEDED(ErrorCategory.RATE_LIMITED),
+    RESOURCE_BUSY(ErrorCategory.LOCKED),
     SERVICE_UNAVAILABLE(ErrorCategory.EXTERNAL_SERVICE),
     INTERNAL_ERROR(ErrorCategory.INTERNAL);
 

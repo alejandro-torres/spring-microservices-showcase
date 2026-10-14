@@ -1,10 +1,12 @@
 package com.showcase.product;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -131,6 +133,7 @@ class ProductApiIT {
     void openApi_shouldBePublicAndDocumentErrors() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
+                .andExpect(header().string("X-Instance-Id", startsWith("product-service:")))
                 .andExpect(jsonPath("$.info.title").value("product-service API"))
                 .andExpect(jsonPath("$.components.securitySchemes.bearer-jwt.scheme").value("bearer"))
                 .andExpect(jsonPath("$.components.schemas.ErrorResponseDTO").exists())

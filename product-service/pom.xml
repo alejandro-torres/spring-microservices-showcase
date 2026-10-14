@@ -59,6 +59,20 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aspectj</artifactId>
         </dependency>
+        <!-- Tareas programadas con varias réplicas: solo una las ejecuta (ShedLock sobre la base de datos) -->
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-spring</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-provider-jdbc-template</artifactId>
+        </dependency>
+        <!-- Locks distribuidos por producto para la reserva de stock con varias réplicas -->
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson</artifactId>
+        </dependency>
         <!-- Mensajería con RabbitMQ (outbox, reintentos y DLQ en common-lib) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

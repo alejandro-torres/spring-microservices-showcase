@@ -1,4 +1,5 @@
-# Sistema completo: los 6 servicios + PostgreSQL (una base por servicio) + Redis + RabbitMQ + Zipkin.
+# Sistema completo: los 6 servicios (3 réplicas de product-service y 2 de order-service) + PostgreSQL (una base
+# por servicio) + Redis + RabbitMQ + Zipkin.
 #   docker compose up -d --build
 # Las contraseñas se leen de .env (ver .env.example); sin él se usan valores de desarrollo.
 # Consolas: gateway http://localhost:8080 (Swagger en /swagger-ui.html), Eureka http://localhost:8761,
@@ -121,6 +122,10 @@ services:
       context: .
       dockerfile: product-service/Dockerfile
     image: showcase/product-service
+    # Varias réplicas: cada una se registra en Eureka y el gateway reparte el tráfico; la reserva de stock se
+    # protege con un lock de Redis por producto. Más réplicas: docker compose up -d --scale product-service=5
+    deploy:
+      replicas: ${PRODUCT_SERVICE_REPLICAS:-3}
     environment:
       <<: *service-env
       DB_URL: jdbc:postgresql://postgres:5432/product_db
@@ -128,7 +133,11 @@ services:
       DB_PASSWORD: ${PRODUCT_DB_PASSWORD:-product-dev}
       RABBITMQ_USERNAME: product-service
       RABBITMQ_PASSWORD: ${PRODUCT_RABBITMQ_PASSWORD:-product-dev}
-    depends_on: *service-depends
+      REDIS_HOST: redis
+    depends_on:
+      <<: *service-depends
+      redis:
+        condition: service_healthy
 
   customer-service:
     build:
@@ -149,6 +158,8 @@ services:
       context: .
       dockerfile: order-service/Dockerfile
     image: showcase/order-service
+    deploy:
+      replicas: ${ORDER_SERVICE_REPLICAS:-2}
     environment:
       <<: *service-env
       DB_URL: jdbc:postgresql://postgres:5432/order_db

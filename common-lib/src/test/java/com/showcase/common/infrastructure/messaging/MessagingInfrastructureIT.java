@@ -8,10 +8,12 @@ import com.showcase.common.domain.messaging.ProcessedEventRegistry;
 import com.showcase.common.infrastructure.messaging.config.MessagingProperties;
 import com.showcase.common.infrastructure.messaging.dlq.DeadLetterQueueAdmin;
 import com.showcase.common.infrastructure.messaging.dlq.impl.RabbitDeadLetterQueueAdminImpl;
+import com.showcase.common.infrastructure.messaging.idempotency.ProcessedEventCleanup;
 import com.showcase.common.infrastructure.messaging.outbox.OutboxEventWriter;
 import com.showcase.common.infrastructure.messaging.outbox.OutboxPublisher;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -52,7 +54,9 @@ import tools.jackson.databind.json.JsonMapper;
         "showcase.messaging.consumers.thing-happened.exchange=test.events",
         "showcase.messaging.consumers.thing-happened.routing-key=thing.happened",
         "showcase.messaging.outbox.max-unrouted-attempts=2",
-        "showcase.messaging.outbox.initial-delay=1h"})
+        "showcase.messaging.outbox.initial-delay=1h",
+        "showcase.messaging.outbox.lock-at-least-for=PT0S",
+        "showcase.messaging.processed-event-retention=7d"})
 @Testcontainers
 class MessagingInfrastructureIT {
 
@@ -82,6 +86,9 @@ class MessagingInfrastructureIT {
     private OutboxPublisher publisher;
 
     @Autowired
+    private ProcessedEventCleanup processedEventCleanup;
+
+    @Autowired
     private ProcessedEventRegistry registry;
 
     @Autowired
@@ -105,6 +112,9 @@ class MessagingInfrastructureIT {
     @BeforeEach
     void cleanUp() {
         jdbcClient.sql("TRUNCATE outbox_event, processed_event").update();
+        // Se libera el lock en lugar de borrar la fila: ShedLock recuerda las filas que ya ha creado y después
+        // solo hace UPDATE; sin la fila, creería que otra réplica tiene el lock.
+        jdbcClient.sql("UPDATE shedlock SET lock_until = timezone('utc', now()) - interval '1 second'").update();
         amqpAdmin.purgeQueue(QUEUE, false);
         amqpAdmin.purgeQueue(DLQ, false);
     }
@@ -176,6 +186,66 @@ class MessagingInfrastructureIT {
             assertThat(countByStatus("UNROUTED")).isEqualTo(1);
             assertThat(jdbcClient.sql("SELECT last_error FROM outbox_event").query(String.class).single())
                     .startsWith("unroutable");
+        }
+    }
+
+    @Nested
+    @DisplayName("ShedLock con varias réplicas")
+    class SchedulerLocks {
+
+        @Test
+        @DisplayName("el publicador del outbox coge el lock outboxPublisher en la tabla shedlock")
+        void publishPending_shouldTakeSchedulerLock() {
+            // given
+            LocalDateTime before = jdbcClient.sql("SELECT timezone('utc', now())")
+                    .query(LocalDateTime.class).single();
+
+            // when
+            publisher.publishPending();
+
+            // then: la fila del lock se ha actualizado en esta ejecución
+            LocalDateTime lockedAt = jdbcClient.sql("SELECT locked_at FROM shedlock WHERE name = 'outboxPublisher'")
+                    .query(LocalDateTime.class).single();
+            assertThat(lockedAt).isAfterOrEqualTo(before);
+        }
+
+        @Test
+        @DisplayName("si otra réplica tiene el lock, esta no publica nada en esa ejecución")
+        void publishPending_whileOtherReplicaHoldsLock_shouldSkip() {
+            // given: otra réplica tiene el lock durante un minuto
+            jdbcClient.sql("""
+                    INSERT INTO shedlock (name, lock_until, locked_at, locked_by)
+                    VALUES ('outboxPublisher', timezone('utc', now()) + interval '1 minute', timezone('utc', now()),
+                            'otra-replica')""").update();
+            transactionTemplate.executeWithoutResult(status -> writer.append("Thing", 9L, "thing.happened",
+                    new ThingHappened(9L), Instant.now()));
+
+            // when
+            publisher.publishPending();
+
+            // then
+            assertThat(countByStatus("PENDING")).isEqualTo(1);
+            assertThat(rabbitTemplate.receive(QUEUE, 500)).isNull();
+        }
+
+        @Test
+        @DisplayName("la limpieza borra los eventos procesados más antiguos que la retención")
+        void cleanup_shouldDeleteOnlyOldProcessedEvents() {
+            // given
+            UUID oldEvent = UUID.randomUUID();
+            UUID recentEvent = UUID.randomUUID();
+            jdbcClient.sql("""
+                    INSERT INTO processed_event (event_id, event_type, processed_at) VALUES
+                    (:old, 'thing.happened', now() - interval '8 days'),
+                    (:recent, 'thing.happened', now() - interval '1 day')""")
+                    .param("old", oldEvent).param("recent", recentEvent).update();
+
+            // when
+            processedEventCleanup.deleteOldEvents();
+
+            // then
+            assertThat(jdbcClient.sql("SELECT event_id FROM processed_event").query(UUID.class).list())
+                    .containsExactly(recentEvent);
         }
     }
 

@@ -4,6 +4,7 @@ import com.showcase.auth.domain.model.User;
 import com.showcase.common.domain.filter.FilterCriterion;
 import com.showcase.common.domain.page.PageQuery;
 import com.showcase.common.domain.page.PageResult;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,6 +20,9 @@ public interface UserRepository {
 
     /** Solo usuarios activos; el username ya llega normalizado (minúsculas). */
     Optional<User> findByUsername(String username);
+
+    /** Hasta {@code limit} cuentas activas cuyo bloqueo por intentos fallidos ya ha caducado. */
+    List<User> findWithExpiredLock(Instant now, int limit);
 
     PageResult<User> findAll(List<FilterCriterion> filters, PageQuery pageQuery, boolean includeInactive);
 
