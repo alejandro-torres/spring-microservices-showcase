@@ -18,6 +18,8 @@ import jakarta.validation.constraints.Positive;
 import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -52,6 +54,13 @@ public class UserController {
         User user = userService.create(request.username(), request.email(), request.password(), request.roleIds());
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(user.getId()).toUri();
         return ResponseEntity.created(location).body(mapper.toResponse(user));
+    }
+
+    /** Datos del usuario autenticado: el {@code sub} del token es su username. */
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/me")
+    public UserResponseDTO me(@AuthenticationPrincipal Jwt jwt) {
+        return mapper.toResponse(userService.findByUsername(jwt.getSubject()));
     }
 
     @PreAuthorize("hasAuthority('user:read')")

@@ -108,6 +108,16 @@ class UserControllerTest {
         }
 
         @Test
+        @DisplayName("GET /me devuelve el usuario del token aunque no tenga user:read")
+        void me_shouldReturnAuthenticatedUser() throws Exception {
+            given(userService.findByUsername("ana")).willReturn(user(10L, "ana", userRole()));
+
+            mockMvc.perform(get("/api/v1/users/me").with(TestJwt.withPermissions("ana", "order:read")))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.username").value("ana"));
+        }
+
+        @Test
         @DisplayName("sin user:read no puede consultar usuarios")
         void withoutPermission_shouldReturn403() throws Exception {
             mockMvc.perform(get("/api/v1/users/10").with(TestJwt.withPermissions("cliente", "order:read")))
