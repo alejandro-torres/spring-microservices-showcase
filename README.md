@@ -352,6 +352,36 @@ Todos los servicios, incluidos el gateway y auth-service, envían sus trazas a Z
 
 Cada línea de log lleva `[traceId-spanId]`, y el `traceId` es el mismo que devuelven la cabecera `X-Trace-Id` y el campo `traceId` de los errores. Para buscar una petición: http://localhost:9411 → *Search by trace ID*.
 
+## Observabilidad: Prometheus, Loki y Grafana
+
+Se levanta junto al sistema con un segundo fichero de compose:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d --build
+```
+
+| Consola | URL |
+|---|---|
+| Grafana (dashboards, logs y trazas) | http://localhost:3000 (usuario `admin`, contraseña `admin` o la de `.env`) |
+| Prometheus (métricas y alertas) | http://localhost:9090 |
+
+| Pieza | Detalle |
+|---|---|
+| Métricas | Cada servicio expone `/actuator/prometheus`, solo en la red interna (el gateway, en su puerto interno 8081). Prometheus descubre las réplicas en Eureka, sin listar instancias a mano. Todas las métricas llevan `application`, `instance` (la réplica, igual que `X-Instance-Id`) y `environment` |
+| Técnicas | Peticiones, latencia con histogramas (p50/p95/p99), errores por endpoint, JVM, Hikari, circuit breakers, peticiones del gateway por ruta, colas y DLQ de RabbitMQ, eventos pendientes en el outbox (`outbox_events`) y espera de los locks (`distributed_lock_wait_seconds`) |
+| De negocio | `showcase_orders_total` (creados, confirmados, rechazados con su motivo, cancelados), `showcase_stock_operations_total`, `showcase_auth_registrations_total`, `showcase_auth_logins_total` y `showcase_auth_accounts_locked_total`. Se cuentan después del commit |
+| Logs | En Docker, cada servicio escribe JSON (ECS) con el servicio, la réplica, el nivel, el `traceId` y el `spanId`. Grafana Alloy los recoge de todos los contenedores y los envía a Loki |
+| Correlación | Desde un punto de una gráfica de latencia (exemplar) se salta a su traza en Zipkin; desde un log, a su traza; y desde una traza, a sus logs |
+| Dashboards | Carpeta *Showcase*: visión general, por microservicio, reparto de carga, mensajería, negocio y seguridad ([docker/grafana/dashboards](docker/grafana/dashboards)) |
+| Alertas | Errores 5xx > 5 % durante 5 min, latencia p95 > 1 s, mensajes en una DLQ, circuit breaker abierto, réplica caída y eventos atascados en el outbox ([docker/prometheus/alerts.yml](docker/prometheus/alerts.yml)) |
+
+### Escenario: seguir una petición de punta a punta
+
+1. En Grafana, abre *Showcase → 1. Visión general del sistema* y busca en *Latencia p95* un punto (exemplar) de la petición que te interese; al pasar el ratón aparece su `trace_id` y el enlace a Zipkin.
+2. En Zipkin se ve la petición entera: gateway → servicio → consultas SQL → envío a RabbitMQ → servicio que consume el evento.
+3. Desde la traza, *Logs for this span* abre en Loki las líneas de log de esa petición en todos los servicios (también se puede buscar con `{service="order-service"} | traceId="<traceId>"`).
+4. El mismo `traceId` lo devuelve la API en la cabecera `X-Trace-Id` y en el campo `traceId` de los errores.
+
 ## Documentación de la API (Swagger)
 
 - Todos los servicios: http://localhost:8080/swagger-ui.html, con un desplegable por servicio.
