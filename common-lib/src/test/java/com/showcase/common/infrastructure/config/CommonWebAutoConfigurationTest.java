@@ -8,6 +8,7 @@ import com.showcase.common.infrastructure.exception.ErrorCodeHttpStatusMapper;
 import com.showcase.common.infrastructure.exception.ErrorResponseFactory;
 import com.showcase.common.infrastructure.exception.GlobalExceptionHandler;
 import com.showcase.common.infrastructure.i18n.ErrorMessageResolver;
+import com.showcase.common.infrastructure.persistence.specification.GenericSpecificationBuilder;
 import com.showcase.common.infrastructure.rest.filter.FilterCriteriaParser;
 import java.time.Clock;
 import java.util.Locale;
@@ -36,6 +37,7 @@ class CommonWebAutoConfigurationTest {
                 .hasSingleBean(ErrorMessageResolver.class)
                 .hasSingleBean(ErrorCodeHttpStatusMapper.class)
                 .hasSingleBean(FilterCriteriaParser.class)
+                .hasSingleBean(GenericSpecificationBuilder.class)
                 .hasSingleBean(Clock.class)
                 .hasBean(DispatcherServlet.LOCALE_RESOLVER_BEAN_NAME));
     }
