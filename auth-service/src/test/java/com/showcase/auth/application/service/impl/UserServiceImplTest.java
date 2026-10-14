@@ -13,6 +13,7 @@ import static org.mockito.Mockito.verify;
 
 import com.showcase.auth.application.security.PasswordHasher;
 import com.showcase.auth.application.service.SecurityAuditService;
+import com.showcase.auth.application.service.TokenRevocationService;
 import com.showcase.auth.domain.model.SecurityEventType;
 import com.showcase.auth.domain.exception.AuthErrorCode;
 import com.showcase.auth.domain.exception.EmailAlreadyExistsException;
@@ -61,6 +62,9 @@ class UserServiceImplTest {
     @Mock
     private PasswordHistoryRepository passwordHistoryRepository;
 
+    @Mock
+    private TokenRevocationService tokenRevocationService;
+
     private static final java.time.Instant NOW = java.time.Instant.parse("2026-10-14T12:00:00Z");
 
     private UserServiceImpl userService;
@@ -68,7 +72,7 @@ class UserServiceImplTest {
     @org.junit.jupiter.api.BeforeEach
     void createService() {
         userService = new UserServiceImpl(userRepository, roleRepository, passwordHistoryRepository, passwordHasher,
-                auditService, java.time.Clock.fixed(NOW, java.time.ZoneOffset.UTC));
+                auditService, tokenRevocationService, java.time.Clock.fixed(NOW, java.time.ZoneOffset.UTC));
     }
 
     @Captor
@@ -169,6 +173,7 @@ class UserServiceImplTest {
             verify(userRepository).save(ana);
             verify(passwordHistoryRepository).save(10L, "{bcrypt}nueva", NOW);
             verify(auditService).record(SecurityEventType.PASSWORD_CHANGED, "ana", null);
+            verify(tokenRevocationService).revokeAllForUser("ana", "password changed");
         }
 
         @Test
@@ -338,6 +343,7 @@ class UserServiceImplTest {
             assertThat(userCaptor.getValue().isActive()).isFalse();
             assertThat(userCaptor.getValue().isEnabled()).isFalse();
             verify(auditService).record(SecurityEventType.USER_DISABLED, "ana", "deleted");
+            verify(tokenRevocationService).revokeAllForUser("ana", "user deleted");
         }
 
         @Test
@@ -392,6 +398,7 @@ class UserServiceImplTest {
 
             assertThat(userService.removeRole(10L, 1L).getRoles()).extracting(Role::getName).containsExactly("USER");
             verify(auditService).record(SecurityEventType.ROLE_REMOVED, "ana", "role=ADMIN");
+            verify(tokenRevocationService).revokeAllForUser("ana", "role removed");
             assertThatThrownBy(() -> userService.removeRole(10L, 1L))
                     .isInstanceOf(BusinessRuleException.class)
                     .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.ROLE_NOT_ASSIGNED);

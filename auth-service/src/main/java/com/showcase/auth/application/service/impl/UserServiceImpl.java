@@ -2,6 +2,7 @@ package com.showcase.auth.application.service.impl;
 
 import com.showcase.auth.application.security.PasswordHasher;
 import com.showcase.auth.application.service.SecurityAuditService;
+import com.showcase.auth.application.service.TokenRevocationService;
 import com.showcase.auth.application.service.UserService;
 import com.showcase.auth.domain.exception.AuthErrorCode;
 import com.showcase.auth.domain.exception.EmailAlreadyExistsException;
@@ -46,16 +47,19 @@ public class UserServiceImpl implements UserService {
     private final PasswordHistoryRepository passwordHistoryRepository;
     private final PasswordHasher passwordHasher;
     private final SecurityAuditService auditService;
+    private final TokenRevocationService tokenRevocationService;
     private final Clock clock;
 
     public UserServiceImpl(UserRepository userRepository, RoleRepository roleRepository,
                            PasswordHistoryRepository passwordHistoryRepository, PasswordHasher passwordHasher,
-                           SecurityAuditService auditService, Clock clock) {
+                           SecurityAuditService auditService, TokenRevocationService tokenRevocationService,
+                           Clock clock) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordHistoryRepository = passwordHistoryRepository;
         this.passwordHasher = passwordHasher;
         this.auditService = auditService;
+        this.tokenRevocationService = tokenRevocationService;
         this.clock = clock;
     }
 
@@ -113,6 +117,8 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
         passwordHistoryRepository.save(user.getId(), user.getPasswordHash(), Instant.now(clock));
         auditService.record(SecurityEventType.PASSWORD_CHANGED, user.getUsername(), null);
+        // Si alguien tenía un token robado, deja de valer al cambiar la contraseña.
+        tokenRevocationService.revokeAllForUser(user.getUsername(), "password changed");
     }
 
     // La actual siempre cuenta, aunque el usuario venga de antes de existir el historial (datos de ejemplo).
@@ -143,6 +149,7 @@ public class UserServiceImpl implements UserService {
         User saved = userRepository.save(user);
         if (wasEnabled && !enabled) {
             auditService.record(SecurityEventType.USER_DISABLED, saved.getUsername(), "enabled=false");
+            tokenRevocationService.revokeAllForUser(saved.getUsername(), "user disabled");
         }
         return saved;
     }
@@ -154,6 +161,7 @@ public class UserServiceImpl implements UserService {
         user.deactivate();
         userRepository.save(user);
         auditService.record(SecurityEventType.USER_DISABLED, user.getUsername(), "deleted");
+        tokenRevocationService.revokeAllForUser(user.getUsername(), "user deleted");
     }
 
     @Override
@@ -176,6 +184,8 @@ public class UserServiceImpl implements UserService {
         user.removeRole(roleId);
         User saved = userRepository.save(user);
         auditService.record(SecurityEventType.ROLE_REMOVED, saved.getUsername(), "role=" + roleName);
+        // Los tokens ya emitidos llevan el rol en sus claims: se revocan para que el cambio sea inmediato.
+        tokenRevocationService.revokeAllForUser(saved.getUsername(), "role removed");
         return saved;
     }
 

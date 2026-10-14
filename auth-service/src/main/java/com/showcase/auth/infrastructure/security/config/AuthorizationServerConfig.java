@@ -1,6 +1,7 @@
 package com.showcase.auth.infrastructure.security.config;
 
 import com.showcase.auth.application.security.LoginPolicy;
+import com.showcase.auth.application.security.TokenPolicy;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -69,5 +70,10 @@ public class AuthorizationServerConfig {
     @Bean
     public LoginPolicy loginPolicy(AuthSecurityProperties properties) {
         return new LoginPolicy(properties.login().maxFailedAttempts(), properties.login().lockDuration());
+    }
+
+    @Bean
+    public TokenPolicy tokenPolicy(AuthSecurityProperties properties) {
+        return new TokenPolicy(properties.accessTokenTtl());
     }
 }
