@@ -71,6 +71,8 @@ spring:
 
 showcase:
   messaging:
+    # Los eventos procesados se guardan 7 días (para descartar duplicados); después los borra una tarea nocturna.
+    processed-event-retention: 7d
     source: ${spring.application.name}
     # customer-service solo consume: no publica eventos (no tiene outbox).
     consumers:

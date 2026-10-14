@@ -6,6 +6,7 @@ import com.showcase.common.infrastructure.messaging.dlq.DeadLetterQueueAdmin;
 import com.showcase.common.infrastructure.messaging.dlq.impl.RabbitDeadLetterQueueAdminImpl;
 import com.showcase.common.infrastructure.messaging.error.LoggingRabbitListenerErrorHandler;
 import com.showcase.common.infrastructure.messaging.error.MessagingExceptionClassifier;
+import com.showcase.common.infrastructure.messaging.idempotency.ProcessedEventCleanup;
 import com.showcase.common.infrastructure.messaging.idempotency.impl.JdbcProcessedEventRegistryImpl;
 import com.showcase.common.infrastructure.messaging.outbox.OutboxEventWriter;
 import com.showcase.common.infrastructure.messaging.outbox.OutboxPublisher;
@@ -15,6 +16,7 @@ import com.showcase.common.infrastructure.messaging.outbox.impl.NoopOutboxTracin
 import io.micrometer.tracing.Tracer;
 import io.micrometer.tracing.propagation.Propagator;
 import java.time.Clock;
+import java.time.Duration;
 import org.springframework.amqp.core.Declarables;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.retry.MessageRecoverer;
@@ -22,6 +24,7 @@ import org.springframework.amqp.rabbit.retry.RejectAndDontRequeueRecoverer;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.amqp.autoconfigure.RabbitListenerRetrySettingsCustomizer;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -97,6 +100,16 @@ public class CommonMessagingAutoConfiguration {
         @ConditionalOnMissingBean
         public ProcessedEventRegistry processedEventRegistry(JdbcClient jdbcClient, ObjectProvider<Clock> clock) {
             return new JdbcProcessedEventRegistryImpl(jdbcClient, clock.getIfAvailable(Clock::systemUTC));
+        }
+
+        /** Solo en los servicios que consumen eventos (los que definen cuánto se guardan los procesados). */
+        @Bean
+        @ConditionalOnMissingBean
+        @ConditionalOnProperty(prefix = "showcase.messaging", name = "processed-event-retention")
+        public ProcessedEventCleanup processedEventCleanup(
+                JdbcClient jdbcClient, ObjectProvider<Clock> clock,
+                @Value("${showcase.messaging.processed-event-retention}") Duration retention) {
+            return new ProcessedEventCleanup(jdbcClient, retention, clock.getIfAvailable(Clock::systemUTC));
         }
     }
 

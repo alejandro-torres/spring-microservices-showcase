@@ -1,3 +1,4 @@
 com.showcase.common.infrastructure.config.CommonWebAutoConfiguration
 com.showcase.common.infrastructure.messaging.config.CommonMessagingAutoConfiguration
 com.showcase.common.infrastructure.openapi.CommonOpenApiAutoConfiguration
+com.showcase.common.infrastructure.scheduling.CommonSchedulingAutoConfiguration
