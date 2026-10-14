@@ -33,6 +33,7 @@ En Windows (PowerShell o CMD) se usa `mvnw.cmd verify`. El informe de cobertura 
 | `common-lib` | Excepciones de dominio, paginación (`PageQuery`/`PageResult`), filtros dinámicos (parser y `Specification` de JPA), gestión global de errores y mensajes en español e inglés |
 | `auth-service` | Usuarios, roles y permisos, y servidor de autorización OAuth2 que emite los JWT (puerto 9000) |
 | `product-service` | Catálogo de productos y categorías, y gestión del stock (puerto 8081) |
+| `customer-service` | Clientes y sus direcciones (puerto 8082) |
 
 ## Arrancar auth-service en local
 
@@ -139,6 +140,27 @@ Ejemplo: portátiles entre 500 y 1500 € con stock, del más caro al más barat
 ```bash
 curl -H "Authorization: Bearer $TOKEN" "http://localhost:8081/api/v1/products?filter=categoryName:like:portatil&filter=price:between:500,1500&filter=stock:gt:0&sort=price&direction=desc"
 ```
+
+## Arrancar customer-service en local
+
+Con PostgreSQL en Docker y 50 clientes de ejemplo con sus direcciones:
+
+```bash
+./mvnw -pl customer-service spring-boot:test-run -Dspring-boot.run.profiles=dev
+```
+
+Escucha en el puerto 8082 y valida los tokens igual que product-service.
+
+| Recurso | Endpoints | Permisos |
+|---|---|---|
+| Clientes | `POST`, `GET /{id}`, `GET`, `PUT /{id}`, `DELETE /{id}` en `/api/v1/customers`, y `GET /by-user/{userId}` (perfil del usuario de auth-service) | `customer:read` / `customer:write` |
+| Direcciones | `POST /{id}/addresses`, `DELETE /{id}/addresses/{addressId}` y `PUT /{id}/addresses/{addressId}/main` en `/api/v1/customers` | `customer:write` |
+
+Reglas: el email (sin distinguir mayúsculas) y el usuario de auth-service son únicos; un cliente tiene como máximo 5 direcciones y, si tiene alguna, exactamente una es la principal (la primera que se añade, y si se borra, la siguiente).
+
+| Recurso | Filtros | Ordenación |
+|---|---|---|
+| Clientes | `firstName`, `lastName`, `email` (eq, like, startsWith), `city` (eq, like; cualquiera de sus direcciones), `userId` (eq), `createdAt` (gte, lte, between) | `id`, `firstName`, `lastName`, `email`, `createdAt` |
 
 ## Documentación
 
