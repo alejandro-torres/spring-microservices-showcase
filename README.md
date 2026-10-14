@@ -30,7 +30,52 @@ En Windows (PowerShell o CMD) se usa `mvnw.cmd verify`. El informe de cobertura 
 
 | Módulo | Contenido |
 |---|---|
-| `common-lib` | Excepciones de dominio, paginación (`PageQuery`/`PageResult`), filtros dinámicos, gestión global de errores y mensajes en español e inglés |
+| `common-lib` | Excepciones de dominio, paginación (`PageQuery`/`PageResult`), filtros dinámicos (parser y `Specification` de JPA), gestión global de errores y mensajes en español e inglés |
+| `auth-service` | Usuarios, roles y permisos (puerto 9000). La parte de OAuth2 y seguridad llega en el siguiente PR |
+
+## Arrancar auth-service en local
+
+No hace falta instalar PostgreSQL: el servicio se arranca con una base de datos en Docker (Testcontainers) y el perfil `dev`, que carga datos de ejemplo.
+
+```bash
+./mvnw install -DskipTests
+```
+```bash
+./mvnw -pl auth-service spring-boot:test-run -Dspring-boot.run.profiles=dev
+```
+
+Algunas peticiones para probarlo:
+
+```bash
+curl "http://localhost:9000/api/v1/users?filter=role:eq:ADMIN"
+```
+```bash
+curl "http://localhost:9000/api/v1/users?filter=enabled:eq:false&sort=createdAt&direction=desc&page=0&size=5"
+```
+```bash
+curl -H "Accept-Language: en" "http://localhost:9000/api/v1/users?filter=passwordHash:eq:x"
+```
+
+### Datos de ejemplo (solo perfil `dev`)
+
+- Usuario `admin` (roles ADMIN y USER) y 60 usuarios `user01`…`user60`; cada 7º está deshabilitado y cada 10º borrado.
+- Todos tienen la contraseña de desarrollo `Showcase-Dev-2026!`. Estos datos nunca se cargan fuera del perfil `dev`.
+
+### API
+
+| Recurso | Endpoints |
+|---|---|
+| Usuarios | `POST /api/v1/users`, `GET /api/v1/users/{id}`, `GET /api/v1/users`, `PUT /api/v1/users/{id}`, `DELETE /api/v1/users/{id}`, `POST` y `DELETE /api/v1/users/{id}/roles/{roleId}` |
+| Roles | `POST`, `GET /{id}`, `GET`, `PUT /{id}`, `DELETE /{id}` en `/api/v1/roles` |
+| Permisos | `POST`, `GET /{id}`, `GET`, `PUT /{id}`, `DELETE /{id}` en `/api/v1/permissions` |
+
+Los listados admiten `page`, `size` (máximo 100), `sort`, `direction`, `includeInactive` y filtros `filter=campo:operador:valor`:
+
+| Recurso | Filtros | Ordenación |
+|---|---|---|
+| Usuarios | `username`, `email` (eq, like, startsWith), `enabled` (eq), `role` (eq, in), `createdAt` (gte, lte, between) | `id`, `username`, `email`, `createdAt`, `updatedAt` |
+| Roles | `name` (eq, like, startsWith), `permission` (eq, in), `createdAt` | `id`, `name`, `createdAt` |
+| Permisos | `name` (eq, like, startsWith), `createdAt` | `id`, `name`, `createdAt` |
 
 ## Documentación
 
