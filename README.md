@@ -2,9 +2,9 @@
 
 Sistema de microservicios en Java 21 y Spring Boot 4 con **arquitectura hexagonal**, pensado como demostración de lo que se puede construir en sistemas distribuidos con Java.
 
-> 🚧 Proyecto en construcción. El desarrollo avanza por fases, cada una en su propio pull request.
+> Desarrollado por fases, cada una en su propio pull request (de la estructura inicial a la observabilidad y las pruebas de extremo a extremo).
 
-## Qué incluirá
+## Qué incluye
 
 - **4 microservicios de negocio:** `auth-service` (usuarios, roles y OAuth2), `product-service`, `customer-service` y `order-service`.
 - **Infraestructura:** API Gateway (Spring Cloud Gateway) y descubrimiento de servicios (Eureka).
@@ -24,7 +24,16 @@ Requisitos: **JDK 21** y **Docker** (para los tests de integración con Testcont
 ./mvnw verify
 ```
 
-En Windows (PowerShell o CMD) se usa `mvnw.cmd verify`. El informe de cobertura queda en `<módulo>/target/site/jacoco/index.html`.
+En Windows (PowerShell o CMD) se usa `mvnw.cmd verify`.
+
+| Qué | Cómo |
+|---|---|
+| Solo los tests unitarios (`*Test`, JUnit 5 + Mockito, sin Spring ni Docker; segundos) | `./mvnw test` |
+| Unitarios y de integración (`*IT`, con PostgreSQL, Redis y RabbitMQ reales en Testcontainers) | `./mvnw verify` |
+| Cobertura | `./mvnw verify` falla si `domain` y `application` bajan del 80 % de líneas o del 70 % de ramas. Informe de cada módulo en `<módulo>/target/site/jacoco/index.html` e informe agregado de todos en `coverage-report/target/site/jacoco-aggregate/index.html` (sin configuración, DTOs, entidades, clases `*Application` ni el código de MapStruct) |
+| De extremo a extremo contra el sistema en Docker | Con el sistema arrancado (`docker compose up -d --build`): `./mvnw -Pe2e -pl e2e-tests verify` |
+
+Las pruebas de extremo a extremo ([e2e-tests](e2e-tests/src/test/java/com/showcase/e2e/ShowcaseE2EIT.java)) hacen lo mismo que un cliente real y todo a través del gateway: login con authorization code + PKCE en el formulario de auth-service, alta de un producto y de un cliente, pedido que la saga confirma descontando el stock, cancelación que lo devuelve y pedido sin stock rechazado con 422.
 
 ## Estructura
 
@@ -38,6 +47,8 @@ En Windows (PowerShell o CMD) se usa `mvnw.cmd verify`. El informe de cobertura 
 | `order-service` | Pedidos y sus líneas; consulta clientes y productos con Feign y Resilience4j (puerto 8083) |
 | `discovery-service` | Registro de servicios con Eureka (puerto 8761) |
 | `api-gateway` | Punto de entrada único: valida el token, enruta, limita la tasa de peticiones y agrega Swagger (puerto 8080) |
+| `coverage-report` | Informe de cobertura de JaCoCo agregado de todos los módulos |
+| `e2e-tests` | Pruebas de extremo a extremo contra el sistema en Docker (perfil `e2e`) |
 
 ## Arrancar todo con Docker
 
@@ -59,7 +70,7 @@ La primera vez tarda unos minutos (descarga las dependencias y compila los 6 ser
 
 Solo el gateway expone la API; los servicios no publican puertos. Hay una base de datos y un usuario de PostgreSQL por servicio, y un usuario de RabbitMQ por servicio con permisos solo sobre sus exchanges y colas ([docker/rabbitmq/setup-users.sh](docker/rabbitmq/setup-users.sh)). El perfil por defecto es `dev` (datos de ejemplo y el 100 % de las trazas); con `SPRING_PROFILES_ACTIVE=prod`, logs en JSON y el 10 % de las trazas.
 
-Los tokens se piden a través del gateway (`http://localhost:8080/oauth2/token`, login en `http://localhost:8080/login`), que es el emisor (`iss`) de los JWT.
+Los tokens se piden a través del gateway (`http://localhost:8080/oauth2/token`, login en `http://localhost:8080/login`), que es el emisor (`iss`) de los JWT. El gateway reenvía a los servicios las cabeceras `X-Forwarded-*` de los clientes que llegan desde la propia máquina o desde redes privadas (`GATEWAY_TRUSTED_PROXIES`); con un balanceador delante, indica su red ahí y `RATE_LIMIT_TRUSTED_PROXY_HOPS=1` para que el rate limiting use la IP real del cliente.
 
 ## Arrancar los servicios uno a uno (desarrollo)
 
