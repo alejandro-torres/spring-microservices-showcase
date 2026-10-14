@@ -16,11 +16,13 @@ import com.showcase.common.domain.page.PageQuery;
 import com.showcase.common.domain.page.PageResult;
 import com.showcase.common.infrastructure.persistence.page.SpringDataPageAdapter;
 import com.showcase.common.infrastructure.persistence.specification.GenericSpecificationBuilder;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
 
@@ -61,6 +63,13 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public Optional<User> findById(Long id) {
         return userJpaRepository.findByIdAndActiveTrue(id).map(mapper::toDomain);
+    }
+
+    @Override
+    public List<User> findWithExpiredLock(Instant now, int limit) {
+        return userJpaRepository.findByActiveTrueAndLockedUntilLessThanEqualOrderById(now, Limit.of(limit)).stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override

@@ -1,7 +1,10 @@
 package com.showcase.auth.infrastructure.persistence.repository;
 
 import com.showcase.auth.infrastructure.persistence.entity.UserEntity;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -16,6 +19,10 @@ public interface UserJpaRepository extends JpaRepository<UserEntity, Long>, JpaS
 
     @EntityGraph(attributePaths = {"roles", "roles.permissions"})
     Optional<UserEntity> findByUsernameAndActiveTrue(String username);
+
+    /** Cuentas con un bloqueo ya caducado, en lotes, para desbloquearlas. */
+    @EntityGraph(attributePaths = {"roles", "roles.permissions"})
+    List<UserEntity> findByActiveTrueAndLockedUntilLessThanEqualOrderById(Instant now, Limit limit);
 
     boolean existsByUsername(String username);
 
