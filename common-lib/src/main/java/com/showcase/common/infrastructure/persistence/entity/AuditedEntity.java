@@ -1,4 +1,4 @@
-package com.showcase.auth.infrastructure.persistence.entity;
+package com.showcase.common.infrastructure.persistence.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;

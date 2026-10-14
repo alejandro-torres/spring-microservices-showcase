@@ -1,4 +1,4 @@
-package com.showcase.auth.domain.model;
+package com.showcase.common.domain.model;
 
 import com.showcase.common.domain.exception.CommonErrorCode;
 import com.showcase.common.domain.exception.ConflictException;
