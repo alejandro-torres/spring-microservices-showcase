@@ -8,6 +8,7 @@ import com.showcase.common.infrastructure.exception.GlobalExceptionHandler;
 import com.showcase.common.infrastructure.i18n.ErrorMessageResolver;
 import com.showcase.common.infrastructure.persistence.specification.GenericSpecificationBuilder;
 import com.showcase.common.infrastructure.rest.filter.FilterCriteriaParser;
+import com.showcase.common.infrastructure.rest.filter.FilterParametersArgumentResolver;
 import jakarta.validation.ConstraintViolationException;
 import java.time.Clock;
 import java.util.List;
@@ -23,7 +24,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.web.servlet.DispatcherServlet;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.LocaleResolver;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver;
 
 /**
@@ -86,6 +89,16 @@ public class CommonWebAutoConfiguration {
     public FilterCriteriaParser filterCriteriaParser(
             @Value("${showcase.filters.max-filters:" + FilterCriteriaParser.DEFAULT_MAX_FILTERS + "}") int maxFilters) {
         return new FilterCriteriaParser(maxFilters);
+    }
+
+    /** Registra el resolver de los parámetros {@code filter} en Spring MVC. */
+    @Configuration(proxyBeanMethods = false)
+    static class FilterParametersConfiguration implements WebMvcConfigurer {
+
+        @Override
+        public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+            resolvers.add(new FilterParametersArgumentResolver());
+        }
     }
 
     @Configuration(proxyBeanMethods = false)
