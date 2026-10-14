@@ -139,6 +139,16 @@ public class UserServiceImpl implements UserService {
         return saved;
     }
 
+    @Override
+    @Transactional
+    public User unlock(Long id) {
+        User user = findById(id);
+        user.unlock();
+        User saved = userRepository.save(user);
+        auditService.record(SecurityEventType.ACCOUNT_UNLOCKED, saved.getUsername(), null);
+        return saved;
+    }
+
     // Todos los roles pedidos tienen que existir y estar activos; si falta alguno se indica cuál.
     private Set<Role> findRoles(Set<Long> roleIds) {
         if (roleIds == null || roleIds.isEmpty()) {

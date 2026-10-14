@@ -25,7 +25,7 @@ public final class AuthMother {
 
     public static User user(long id, String username, Role... roles) {
         return new User(id, username, username + "@example.com", PASSWORD_HASH, true, Set.of(roles),
-                true, 0L, CREATED_AT, CREATED_AT);
+                0, null, true, 0L, CREATED_AT, CREATED_AT);
     }
 
     public static Role adminRole() {

@@ -32,4 +32,7 @@ public interface UserService {
     User assignRole(Long userId, Long roleId);
 
     User removeRole(Long userId, Long roleId);
+
+    /** Desbloqueo manual de una cuenta bloqueada por intentos fallidos. */
+    User unlock(Long id);
 }

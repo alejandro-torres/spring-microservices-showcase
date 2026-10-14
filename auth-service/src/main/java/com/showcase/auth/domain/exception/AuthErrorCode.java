@@ -19,6 +19,7 @@ public enum AuthErrorCode implements ErrorCode {
     PERMISSION_IN_USE(ErrorCategory.CONFLICT),
     ROLE_ALREADY_ASSIGNED(ErrorCategory.BUSINESS_RULE),
     ROLE_NOT_ASSIGNED(ErrorCategory.BUSINESS_RULE),
+    ACCOUNT_LOCKED(ErrorCategory.LOCKED),
     INVALID_USERNAME(ErrorCategory.INVALID_REQUEST),
     INVALID_EMAIL(ErrorCategory.INVALID_REQUEST),
     INVALID_ROLE_NAME(ErrorCategory.INVALID_REQUEST),

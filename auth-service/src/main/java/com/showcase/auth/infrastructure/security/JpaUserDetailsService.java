@@ -3,6 +3,8 @@ package com.showcase.auth.infrastructure.security;
 import com.showcase.auth.domain.model.Role;
 import com.showcase.auth.domain.model.User;
 import com.showcase.auth.domain.repository.UserRepository;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.springframework.security.core.GrantedAuthority;
@@ -21,9 +23,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class JpaUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
+    private final Clock clock;
 
-    public JpaUserDetailsService(UserRepository userRepository) {
+    public JpaUserDetailsService(UserRepository userRepository, Clock clock) {
         this.userRepository = userRepository;
+        this.clock = clock;
     }
 
     @Override
@@ -36,6 +40,8 @@ public class JpaUserDetailsService implements UserDetailsService {
         return org.springframework.security.core.userdetails.User.withUsername(user.getUsername())
                 .password(user.getPasswordHash())
                 .disabled(!user.isEnabled())
+                // Spring Security comprueba el bloqueo antes que la contraseña (LockedException).
+                .accountLocked(user.isLocked(Instant.now(clock)))
                 .authorities(authorities(user))
                 .build();
     }

@@ -104,6 +104,12 @@ public class UserController {
     }
 
     @PreAuthorize("hasAuthority('user:write')")
+    @PutMapping("/{id}/unlock")
+    public UserResponseDTO unlock(@PathVariable @Positive Long id) {
+        return mapper.toResponse(userService.unlock(id));
+    }
+
+    @PreAuthorize("hasAuthority('user:write')")
     @PostMapping("/{id}/roles/{roleId}")
     public UserResponseDTO assignRole(@PathVariable @Positive Long id, @PathVariable @Positive Long roleId) {
         return mapper.toResponse(userService.assignRole(id, roleId));

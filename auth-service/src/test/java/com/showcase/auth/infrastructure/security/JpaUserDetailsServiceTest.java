@@ -5,26 +5,26 @@ import static com.showcase.auth.testdata.AuthMother.user;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 
 import com.showcase.auth.domain.repository.UserRepository;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
-@ExtendWith(MockitoExtension.class)
 class JpaUserDetailsServiceTest {
 
-    @Mock
-    private UserRepository userRepository;
+    private static final Instant NOW = Instant.parse("2026-10-14T12:00:00Z");
 
-    @InjectMocks
-    private JpaUserDetailsService userDetailsService;
+    private final UserRepository userRepository = mock(UserRepository.class);
+    private final JpaUserDetailsService userDetailsService =
+            new JpaUserDetailsService(userRepository, Clock.fixed(NOW, ZoneOffset.UTC));
 
     @Test
     @DisplayName("carga el usuario con ROLE_* y los permisos de sus roles, normalizando el username")
@@ -35,6 +35,7 @@ class JpaUserDetailsServiceTest {
 
         assertThat(details.getUsername()).isEqualTo("ana");
         assertThat(details.isEnabled()).isTrue();
+        assertThat(details.isAccountNonLocked()).isTrue();
         assertThat(details.getAuthorities()).extracting(GrantedAuthority::getAuthority)
                 .containsExactlyInAnyOrder("ROLE_ADMIN", "user:read", "user:write");
     }
@@ -47,6 +48,16 @@ class JpaUserDetailsServiceTest {
         given(userRepository.findByUsername("ana")).willReturn(Optional.of(ana));
 
         assertThat(userDetailsService.loadUserByUsername("ana").isEnabled()).isFalse();
+    }
+
+    @Test
+    @DisplayName("marca la cuenta como bloqueada mientras no caduque el bloqueo")
+    void loadUserByUsername_lockedUser_shouldBeLocked() {
+        var ana = user(10L, "ana");
+        ana.registerFailedLogin(1, Duration.ofMinutes(15), NOW.minusSeconds(60));
+        given(userRepository.findByUsername("ana")).willReturn(Optional.of(ana));
+
+        assertThat(userDetailsService.loadUserByUsername("ana").isAccountNonLocked()).isFalse();
     }
 
     @Test
