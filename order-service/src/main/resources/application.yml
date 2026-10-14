@@ -33,8 +33,23 @@ spring:
         jwt:
           # Clave pública de auth-service para validar los JWT (se descarga y se cachea).
           jwk-set-uri: ${AUTH_JWK_SET_URI:http://localhost:9000/oauth2/jwks}
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            # Fallar pronto: el usuario espera la respuesta mientras se consultan los otros servicios.
+            connect-timeout: 2000
+            read-timeout: 3000
   lifecycle:
     timeout-per-shutdown-phase: 30s
+
+showcase:
+  clients:
+    product-service:
+      url: ${PRODUCT_SERVICE_URL:http://localhost:8081}
+    customer-service:
+      url: ${CUSTOMER_SERVICE_URL:http://localhost:8082}
 
 management:
   endpoints:
