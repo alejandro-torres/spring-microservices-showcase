@@ -2,9 +2,11 @@ package com.showcase.auth.infrastructure.rest.mapper;
 
 import com.showcase.auth.domain.model.Permission;
 import com.showcase.auth.domain.model.Role;
+import com.showcase.auth.domain.model.SecurityAuditEvent;
 import com.showcase.auth.domain.model.User;
 import com.showcase.auth.infrastructure.rest.dto.response.PermissionResponseDTO;
 import com.showcase.auth.infrastructure.rest.dto.response.RoleResponseDTO;
+import com.showcase.auth.infrastructure.rest.dto.response.SecurityAuditEventResponseDTO;
 import com.showcase.auth.infrastructure.rest.dto.response.UserResponseDTO;
 import java.util.Set;
 import java.util.TreeSet;
@@ -26,6 +28,9 @@ public interface AuthRestMapper {
     RoleResponseDTO toResponse(Role role);
 
     PermissionResponseDTO toResponse(Permission permission);
+
+    @Mapping(target = "eventType", source = "type")
+    SecurityAuditEventResponseDTO toResponse(SecurityAuditEvent event);
 
     /** Ordenados alfabéticamente para que la respuesta sea estable. */
     default Set<String> roleNames(Set<Role> roles) {

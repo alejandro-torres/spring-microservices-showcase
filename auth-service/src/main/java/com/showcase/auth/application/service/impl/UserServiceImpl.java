@@ -1,12 +1,14 @@
 package com.showcase.auth.application.service.impl;
 
 import com.showcase.auth.application.security.PasswordHasher;
+import com.showcase.auth.application.service.SecurityAuditService;
 import com.showcase.auth.application.service.UserService;
 import com.showcase.auth.domain.exception.EmailAlreadyExistsException;
 import com.showcase.auth.domain.exception.RoleNotFoundException;
 import com.showcase.auth.domain.exception.UserNotFoundException;
 import com.showcase.auth.domain.exception.UsernameAlreadyExistsException;
 import com.showcase.auth.domain.model.Role;
+import com.showcase.auth.domain.model.SecurityEventType;
 import com.showcase.auth.domain.model.User;
 import com.showcase.auth.domain.repository.RoleRepository;
 import com.showcase.auth.domain.repository.UserRepository;
@@ -34,12 +36,14 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordHasher passwordHasher;
+    private final SecurityAuditService auditService;
 
     public UserServiceImpl(UserRepository userRepository, RoleRepository roleRepository,
-                           PasswordHasher passwordHasher) {
+                           PasswordHasher passwordHasher, SecurityAuditService auditService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordHasher = passwordHasher;
+        this.auditService = auditService;
     }
 
     @Override
@@ -94,8 +98,13 @@ public class UserServiceImpl implements UserService {
         if (userRepository.existsByEmailAndIdNot(normalizedEmail, id)) {
             throw new EmailAlreadyExistsException(normalizedEmail);
         }
+        boolean wasEnabled = user.isEnabled();
         user.update(normalizedEmail, enabled);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        if (wasEnabled && !enabled) {
+            auditService.record(SecurityEventType.USER_DISABLED, saved.getUsername(), "enabled=false");
+        }
+        return saved;
     }
 
     @Override
@@ -104,6 +113,7 @@ public class UserServiceImpl implements UserService {
         User user = findById(id);
         user.deactivate();
         userRepository.save(user);
+        auditService.record(SecurityEventType.USER_DISABLED, user.getUsername(), "deleted");
     }
 
     @Override
@@ -112,15 +122,21 @@ public class UserServiceImpl implements UserService {
         User user = findById(userId);
         Role role = roleRepository.findById(roleId).orElseThrow(() -> new RoleNotFoundException(roleId));
         user.assignRole(role);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        auditService.record(SecurityEventType.ROLE_ASSIGNED, saved.getUsername(), "role=" + role.getName());
+        return saved;
     }
 
     @Override
     @Transactional
     public User removeRole(Long userId, Long roleId) {
         User user = findById(userId);
+        String roleName = user.getRoles().stream().filter(role -> roleId.equals(role.getId()))
+                .map(Role::getName).findFirst().orElse(String.valueOf(roleId));
         user.removeRole(roleId);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        auditService.record(SecurityEventType.ROLE_REMOVED, saved.getUsername(), "role=" + roleName);
+        return saved;
     }
 
     // Todos los roles pedidos tienen que existir y estar activos; si falta alguno se indica cuál.

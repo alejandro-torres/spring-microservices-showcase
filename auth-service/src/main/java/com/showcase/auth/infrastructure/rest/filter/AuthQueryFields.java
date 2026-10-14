@@ -8,6 +8,7 @@ import static com.showcase.common.domain.filter.FilterOperator.LIKE;
 import static com.showcase.common.domain.filter.FilterOperator.LTE;
 import static com.showcase.common.domain.filter.FilterOperator.STARTS_WITH;
 
+import com.showcase.auth.domain.model.SecurityEventType;
 import com.showcase.common.infrastructure.rest.filter.FilterFields;
 import com.showcase.common.infrastructure.rest.filter.FilterableField;
 import java.time.Instant;
@@ -42,6 +43,14 @@ public final class AuthQueryFields {
             CREATED_AT);
 
     public static final Set<String> PERMISSION_SORT = Set.of("id", "name", "createdAt");
+
+    public static final FilterFields AUDIT_FILTERS = FilterFields.of(
+            FilterableField.of("eventType", SecurityEventType.class, EQ, IN),
+            FilterableField.of("username", String.class, EQ, LIKE),
+            FilterableField.of("ip", String.class, EQ),
+            FilterableField.of("occurredAt", Instant.class, GTE, LTE, BETWEEN));
+
+    public static final Set<String> AUDIT_SORT = Set.of("id", "occurredAt");
 
     private AuthQueryFields() {
     }

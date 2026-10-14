@@ -12,6 +12,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.showcase.auth.application.security.PasswordHasher;
+import com.showcase.auth.application.service.SecurityAuditService;
+import com.showcase.auth.domain.model.SecurityEventType;
 import com.showcase.auth.domain.exception.AuthErrorCode;
 import com.showcase.auth.domain.exception.EmailAlreadyExistsException;
 import com.showcase.auth.domain.exception.RoleNotFoundException;
@@ -52,6 +54,9 @@ class UserServiceImplTest {
 
     @Mock
     private PasswordHasher passwordHasher;
+
+    @Mock
+    private SecurityAuditService auditService;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -261,6 +266,18 @@ class UserServiceImplTest {
             verify(userRepository).save(userCaptor.capture());
             assertThat(userCaptor.getValue().isActive()).isFalse();
             assertThat(userCaptor.getValue().isEnabled()).isFalse();
+            verify(auditService).record(SecurityEventType.USER_DISABLED, "ana", "deleted");
+        }
+
+        @Test
+        @DisplayName("audita la desactivación al poner enabled = false, pero no un cambio de email")
+        void update_disablingUser_shouldAudit() {
+            given(userRepository.findById(10L)).willReturn(Optional.of(user(10L, "ana")));
+            givenSaveReturnsArgument();
+
+            userService.update(10L, "ana@example.com", false, 0L);
+
+            verify(auditService).record(SecurityEventType.USER_DISABLED, "ana", "enabled=false");
         }
 
         @Test
@@ -285,6 +302,7 @@ class UserServiceImplTest {
             var updated = userService.assignRole(10L, 1L);
 
             assertThat(updated.getRoles()).extracting(Role::getName).containsExactlyInAnyOrder("USER", "ADMIN");
+            verify(auditService).record(SecurityEventType.ROLE_ASSIGNED, "ana", "role=ADMIN");
         }
 
         @Test
@@ -302,6 +320,7 @@ class UserServiceImplTest {
             givenSaveReturnsArgument();
 
             assertThat(userService.removeRole(10L, 1L).getRoles()).extracting(Role::getName).containsExactly("USER");
+            verify(auditService).record(SecurityEventType.ROLE_REMOVED, "ana", "role=ADMIN");
             assertThatThrownBy(() -> userService.removeRole(10L, 1L))
                     .isInstanceOf(BusinessRuleException.class)
                     .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.ROLE_NOT_ASSIGNED);
