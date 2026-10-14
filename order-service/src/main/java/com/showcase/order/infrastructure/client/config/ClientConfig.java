@@ -37,7 +37,7 @@ public class ClientConfig {
      * Los 404 tampoco, porque los clientes los convierten en un Optional vacío dentro de la llamada protegida.
      */
     @Bean
-    CircuitBreakerRegistry circuitBreakerRegistry(CircuitBreakerProperties properties) {
+    public CircuitBreakerRegistry circuitBreakerRegistry(CircuitBreakerProperties properties) {
         return CircuitBreakerRegistry.of(CircuitBreakerConfig.custom()
                 .slidingWindowSize(properties.slidingWindowSize())
                 .minimumNumberOfCalls(properties.minimumNumberOfCalls())
