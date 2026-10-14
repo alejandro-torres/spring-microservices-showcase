@@ -10,6 +10,10 @@ import com.showcase.common.infrastructure.exception.GlobalExceptionHandler;
 import com.showcase.common.infrastructure.i18n.ErrorMessageResolver;
 import com.showcase.common.infrastructure.persistence.specification.GenericSpecificationBuilder;
 import com.showcase.common.infrastructure.rest.filter.FilterCriteriaParser;
+import com.showcase.common.infrastructure.security.JwtAuthoritiesConverter;
+import com.showcase.common.infrastructure.security.RestAccessDeniedHandler;
+import com.showcase.common.infrastructure.security.RestAuthenticationEntryPoint;
+import com.showcase.common.infrastructure.security.SecurityExceptionHandler;
 import java.time.Clock;
 import java.util.Locale;
 import org.junit.jupiter.api.DisplayName;
@@ -38,6 +42,10 @@ class CommonWebAutoConfigurationTest {
                 .hasSingleBean(ErrorCodeHttpStatusMapper.class)
                 .hasSingleBean(FilterCriteriaParser.class)
                 .hasSingleBean(GenericSpecificationBuilder.class)
+                .hasSingleBean(RestAuthenticationEntryPoint.class)
+                .hasSingleBean(RestAccessDeniedHandler.class)
+                .hasSingleBean(SecurityExceptionHandler.class)
+                .hasSingleBean(JwtAuthoritiesConverter.class)
                 .hasSingleBean(Clock.class)
                 .hasBean(DispatcherServlet.LOCALE_RESOLVER_BEAN_NAME));
     }
