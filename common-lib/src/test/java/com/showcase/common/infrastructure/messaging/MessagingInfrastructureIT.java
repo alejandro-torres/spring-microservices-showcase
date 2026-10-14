@@ -10,7 +10,9 @@ import com.showcase.common.infrastructure.messaging.dlq.DeadLetterQueueAdmin;
 import com.showcase.common.infrastructure.messaging.dlq.impl.RabbitDeadLetterQueueAdminImpl;
 import com.showcase.common.infrastructure.messaging.idempotency.ProcessedEventCleanup;
 import com.showcase.common.infrastructure.messaging.outbox.OutboxEventWriter;
+import com.showcase.common.infrastructure.messaging.outbox.OutboxMetrics;
 import com.showcase.common.infrastructure.messaging.outbox.OutboxPublisher;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -89,6 +91,9 @@ class MessagingInfrastructureIT {
     private ProcessedEventCleanup processedEventCleanup;
 
     @Autowired
+    private OutboxMetrics outboxMetrics;
+
+    @Autowired
     private ProcessedEventRegistry registry;
 
     @Autowired
@@ -128,6 +133,21 @@ class MessagingInfrastructureIT {
         void append_withoutTransaction_shouldFail() {
             assertThatThrownBy(() -> writer.append("Thing", 1L, "thing.happened", new ThingHappened(1L),
                     Instant.now())).isInstanceOf(IllegalTransactionStateException.class);
+        }
+
+        @Test
+        @DisplayName("la métrica outbox.events cuenta los eventos pendientes y deja de contarlos al enviarlos")
+        void outboxMetrics_shouldCountPendingEvents() {
+            // given
+            var registry = new SimpleMeterRegistry();
+            outboxMetrics.bindTo(registry);
+            transactionTemplate.executeWithoutResult(status -> writer.append("Thing", 5L, "thing.happened",
+                    new ThingHappened(5L), Instant.now()));
+
+            // when / then
+            assertThat(registry.get("outbox.events").tag("status", "pending").gauge().value()).isEqualTo(1.0);
+            publisher.publishPending();
+            assertThat(registry.get("outbox.events").tag("status", "pending").gauge().value()).isZero();
         }
 
         @Test

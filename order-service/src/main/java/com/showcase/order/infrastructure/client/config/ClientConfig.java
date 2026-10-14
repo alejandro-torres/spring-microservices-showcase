@@ -8,6 +8,8 @@ import feign.RequestInterceptor;
 import feign.codec.ErrorDecoder;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.github.resilience4j.micrometer.tagged.TaggedCircuitBreakerMetrics;
+import io.micrometer.core.instrument.binder.MeterBinder;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
@@ -46,5 +48,11 @@ public class ClientConfig {
                 .permittedNumberOfCallsInHalfOpenState(properties.permittedNumberOfCallsInHalfOpenState())
                 .ignoreExceptions(UnauthorizedException.class, ForbiddenException.class)
                 .build());
+    }
+
+    /** Estado de cada circuit breaker (cerrado, abierto, medio abierto) y sus llamadas, para Prometheus. */
+    @Bean
+    public MeterBinder circuitBreakerMetrics(CircuitBreakerRegistry circuitBreakerRegistry) {
+        return TaggedCircuitBreakerMetrics.ofCircuitBreakerRegistry(circuitBreakerRegistry);
     }
 }

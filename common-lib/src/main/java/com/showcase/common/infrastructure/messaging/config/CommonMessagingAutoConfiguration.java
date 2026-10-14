@@ -9,6 +9,7 @@ import com.showcase.common.infrastructure.messaging.error.MessagingExceptionClas
 import com.showcase.common.infrastructure.messaging.idempotency.ProcessedEventCleanup;
 import com.showcase.common.infrastructure.messaging.idempotency.impl.JdbcProcessedEventRegistryImpl;
 import com.showcase.common.infrastructure.messaging.outbox.OutboxEventWriter;
+import com.showcase.common.infrastructure.messaging.outbox.OutboxMetrics;
 import com.showcase.common.infrastructure.messaging.outbox.OutboxPublisher;
 import com.showcase.common.infrastructure.messaging.outbox.OutboxTracing;
 import com.showcase.common.infrastructure.messaging.outbox.impl.MicrometerOutboxTracingImpl;
@@ -139,6 +140,20 @@ public class CommonMessagingAutoConfiguration {
             return new OutboxPublisher(jdbcClient, rabbitTemplate, new TransactionTemplate(transactionManager),
                     properties, clock.getIfAvailable(Clock::systemUTC),
                     tracing.getIfAvailable(NoopOutboxTracingImpl::new));
+        }
+    }
+
+    /** Eventos pendientes y sin destino del outbox como métrica, en los servicios que publican eventos. */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(name = {"io.micrometer.core.instrument.binder.MeterBinder",
+            "org.springframework.jdbc.core.simple.JdbcClient"})
+    @ConditionalOnProperty(prefix = "showcase.messaging", name = "exchange")
+    static class OutboxMetricsConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean
+        public OutboxMetrics outboxMetrics(JdbcClient jdbcClient) {
+            return new OutboxMetrics(jdbcClient);
         }
     }
 
