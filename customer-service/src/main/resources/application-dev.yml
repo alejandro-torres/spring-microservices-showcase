@@ -1,0 +1,8 @@
+# Perfil de desarrollo: añade clientes de ejemplo para probar la paginación y los filtros.
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/dev-data
+
+logging:
+  level:
+    com.showcase: DEBUG
