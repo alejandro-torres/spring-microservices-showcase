@@ -214,8 +214,30 @@ eureka:
     prefer-ip-address: true
     lease-renewal-interval-in-seconds: 5
     lease-expiration-duration-in-seconds: 15
+    # Prometheus descubre las réplicas en Eureka y lee aquí en qué puerto están sus métricas.
+    metadata-map:
+      prometheus-port: ${management.server.port:${server.port}}
 
 management:
+  # Actuator (health, métricas) en un puerto propio: el 8080 es público y el 8081 solo se ve en la red interna.
+  server:
+    port: ${MANAGEMENT_PORT:8081}
+  metrics:
+    # Etiquetas comunes de todas las métricas: servicio, réplica (la misma de X-Instance-Id) y entorno.
+    tags:
+      application: ${spring.application.name}
+      instance: ${showcase.instance-id}
+      environment: ${ENVIRONMENT:dev}
+    distribution:
+      # Histograma de latencias para calcular p50/p95/p99 en Prometheus; con trazas, cada cubo lleva un
+      # exemplar con el traceId de una petición real (para saltar de la gráfica a Zipkin).
+      percentiles-histogram:
+        http.server.requests: true
+        http.client.requests: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
   tracing:
     sampling:
       probability: ${TRACING_SAMPLING_PROBABILITY:0.1}
@@ -225,7 +247,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
   endpoint:
     health:
       probes:

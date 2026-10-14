@@ -142,4 +142,24 @@ class ProductApiIT {
                 .andExpect(jsonPath("$.paths['/api/v1/products'].post.responses['409']").exists());
         mockMvc.perform(get("/swagger-ui/index.html")).andExpect(status().isOk());
     }
+
+    @Test
+    @DisplayName("expone las métricas para Prometheus con las etiquetas comunes y el histograma de latencias")
+    void prometheus_shouldExposeTaggedMetrics() throws Exception {
+        // given: una petición para que haya datos de latencia
+        mockMvc.perform(get("/api/v1/products").with(TestJwt.customer())).andExpect(status().isOk());
+
+        // when
+        String metrics = mockMvc.perform(get("/actuator/prometheus"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        // then
+        assertThat(metrics)
+                .contains("application=\"product-service\"")
+                .contains("environment=\"dev\"")
+                .contains("http_server_requests_seconds_bucket")
+                .contains("jvm_memory_used_bytes")
+                .contains("hikaricp_connections_active");
+    }
 }

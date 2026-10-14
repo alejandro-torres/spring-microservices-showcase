@@ -41,6 +41,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+        <!-- Métricas en /actuator/prometheus (solo accesible desde la red interna) -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
         <!-- Registro en Eureka: el gateway y Feign descubren las réplicas -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>

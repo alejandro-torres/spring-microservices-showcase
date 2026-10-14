@@ -25,10 +25,26 @@ eureka:
     response-cache-update-interval-ms: 3000
 
 management:
+  metrics:
+    # Etiquetas comunes de todas las métricas: servicio, réplica (la misma de X-Instance-Id) y entorno.
+    tags:
+      application: ${spring.application.name}
+      instance: ${HOSTNAME:discovery-service}
+      environment: ${ENVIRONMENT:dev}
+    distribution:
+      # Histograma de latencias para calcular p50/p95/p99 en Prometheus; con trazas, cada cubo lleva un
+      # exemplar con el traceId de una petición real (para saltar de la gráfica a Zipkin).
+      percentiles-histogram:
+        http.server.requests: true
+        http.client.requests: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
   endpoint:
     health:
       probes:

@@ -43,6 +43,7 @@ import tools.jackson.databind.json.JsonMapper;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "eureka.client.enabled=false",
+        "management.server.port=0",
         "management.tracing.sampling.probability=1.0",
         "RATE_LIMIT_REPLENISH_RATE=1",
         "RATE_LIMIT_BURST_CAPACITY=5",

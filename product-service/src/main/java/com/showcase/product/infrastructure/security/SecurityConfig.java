@@ -20,7 +20,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    ResourceServerSecurityCustomizer resourceServer) throws Exception {
         http.authorizeHttpRequests(authorize -> authorize
-                .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
+                // /actuator/prometheus: solo se publica en la red interna de Docker; el gateway no lo enruta.
+                .requestMatchers("/actuator/health/**", "/actuator/info", "/actuator/prometheus").permitAll()
                 .requestMatchers(OpenApiPaths.PUBLIC).permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().denyAll());

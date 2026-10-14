@@ -103,6 +103,9 @@ eureka:
     # Latido cada 5 s; si faltan durante 15 s, Eureka retira la réplica.
     lease-renewal-interval-in-seconds: 5
     lease-expiration-duration-in-seconds: 15
+    # Prometheus descubre las réplicas en Eureka y lee aquí en qué puerto están sus métricas.
+    metadata-map:
+      prometheus-port: ${management.server.port:${server.port}}
 
 # Cada consulta SQL es un span en Zipkin (sin los valores de los parámetros, que pueden ser datos personales).
 jdbc:
@@ -111,6 +114,22 @@ jdbc:
     include-parameter-values: false
 
 management:
+  metrics:
+    # Etiquetas comunes de todas las métricas: servicio, réplica (la misma de X-Instance-Id) y entorno.
+    tags:
+      application: ${spring.application.name}
+      instance: ${showcase.instance-id}
+      environment: ${ENVIRONMENT:dev}
+    distribution:
+      # Histograma de latencias para calcular p50/p95/p99 en Prometheus; con trazas, cada cubo lleva un
+      # exemplar con el traceId de una petición real (para saltar de la gráfica a Zipkin).
+      percentiles-histogram:
+        http.server.requests: true
+        http.client.requests: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
   observations:
     annotations:
       # Spans propios con @Observed en los casos de uso clave (se ven en Zipkin dentro de la petición).
@@ -125,7 +144,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
   endpoint:
     health:
       probes:
