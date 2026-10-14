@@ -125,4 +125,18 @@ class ProductApiIT {
         assertThat(succeeded).isPositive();
         assertThat(finalStock).isEqualTo(10 - (int) succeeded);
     }
+
+    @Test
+    @DisplayName("la documentación OpenAPI es pública y documenta los errores con ErrorResponseDTO")
+    void openApi_shouldBePublicAndDocumentErrors() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.info.title").value("product-service API"))
+                .andExpect(jsonPath("$.components.securitySchemes.bearer-jwt.scheme").value("bearer"))
+                .andExpect(jsonPath("$.components.schemas.ErrorResponseDTO").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/products/{id}'].get.responses['404'].content"
+                        + "['application/json'].schema.$ref").value("#/components/schemas/ErrorResponseDTO"))
+                .andExpect(jsonPath("$.paths['/api/v1/products'].post.responses['409']").exists());
+        mockMvc.perform(get("/swagger-ui/index.html")).andExpect(status().isOk());
+    }
 }

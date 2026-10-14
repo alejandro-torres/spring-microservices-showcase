@@ -1,6 +1,8 @@
 server:
   port: ${SERVER_PORT:8081}
   shutdown: graceful
+  # Respeta las cabeceras X-Forwarded-* del gateway (URLs de Swagger, Location de los 201...).
+  forward-headers-strategy: framework
   error:
     include-stacktrace: never
     include-message: never

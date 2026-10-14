@@ -1,5 +1,6 @@
 package com.showcase.product.infrastructure.security;
 
+import com.showcase.common.infrastructure.openapi.OpenApiPaths;
 import com.showcase.common.infrastructure.security.ResourceServerSecurityCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +21,7 @@ public class SecurityConfig {
                                                    ResourceServerSecurityCustomizer resourceServer) throws Exception {
         http.authorizeHttpRequests(authorize -> authorize
                 .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
+                .requestMatchers(OpenApiPaths.PUBLIC).permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().denyAll());
         return resourceServer.customize(http).build();
