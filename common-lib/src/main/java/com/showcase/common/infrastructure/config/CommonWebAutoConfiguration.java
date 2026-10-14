@@ -61,6 +61,14 @@ public class CommonWebAutoConfiguration {
         return resolver;
     }
 
+    /** Cabecera X-Instance-Id con la réplica que atiende cada petición. */
+    @Bean
+    @ConditionalOnMissingBean
+    public InstanceIdResponseHeaderFilter instanceIdResponseHeaderFilter(
+            @Value("${showcase.instance-id}") String instanceId) {
+        return new InstanceIdResponseHeaderFilter(instanceId);
+    }
+
     @Bean
     @ConditionalOnMissingBean
     public Clock clock() {

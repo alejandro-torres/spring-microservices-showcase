@@ -87,8 +87,9 @@ eureka:
     # Lista de réplicas refrescada cada 5 s (por defecto 30 s).
     registry-fetch-interval-seconds: 5
   instance:
-    # Cada réplica con un id único, para poder tener varias del mismo servicio.
-    instance-id: ${spring.application.name}:${random.uuid}
+    # Id único de cada réplica, calculado una vez al arrancar (common-lib); es el mismo que la cabecera
+    # X-Instance-Id de las respuestas.
+    instance-id: ${showcase.instance-id}
     prefer-ip-address: true
     # Latido cada 5 s; si faltan durante 15 s, Eureka retira la réplica.
     lease-renewal-interval-in-seconds: 5

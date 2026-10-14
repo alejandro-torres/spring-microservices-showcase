@@ -22,6 +22,10 @@ spring:
           # Clave pública de auth-service para validar los JWT (se descarga y se cachea).
           jwk-set-uri: ${AUTH_JWK_SET_URI:http://localhost:9000/oauth2/jwks}
   cloud:
+    loadbalancer:
+      # La lista de réplicas de Eureka se cachea solo 5 s: una réplica caída deja de recibir tráfico enseguida.
+      cache:
+        ttl: 5s
     gateway:
       server:
         webflux:
@@ -31,6 +35,10 @@ spring:
               # GatewayErrorWebExceptionHandler responde en el formato común y con Retry-After.
               throw-on-limit: true
           # Para todas las rutas: 20 peticiones por segundo con ráfagas de 40, por usuario o por IP.
+          # El orden importa: el gateway numera por separado los filtros por defecto y los de cada ruta (1, 2...),
+          # y a igual número van antes los por defecto. Así queda: rate limiting → circuit breaker de la ruta →
+          # reintento → servicio. Si el reintento fuera el primero, el rate limiting quedaría dentro del circuit
+          # breaker y cada 429 contaría como un fallo del servicio (abriría el circuito).
           default-filters:
             - name: RequestRateLimiter
               args:
@@ -38,6 +46,18 @@ spring:
                 redis-rate-limiter.replenishRate: ${RATE_LIMIT_REPLENISH_RATE:20}
                 redis-rate-limiter.burstCapacity: ${RATE_LIMIT_BURST_CAPACITY:40}
                 redis-rate-limiter.requestedTokens: 1
+            # Si una réplica no responde (se está apagando o se ha caído y Eureka aún no lo sabe), las peticiones
+            # GET (sin efectos) se reintentan en otra réplica antes de dar el error al cliente.
+            - name: Retry
+              args:
+                retries: 2
+                methods: GET
+                statuses: BAD_GATEWAY,SERVICE_UNAVAILABLE
+                exceptions: java.io.IOException,java.util.concurrent.TimeoutException
+                backoff:
+                  firstBackoff: 50ms
+                  maxBackoff: 500ms
+                  factor: 2
           globalcors:
             cors-configurations:
               '[/**]':
@@ -190,7 +210,7 @@ eureka:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
     registry-fetch-interval-seconds: 5
   instance:
-    instance-id: ${spring.application.name}:${random.uuid}
+    instance-id: ${showcase.instance-id}
     prefer-ip-address: true
     lease-renewal-interval-in-seconds: 5
     lease-expiration-duration-in-seconds: 15
