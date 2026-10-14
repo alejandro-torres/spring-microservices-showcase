@@ -1,0 +1,5 @@
+# Perfil de desarrollo: se guardan todas las trazas.
+management:
+  tracing:
+    sampling:
+      probability: 1.0

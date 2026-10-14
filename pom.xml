@@ -24,6 +24,7 @@
         <module>customer-service</module>
         <module>order-service</module>
         <module>discovery-service</module>
+        <module>api-gateway</module>
     </modules>
 
     <name>Spring Microservices Showcase</name>
