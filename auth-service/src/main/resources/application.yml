@@ -78,6 +78,20 @@ showcase:
         grant-types: client_credentials
         scopes: internal
 
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+    # Lista de réplicas refrescada cada 5 s (por defecto 30 s).
+    registry-fetch-interval-seconds: 5
+  instance:
+    # Cada réplica con un id único, para poder tener varias del mismo servicio.
+    instance-id: ${spring.application.name}:${random.uuid}
+    prefer-ip-address: true
+    # Latido cada 5 s; si faltan durante 15 s, Eureka retira la réplica.
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 15
+
 management:
   endpoints:
     web:
