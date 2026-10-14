@@ -89,6 +89,20 @@
         </pluginManagement>
 
         <plugins>
+            <!-- Tests de integración (*IT) con Testcontainers: se ejecutan en la fase verify -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- Cobertura: informe en target/site/jacoco y mínimos en domain y application -->
             <plugin>
                 <groupId>org.jacoco</groupId>
