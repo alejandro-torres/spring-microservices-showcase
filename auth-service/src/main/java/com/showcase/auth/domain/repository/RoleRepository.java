@@ -18,6 +18,9 @@ public interface RoleRepository {
     /** Solo roles activos. */
     Optional<Role> findById(Long id);
 
+    /** Solo roles activos. */
+    Optional<Role> findByName(String name);
+
     /** Roles activos con esos ids; los que no existan no aparecen en el resultado. */
     List<Role> findAllById(Collection<Long> ids);
 

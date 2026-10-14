@@ -17,6 +17,9 @@ public interface UserRepository {
     /** Solo usuarios activos (no borrados). */
     Optional<User> findById(Long id);
 
+    /** Solo usuarios activos; el username ya llega normalizado (minúsculas). */
+    Optional<User> findByUsername(String username);
+
     PageResult<User> findAll(List<FilterCriterion> filters, PageQuery pageQuery, boolean includeInactive);
 
     boolean existsByUsername(String username);

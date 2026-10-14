@@ -1,21 +1,29 @@
 package com.showcase.auth.infrastructure.security.impl;
 
 import com.showcase.auth.application.security.PasswordHasher;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+/**
+ * Usa el mismo {@link PasswordEncoder} (BCrypt) que el login, para que los hashes que se guardan
+ * al crear usuarios sean los que Spring Security comprueba al iniciar sesión.
+ */
 @Component
 public class BCryptPasswordHasherImpl implements PasswordHasher {
 
-    private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+    private final PasswordEncoder passwordEncoder;
+
+    public BCryptPasswordHasherImpl(PasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Override
     public String hash(String rawPassword) {
-        return encoder.encode(rawPassword);
+        return passwordEncoder.encode(rawPassword);
     }
 
     @Override
     public boolean matches(String rawPassword, String passwordHash) {
-        return encoder.matches(rawPassword, passwordHash);
+        return passwordEncoder.matches(rawPassword, passwordHash);
     }
 }

@@ -64,6 +64,11 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    public Optional<User> findByUsername(String username) {
+        return userJpaRepository.findByUsernameAndActiveTrue(username).map(mapper::toDomain);
+    }
+
+    @Override
     public PageResult<User> findAll(List<FilterCriterion> filters, PageQuery pageQuery, boolean includeInactive) {
         Page<UserEntity> page = userJpaRepository.findAll(
                 specificationBuilder.build(filters, USERS, includeInactive),

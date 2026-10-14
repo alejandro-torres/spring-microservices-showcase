@@ -25,6 +25,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.showcase.auth.application.service.UserService;
 import com.showcase.auth.domain.exception.UserNotFoundException;
 import com.showcase.auth.infrastructure.rest.mapper.AuthRestMapperImpl;
+import com.showcase.auth.infrastructure.security.config.ApiSecurityConfig;
+import com.showcase.auth.testdata.TestJwt;
 import com.showcase.common.domain.exception.CommonErrorCode;
 import com.showcase.common.domain.exception.ConflictException;
 import com.showcase.common.domain.filter.FilterCriterion;
@@ -45,10 +47,13 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 @WebMvcTest(UserController.class)
-@Import({CommonWebAutoConfiguration.class, AuthRestMapperImpl.class})
+@Import({CommonWebAutoConfiguration.class, ApiSecurityConfig.class, AuthRestMapperImpl.class})
 class UserControllerTest {
 
     @Autowired
@@ -56,6 +61,30 @@ class UserControllerTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
+
+    /** Por defecto las peticiones van con un token de ADMIN; los tests de permisos usan su propio token. */
+    private ResultActions perform(MockHttpServletRequestBuilder request) throws Exception {
+        return mockMvc.perform(request.with(TestJwt.admin()));
+    }
+
+    @Nested
+    @DisplayName("autenticación")
+    class Authentication {
+
+        @Test
+        @DisplayName("sin token devuelve 401 en el formato común y no llama al servicio")
+        void withoutToken_shouldReturn401() throws Exception {
+            mockMvc.perform(get("/api/v1/users/10"))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, "Bearer"))
+                    .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+                    .andExpect(jsonPath("$.message").value("Es necesario autenticarse para acceder a este recurso."));
+            verify(userService, never()).findById(any());
+        }
+    }
 
     @Nested
     @DisplayName("POST /api/v1/users")
@@ -67,7 +96,7 @@ class UserControllerTest {
             given(userService.create("ana", "ana@example.com", "Secreta-123", Set.of(2L)))
                     .willReturn(user(10L, "ana", userRole()));
 
-            mockMvc.perform(post("/api/v1/users")
+            perform(post("/api/v1/users")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"username":"ana","email":"ana@example.com","password":"Secreta-123","roleIds":[2]}
@@ -85,7 +114,7 @@ class UserControllerTest {
         @Test
         @DisplayName("devuelve 400 con los errores de cada campo y no llama al servicio")
         void create_withInvalidBody_shouldReturn400() throws Exception {
-            mockMvc.perform(post("/api/v1/users")
+            perform(post("/api/v1/users")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"username":"a","email":"no-es-email","password":"corta"}
@@ -106,7 +135,7 @@ class UserControllerTest {
         void findById_shouldReturnUser() throws Exception {
             given(userService.findById(10L)).willReturn(user(10L, "ana", userRole(), adminRole()));
 
-            mockMvc.perform(get("/api/v1/users/10"))
+            perform(get("/api/v1/users/10"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.roles[0]").value("ADMIN"))
                     .andExpect(jsonPath("$.roles[1]").value("USER"));
@@ -117,18 +146,18 @@ class UserControllerTest {
         void findById_missing_shouldReturn404Translated() throws Exception {
             given(userService.findById(99L)).willThrow(new UserNotFoundException(99L));
 
-            mockMvc.perform(get("/api/v1/users/99"))
+            perform(get("/api/v1/users/99"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.code").value("USER_NOT_FOUND"))
                     .andExpect(jsonPath("$.message").value("No existe ningún usuario activo con id 99."));
-            mockMvc.perform(get("/api/v1/users/99").header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
+            perform(get("/api/v1/users/99").header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
                     .andExpect(jsonPath("$.message").value("No active user with id 99 was found."));
         }
 
         @Test
         @DisplayName("devuelve 400 si el id no es positivo")
         void findById_withNegativeId_shouldReturn400() throws Exception {
-            mockMvc.perform(get("/api/v1/users/-1"))
+            perform(get("/api/v1/users/-1"))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
         }
@@ -146,7 +175,7 @@ class UserControllerTest {
                     .willReturn(PageResult.of(List.of(user(10L, "ana", adminRole())), 0, 10, 1));
 
             // when
-            mockMvc.perform(get("/api/v1/users")
+            perform(get("/api/v1/users")
                             .param("filter", "role:in:ADMIN,USER")
                             .param("filter", "username:like:an")
                             .param("sort", "createdAt")
@@ -171,7 +200,7 @@ class UserControllerTest {
         @Test
         @DisplayName("rechaza filtrar por un campo fuera de la lista blanca, como el hash de la contraseña")
         void findAll_withForbiddenField_shouldReturn400() throws Exception {
-            mockMvc.perform(get("/api/v1/users").param("filter", "passwordHash:eq:x"))
+            perform(get("/api/v1/users").param("filter", "passwordHash:eq:x"))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("FILTER_FIELD_NOT_ALLOWED"));
             verify(userService, never()).findAll(anyList(), any(), anyBoolean());
@@ -180,10 +209,10 @@ class UserControllerTest {
         @Test
         @DisplayName("rechaza un campo de ordenación no permitido y un tamaño de página excesivo")
         void findAll_withInvalidPagination_shouldReturn400() throws Exception {
-            mockMvc.perform(get("/api/v1/users").param("sort", "passwordHash"))
+            perform(get("/api/v1/users").param("sort", "passwordHash"))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("INVALID_PAGINATION"));
-            mockMvc.perform(get("/api/v1/users").param("size", "500"))
+            perform(get("/api/v1/users").param("size", "500"))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("INVALID_PAGINATION"));
         }
@@ -198,7 +227,7 @@ class UserControllerTest {
         void update_shouldReturn200() throws Exception {
             given(userService.update(10L, "nueva@example.com", false, 0L)).willReturn(user(10L, "ana"));
 
-            mockMvc.perform(put("/api/v1/users/10")
+            perform(put("/api/v1/users/10")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"email":"nueva@example.com","enabled":false,"version":0}
@@ -213,7 +242,7 @@ class UserControllerTest {
             given(userService.update(10L, "nueva@example.com", true, 0L))
                     .willThrow(new ConflictException(CommonErrorCode.CONCURRENT_MODIFICATION, "User", 10L));
 
-            mockMvc.perform(put("/api/v1/users/10")
+            perform(put("/api/v1/users/10")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"email":"nueva@example.com","enabled":true,"version":0}
@@ -225,7 +254,7 @@ class UserControllerTest {
         @Test
         @DisplayName("PUT exige la versión para el bloqueo optimista")
         void update_withoutVersion_shouldReturn400() throws Exception {
-            mockMvc.perform(put("/api/v1/users/10")
+            perform(put("/api/v1/users/10")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"email":"nueva@example.com","enabled":true}
@@ -237,11 +266,11 @@ class UserControllerTest {
         @Test
         @DisplayName("DELETE devuelve 204 sin cuerpo, y 404 si el usuario no existe")
         void delete_shouldReturn204Or404() throws Exception {
-            mockMvc.perform(delete("/api/v1/users/10")).andExpect(status().isNoContent());
+            perform(delete("/api/v1/users/10")).andExpect(status().isNoContent());
             verify(userService).delete(10L);
 
             willThrow(new UserNotFoundException(11L)).given(userService).delete(11L);
-            mockMvc.perform(delete("/api/v1/users/11")).andExpect(status().isNotFound());
+            perform(delete("/api/v1/users/11")).andExpect(status().isNotFound());
         }
 
         @Test
@@ -250,10 +279,10 @@ class UserControllerTest {
             given(userService.assignRole(10L, 1L)).willReturn(user(10L, "ana", userRole(), adminRole()));
             given(userService.removeRole(10L, 1L)).willReturn(user(10L, "ana", userRole()));
 
-            mockMvc.perform(post("/api/v1/users/10/roles/1"))
+            perform(post("/api/v1/users/10/roles/1"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.roles.length()").value(2));
-            mockMvc.perform(delete("/api/v1/users/10/roles/1"))
+            perform(delete("/api/v1/users/10/roles/1"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.roles.length()").value(1));
         }

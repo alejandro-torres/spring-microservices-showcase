@@ -31,6 +31,30 @@ spring:
   lifecycle:
     timeout-per-shutdown-phase: 30s
 
+showcase:
+  security:
+    issuer: ${AUTH_ISSUER:http://localhost:9000}
+    access-token-ttl: 15m
+    refresh-token-ttl: 8h
+    jwt:
+      # Claves RSA en PEM (PKCS#8 y X.509). Obligatorias con varias réplicas; sin ellas se genera un par en memoria.
+      key-id: ${JWT_KEY_ID:showcase-key}
+      private-key: ${JWT_PRIVATE_KEY:}
+      public-key: ${JWT_PUBLIC_KEY:}
+    clients:
+      # Frontend de navegador: authorization_code con PKCE, sin secreto.
+      - client-id: web-client
+        client-name: Frontend web
+        grant-types: authorization_code,refresh_token
+        redirect-uris: ${WEB_CLIENT_REDIRECT_URIS:http://127.0.0.1:3000/callback}
+        scopes: openid,profile
+      # Llamadas entre microservicios: client_credentials. Si no hay secreto, no se registra.
+      - client-id: internal-service
+        client-name: Comunicación entre microservicios
+        secret: ${INTERNAL_CLIENT_SECRET:}
+        grant-types: client_credentials
+        scopes: internal
+
 management:
   endpoints:
     web:

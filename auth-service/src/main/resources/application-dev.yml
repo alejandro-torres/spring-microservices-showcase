@@ -5,6 +5,9 @@ spring:
   jpa:
     show-sql: false
 
+# Secreto del cliente internal-service solo para desarrollo (en otros entornos va en la variable INTERNAL_CLIENT_SECRET).
+INTERNAL_CLIENT_SECRET: internal-dev-secret
+
 logging:
   level:
     com.showcase: DEBUG
