@@ -1,0 +1,9 @@
+# Solo el código fuente entra en el contexto de construcción de las imágenes
+**/target/
+.git/
+.idea/
+.vscode/
+docs/
+docker/
+*.iml
+.env
