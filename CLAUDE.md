@@ -5,7 +5,7 @@ Guía para trabajar en este repositorio. La especificación completa está en [d
 ## Proyecto
 - Java 21, Spring Boot 4.1 (Spring Framework 7, Jackson 3), Spring Cloud 2025.1, Maven multimódulo con un POM padre y Maven Wrapper (`./mvnw`).
 - Servicios: `auth-service`, `product-service`, `customer-service`, `order-service`, `api-gateway`, `discovery-service`.
-- Módulos compartidos: `common-lib` (excepciones, paginación, filtros, manejo de errores) y `events-contract` (mensajes de RabbitMQ).
+- Módulos compartidos: `common-lib` (excepciones, paginación, filtros, manejo de errores y mensajería común) y `events-contract` (mensajes de RabbitMQ).
 - Base de paquetes: `com.showcase.<servicio>`.
 
 ## Flujo de trabajo con Git
@@ -39,6 +39,7 @@ infrastructure/    rest (controller, dto/request, dto/response, mapper),
 - `@Transactional` en los métodos públicos de los `*ServiceImpl` (`readOnly = true` en las lecturas). Nunca llamadas remotas dentro de una transacción.
 - Borrado lógico (`active = false`) y bloqueo optimista (`@Version`) en todas las entidades de negocio.
 - Fechas con un `Clock` inyectado, nunca `Instant.now()` directo, para poder probarlas.
+- Mensajería: se publica siempre por el outbox (`*EventPublisherImpl` → `OutboxEventWriter` de `common-lib`, con `Propagation.MANDATORY`), nunca con `RabbitTemplate` desde un servicio. Cada consumidor registra el evento con `ProcessedEventRegistry` en la misma transacción que su cambio, y cada `@RabbitListener` usa `errorHandler = LoggingRabbitListenerErrorHandler.BEAN_NAME`. Los nombres de exchanges y colas van en `showcase.messaging` de `application.yml`; las tablas `outbox_event` y `processed_event` las crea la migración Flyway de cada servicio.
 
 ## Tests
 - Unitarios con JUnit 5, Mockito y AssertJ, sin contexto de Spring, en el mismo paquete que la clase probada y con el sufijo `Test`.
