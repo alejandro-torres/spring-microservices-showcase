@@ -19,6 +19,7 @@
     <modules>
         <module>common-lib</module>
         <module>auth-service</module>
+        <module>product-service</module>
     </modules>
 
     <name>Spring Microservices Showcase</name>
