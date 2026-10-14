@@ -16,6 +16,10 @@
     <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+    <modules>
+        <module>common-lib</module>
+    </modules>
+
     <name>Spring Microservices Showcase</name>
     <description>Microservicios con Java 21, Spring Boot 4 y arquitectura hexagonal</description>
 
