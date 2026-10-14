@@ -11,6 +11,7 @@ import com.showcase.common.infrastructure.rest.filter.FilterCriteriaParser;
 import com.showcase.common.infrastructure.rest.filter.FilterParametersArgumentResolver;
 import com.showcase.common.infrastructure.security.JwtAuthoritiesConverter;
 import com.showcase.common.infrastructure.security.RestAccessDeniedHandler;
+import com.showcase.common.infrastructure.security.ResourceServerSecurityCustomizer;
 import com.showcase.common.infrastructure.security.RestAuthenticationEntryPoint;
 import com.showcase.common.infrastructure.security.SecurityErrorResponseWriter;
 import com.showcase.common.infrastructure.security.SecurityExceptionHandler;
@@ -150,6 +151,16 @@ public class CommonWebAutoConfiguration {
         @ConditionalOnMissingBean
         JwtAuthoritiesConverter jwtAuthoritiesConverter() {
             return new JwtAuthoritiesConverter();
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        ResourceServerSecurityCustomizer resourceServerSecurityCustomizer(
+                JwtAuthoritiesConverter jwtAuthoritiesConverter,
+                RestAuthenticationEntryPoint authenticationEntryPoint,
+                RestAccessDeniedHandler accessDeniedHandler) {
+            return new ResourceServerSecurityCustomizer(jwtAuthoritiesConverter, authenticationEntryPoint,
+                    accessDeniedHandler);
         }
     }
 

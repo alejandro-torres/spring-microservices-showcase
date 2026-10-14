@@ -11,6 +11,7 @@ import com.showcase.common.infrastructure.i18n.ErrorMessageResolver;
 import com.showcase.common.infrastructure.persistence.specification.GenericSpecificationBuilder;
 import com.showcase.common.infrastructure.rest.filter.FilterCriteriaParser;
 import com.showcase.common.infrastructure.security.JwtAuthoritiesConverter;
+import com.showcase.common.infrastructure.security.ResourceServerSecurityCustomizer;
 import com.showcase.common.infrastructure.security.RestAccessDeniedHandler;
 import com.showcase.common.infrastructure.security.RestAuthenticationEntryPoint;
 import com.showcase.common.infrastructure.security.SecurityExceptionHandler;
@@ -46,6 +47,7 @@ class CommonWebAutoConfigurationTest {
                 .hasSingleBean(RestAccessDeniedHandler.class)
                 .hasSingleBean(SecurityExceptionHandler.class)
                 .hasSingleBean(JwtAuthoritiesConverter.class)
+                .hasSingleBean(ResourceServerSecurityCustomizer.class)
                 .hasSingleBean(Clock.class)
                 .hasBean(DispatcherServlet.LOCALE_RESOLVER_BEAN_NAME));
     }
