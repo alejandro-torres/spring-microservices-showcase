@@ -10,6 +10,7 @@ import com.showcase.customer.domain.exception.CustomerErrorCode;
 import com.showcase.customer.domain.model.Address;
 import com.showcase.customer.domain.model.Customer;
 import com.showcase.customer.domain.repository.CustomerRepository;
+import io.micrometer.observation.annotation.Observed;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,6 +56,7 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
+    @Observed(name = "customer.search", contextualName = "buscar clientes")
     public PageResult<Customer> findAll(List<FilterCriterion> filters, PageQuery pageQuery, boolean includeInactive) {
         return customerRepository.findAll(filters, pageQuery, includeInactive);
     }

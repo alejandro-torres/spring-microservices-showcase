@@ -7,6 +7,7 @@ import com.showcase.order.application.service.OrderSagaService;
 import com.showcase.order.domain.exception.OrderErrorCode;
 import com.showcase.order.domain.model.Order;
 import com.showcase.order.domain.repository.OrderRepository;
+import io.micrometer.observation.annotation.Observed;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
@@ -36,12 +37,14 @@ public class OrderSagaServiceImpl implements OrderSagaService {
 
     @Override
     @Transactional
+    @Observed(name = "order.saga.confirm", contextualName = "confirmar pedido")
     public void confirm(UUID eventId, Long orderId) {
         apply(eventId, EventTypes.STOCK_RESERVED, orderId, Order::confirm);
     }
 
     @Override
     @Transactional
+    @Observed(name = "order.saga.reject", contextualName = "rechazar pedido")
     public void reject(UUID eventId, Long orderId, String reason) {
         apply(eventId, EventTypes.STOCK_RESERVATION_FAILED, orderId, order -> order.reject(reason));
     }

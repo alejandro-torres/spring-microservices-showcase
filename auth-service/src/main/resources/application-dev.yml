@@ -14,3 +14,9 @@ INTERNAL_CLIENT_SECRET: internal-dev-secret
 logging:
   level:
     com.showcase: DEBUG
+
+management:
+  tracing:
+    sampling:
+      # En desarrollo se guardan todas las trazas.
+      probability: 1.0

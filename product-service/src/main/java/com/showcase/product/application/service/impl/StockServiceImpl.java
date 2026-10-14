@@ -11,6 +11,7 @@ import com.showcase.product.domain.exception.ProductErrorCode;
 import com.showcase.product.domain.messaging.StockEventPublisher;
 import com.showcase.product.domain.model.Product;
 import com.showcase.product.domain.repository.ProductRepository;
+import io.micrometer.observation.annotation.Observed;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -68,6 +69,7 @@ public class StockServiceImpl implements StockService {
      */
     @Override
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 5)
+    @Observed(name = "stock.reserve", contextualName = "reservar stock")
     public void reserve(UUID eventId, Long orderId, List<StockLine> lines) {
         if (!processedEvents.registerIfAbsent(eventId, EventTypes.ORDER_CREATED)) {
             log.info("Evento {} (order.created) ya procesado; se ignora el duplicado", eventId);
@@ -98,6 +100,7 @@ public class StockServiceImpl implements StockService {
     /** Compensación: devuelve las unidades aunque el producto se haya borrado después de la compra. */
     @Override
     @Transactional(timeout = 5)
+    @Observed(name = "stock.release", contextualName = "devolver stock")
     public void release(UUID eventId, Long orderId, List<StockLine> lines) {
         if (!processedEvents.registerIfAbsent(eventId, EventTypes.ORDER_CANCELLED)) {
             log.info("Evento {} (order.cancelled) ya procesado; se ignora el duplicado", eventId);

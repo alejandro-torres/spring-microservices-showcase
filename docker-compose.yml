@@ -1,0 +1,186 @@
+# Sistema completo: los 6 servicios + PostgreSQL (una base por servicio) + Redis + RabbitMQ + Zipkin.
+#   docker compose up -d --build
+# Las contraseñas se leen de .env (ver .env.example); sin él se usan valores de desarrollo.
+# Consolas: gateway http://localhost:8080 (Swagger en /swagger-ui.html), Eureka http://localhost:8761,
+# RabbitMQ http://localhost:15672, Zipkin http://localhost:9411.
+name: spring-microservices-showcase
+
+# Configuración común de los microservicios de negocio
+x-service-env: &service-env
+  SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+  EUREKA_URL: http://discovery-service:8761/eureka/
+  ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
+  RABBITMQ_HOST: rabbitmq
+  AUTH_JWK_SET_URI: http://auth-service:9000/oauth2/jwks
+
+x-service-depends: &service-depends
+  postgres:
+    condition: service_healthy
+  rabbitmq-setup:
+    condition: service_completed_successfully
+  discovery-service:
+    condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:-auth-dev}
+      PRODUCT_DB_PASSWORD: ${PRODUCT_DB_PASSWORD:-product-dev}
+      CUSTOMER_DB_PASSWORD: ${CUSTOMER_DB_PASSWORD:-customer-dev}
+      ORDER_DB_PASSWORD: ${ORDER_DB_PASSWORD:-order-dev}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_ADMIN_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_ADMIN_PASSWORD:-admin-dev}
+    ports:
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  # Tarea de un solo uso: crea un usuario de RabbitMQ por servicio con permisos solo sobre lo suyo.
+  rabbitmq-setup:
+    image: curlimages/curl:8.10.1
+    entrypoint: ["sh", "/setup-users.sh"]
+    environment:
+      RABBITMQ_ADMIN_USER: ${RABBITMQ_ADMIN_USER:-admin}
+      RABBITMQ_ADMIN_PASSWORD: ${RABBITMQ_ADMIN_PASSWORD:-admin-dev}
+      AUTH_RABBITMQ_PASSWORD: ${AUTH_RABBITMQ_PASSWORD:-auth-dev}
+      PRODUCT_RABBITMQ_PASSWORD: ${PRODUCT_RABBITMQ_PASSWORD:-product-dev}
+      CUSTOMER_RABBITMQ_PASSWORD: ${CUSTOMER_RABBITMQ_PASSWORD:-customer-dev}
+      ORDER_RABBITMQ_PASSWORD: ${ORDER_RABBITMQ_PASSWORD:-order-dev}
+    volumes:
+      - ./docker/rabbitmq/setup-users.sh:/setup-users.sh:ro
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  zipkin:
+    image: openzipkin/zipkin:3
+    ports:
+      - "9411:9411"
+
+  discovery-service:
+    build:
+      context: .
+      dockerfile: discovery-service/Dockerfile
+    image: showcase/discovery-service
+    ports:
+      - "8761:8761"
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    image: showcase/auth-service
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/auth_db
+      DB_USERNAME: auth
+      DB_PASSWORD: ${AUTH_DB_PASSWORD:-auth-dev}
+      RABBITMQ_USERNAME: auth-service
+      RABBITMQ_PASSWORD: ${AUTH_RABBITMQ_PASSWORD:-auth-dev}
+      REDIS_HOST: redis
+      # Los tokens se piden a través del gateway: el emisor es la URL pública del gateway.
+      AUTH_ISSUER: http://localhost:8080
+      INTERNAL_CLIENT_SECRET: ${INTERNAL_CLIENT_SECRET:-internal-dev-secret}
+    depends_on:
+      <<: *service-depends
+      redis:
+        condition: service_healthy
+
+  product-service:
+    build:
+      context: .
+      dockerfile: product-service/Dockerfile
+    image: showcase/product-service
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/product_db
+      DB_USERNAME: product
+      DB_PASSWORD: ${PRODUCT_DB_PASSWORD:-product-dev}
+      RABBITMQ_USERNAME: product-service
+      RABBITMQ_PASSWORD: ${PRODUCT_RABBITMQ_PASSWORD:-product-dev}
+    depends_on: *service-depends
+
+  customer-service:
+    build:
+      context: .
+      dockerfile: customer-service/Dockerfile
+    image: showcase/customer-service
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/customer_db
+      DB_USERNAME: customer
+      DB_PASSWORD: ${CUSTOMER_DB_PASSWORD:-customer-dev}
+      RABBITMQ_USERNAME: customer-service
+      RABBITMQ_PASSWORD: ${CUSTOMER_RABBITMQ_PASSWORD:-customer-dev}
+    depends_on: *service-depends
+
+  order-service:
+    build:
+      context: .
+      dockerfile: order-service/Dockerfile
+    image: showcase/order-service
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/order_db
+      DB_USERNAME: order
+      DB_PASSWORD: ${ORDER_DB_PASSWORD:-order-dev}
+      RABBITMQ_USERNAME: order-service
+      RABBITMQ_PASSWORD: ${ORDER_RABBITMQ_PASSWORD:-order-dev}
+    depends_on: *service-depends
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    image: showcase/api-gateway
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      EUREKA_URL: http://discovery-service:8761/eureka/
+      ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
+      AUTH_JWK_SET_URI: http://auth-service:9000/oauth2/jwks
+      REDIS_HOST: redis
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+    ports:
+      - "8080:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  redis-data:
+  rabbitmq-data:

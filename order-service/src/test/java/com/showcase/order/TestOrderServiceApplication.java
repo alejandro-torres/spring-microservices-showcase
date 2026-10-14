@@ -14,12 +14,14 @@ public class TestOrderServiceApplication {
     public static void main(String[] args) {
         SpringApplication.from(OrderServiceApplication::main)
                 .with(TestcontainersConfiguration.class)
-                .run(withSharedRabbitMq(args));
+                .run(localArguments(args));
     }
 
-    // Sin contenedor de RabbitMQ propio: se conecta al compartido (RABBITMQ_HOST, por defecto localhost:5672).
-    private static String[] withSharedRabbitMq(String[] args) {
-        return Stream.concat(Stream.of("--showcase.test.rabbitmq-container=false"), Arrays.stream(args))
+    // En local se usan el RabbitMQ compartido (localhost:5672) y el Eureka de discovery-service (localhost:8761),
+    // para que los servicios arrancados se encuentren y se comuniquen entre sí.
+    private static String[] localArguments(String[] args) {
+        return Stream.concat(Stream.of("--showcase.test.rabbitmq-container=false", "--eureka.client.enabled=true"),
+                        Arrays.stream(args))
                 .toArray(String[]::new);
     }
 }

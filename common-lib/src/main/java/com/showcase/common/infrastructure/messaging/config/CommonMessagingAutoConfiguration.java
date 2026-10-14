@@ -9,6 +9,11 @@ import com.showcase.common.infrastructure.messaging.error.MessagingExceptionClas
 import com.showcase.common.infrastructure.messaging.idempotency.impl.JdbcProcessedEventRegistryImpl;
 import com.showcase.common.infrastructure.messaging.outbox.OutboxEventWriter;
 import com.showcase.common.infrastructure.messaging.outbox.OutboxPublisher;
+import com.showcase.common.infrastructure.messaging.outbox.OutboxTracing;
+import com.showcase.common.infrastructure.messaging.outbox.impl.MicrometerOutboxTracingImpl;
+import com.showcase.common.infrastructure.messaging.outbox.impl.NoopOutboxTracingImpl;
+import io.micrometer.tracing.Tracer;
+import io.micrometer.tracing.propagation.Propagator;
 import java.time.Clock;
 import org.springframework.amqp.core.Declarables;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -41,7 +46,8 @@ import tools.jackson.databind.json.JsonMapper;
  *   <li>Reintentos de los listeners: la política ({@code spring.rabbitmq.listener.simple.retry.*}) la configura
  *       Spring Boot; aquí se añade qué excepciones no se reintentan y que, al agotar los intentos, el mensaje se
  *       rechaza sin reencolar para que RabbitMQ lo mande a la DLQ.</li>
- *   <li>Outbox, registro de eventos procesados y administración de las DLQ.</li>
+ *   <li>Outbox (que conserva la traza de la petición hasta el consumidor), registro de eventos procesados y
+ *       administración de las DLQ.</li>
  * </ul>
  */
 @AutoConfiguration(
@@ -104,18 +110,38 @@ public class CommonMessagingAutoConfiguration {
         @Bean
         @ConditionalOnMissingBean
         public OutboxEventWriter outboxEventWriter(JdbcClient jdbcClient, ObjectProvider<JsonMapper> jsonMapper,
-                                                   MessagingProperties properties, ObjectProvider<Clock> clock) {
+                                                   MessagingProperties properties, ObjectProvider<Clock> clock,
+                                                   ObjectProvider<OutboxTracing> tracing) {
             return new OutboxEventWriter(jdbcClient, jsonMapper.getIfAvailable(() -> JsonMapper.builder().build()),
-                    properties, clock.getIfAvailable(Clock::systemUTC));
+                    properties, clock.getIfAvailable(Clock::systemUTC),
+                    tracing.getIfAvailable(NoopOutboxTracingImpl::new));
         }
 
         @Bean
         @ConditionalOnMissingBean
         public OutboxPublisher outboxPublisher(JdbcClient jdbcClient, RabbitTemplate rabbitTemplate,
                                                PlatformTransactionManager transactionManager,
-                                               MessagingProperties properties, ObjectProvider<Clock> clock) {
+                                               MessagingProperties properties, ObjectProvider<Clock> clock,
+                                               ObjectProvider<OutboxTracing> tracing) {
             return new OutboxPublisher(jdbcClient, rabbitTemplate, new TransactionTemplate(transactionManager),
-                    properties, clock.getIfAvailable(Clock::systemUTC));
+                    properties, clock.getIfAvailable(Clock::systemUTC),
+                    tracing.getIfAvailable(NoopOutboxTracingImpl::new));
+        }
+    }
+
+    /** Con Micrometer Tracing, la traza de la petición sigue por el outbox hasta el consumidor. */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(name = "io.micrometer.tracing.Tracer")
+    static class OutboxTracingConfiguration {
+
+        /** Sin Tracer o Propagator (p. ej. con el tracing desactivado en los tests) el outbox no une las trazas. */
+        @Bean
+        @ConditionalOnMissingBean
+        public OutboxTracing outboxTracing(ObjectProvider<Tracer> tracer, ObjectProvider<Propagator> propagator) {
+            Tracer availableTracer = tracer.getIfAvailable();
+            Propagator availablePropagator = propagator.getIfAvailable();
+            return availableTracer == null || availablePropagator == null ? new NoopOutboxTracingImpl()
+                    : new MicrometerOutboxTracingImpl(availableTracer, availablePropagator);
         }
     }
 

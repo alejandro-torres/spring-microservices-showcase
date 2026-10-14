@@ -18,6 +18,7 @@ import com.showcase.order.domain.model.Order;
 import com.showcase.order.domain.model.OrderItem;
 import com.showcase.order.domain.model.ShippingAddress;
 import com.showcase.order.domain.repository.OrderRepository;
+import io.micrometer.observation.annotation.Observed;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -58,6 +59,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    @Observed(name = "order.create", contextualName = "crear pedido")
     public Order create(Long customerId, List<OrderLine> lines) {
         ShippingAddress address = customerClient.findById(customerId)
                 .orElseThrow(() -> new ResourceNotFoundException(OrderErrorCode.CUSTOMER_NOT_FOUND, customerId))
@@ -92,6 +94,7 @@ public class OrderServiceImpl implements OrderService {
      */
     @Override
     @Transactional
+    @Observed(name = "order.cancel", contextualName = "cancelar pedido")
     public Order cancel(Long id) {
         Order order = findById(id);
         order.cancel();

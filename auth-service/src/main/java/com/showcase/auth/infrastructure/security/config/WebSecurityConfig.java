@@ -1,5 +1,6 @@
 package com.showcase.auth.infrastructure.security.config;
 
+import com.showcase.common.infrastructure.openapi.OpenApiPaths;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -21,6 +22,7 @@ public class WebSecurityConfig {
         http
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/actuator/health/**", "/actuator/info", "/error").permitAll()
+                        .requestMatchers(OpenApiPaths.PUBLIC).permitAll()
                         .anyRequest().authenticated())
                 .formLogin(Customizer.withDefaults());
         return http.build();
