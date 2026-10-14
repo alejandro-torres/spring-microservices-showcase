@@ -58,7 +58,7 @@ spring:
               filters:
                 - name: RequestRateLimiter
                   args:
-                    key-resolver: "#{@ipKeyResolver}"
+                    key-resolver: "#{@loginKeyResolver}"
                     redis-rate-limiter.replenishRate: ${LOGIN_RATE_LIMIT_REPLENISH_RATE:1}
                     redis-rate-limiter.burstCapacity: ${LOGIN_RATE_LIMIT_BURST_CAPACITY:60}
                     redis-rate-limiter.requestedTokens: ${LOGIN_RATE_LIMIT_REQUESTED_TOKENS:12}

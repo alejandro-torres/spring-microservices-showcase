@@ -34,10 +34,14 @@ public class RateLimitConfig {
                 .switchIfEmpty(Mono.fromSupplier(() -> "ip:" + clientIp(exchange.getRequest())));
     }
 
-    /** Solo por IP: para las rutas de login, donde todavía no hay usuario autenticado. */
+    /**
+     * Por IP, para el login (todavía no hay usuario autenticado). El prefijo propio es necesario: Redis guarda el
+     * cubo por ruta y clave, y en la ruta de login también actúa el límite general con la clave {@code ip:};
+     * con la misma clave, los dos límites compartirían un cubo con parámetros distintos.
+     */
     @Bean
-    public KeyResolver ipKeyResolver() {
-        return exchange -> Mono.just("ip:" + clientIp(exchange.getRequest()));
+    public KeyResolver loginKeyResolver() {
+        return exchange -> Mono.just("login:" + clientIp(exchange.getRequest()));
     }
 
     static String clientIp(ServerHttpRequest request) {

@@ -45,7 +45,8 @@ import tools.jackson.databind.json.JsonMapper;
         "eureka.client.enabled=false",
         "management.tracing.sampling.probability=1.0",
         "RATE_LIMIT_REPLENISH_RATE=1",
-        "RATE_LIMIT_BURST_CAPACITY=3"})
+        "RATE_LIMIT_BURST_CAPACITY=5",
+        "LOGIN_RATE_LIMIT_BURST_CAPACITY=36"})
 @Testcontainers
 class GatewayIT {
 
@@ -210,12 +211,12 @@ class GatewayIT {
         @Test
         @DisplayName("al superar el límite responde 429 con Retry-After y el mensaje en el idioma pedido")
         void tooManyRequests_shouldReturn429WithRetryAfter() {
-            // given: ráfaga de 3 peticiones y 1 por segundo
+            // given: ráfaga de 5 peticiones y 1 por segundo
             String token = TOKENS.token(newUser());
             List<EntityExchangeResult<byte[]>> results = new ArrayList<>();
 
             // when
-            for (int i = 0; i < 6; i++) {
+            for (int i = 0; i < 8; i++) {
                 results.add(client.get().uri("/api/v1/products").headers(h -> {
                     h.setBearerAuth(token);
                     h.set(HttpHeaders.ACCEPT_LANGUAGE, "en");
@@ -231,6 +232,32 @@ class GatewayIT {
             assertThat(limited.getResponseHeaders().getFirst("X-RateLimit-Remaining")).isEqualTo("0");
             assertThat(body.get("code").asString()).isEqualTo("RATE_LIMIT_EXCEEDED");
             assertThat(body.get("message").asString()).startsWith("You have exceeded");
+        }
+    }
+
+    @Nested
+    @DisplayName("rate limiting del login")
+    class LoginRateLimiting {
+
+        @Test
+        @DisplayName("el login tiene su propio límite por IP, independiente del general, y pide esperar 12 s")
+        void login_shouldHaveItsOwnStricterLimit() {
+            // given: 12 fichas por intento y capacidad 36 → 3 intentos seguidos; el límite general deja 5
+            String clientIp = "203.0.113." + (int) (Math.random() * 200 + 1);
+            List<Integer> statuses = new ArrayList<>();
+            EntityExchangeResult<byte[]> last = null;
+
+            // when
+            for (int i = 0; i < 4; i++) {
+                last = client.post().uri("/login").header("X-Forwarded-For", clientIp).exchange()
+                        .expectBody().returnResult();
+                statuses.add(last.getStatus().value());
+            }
+
+            // then
+            assertThat(statuses).containsExactly(200, 200, 200, 429);
+            assertThat(last.getResponseHeaders().getFirst(HttpHeaders.RETRY_AFTER)).isEqualTo("12");
+            assertThat(json(last).get("code").asString()).isEqualTo("RATE_LIMIT_EXCEEDED");
         }
     }
 
