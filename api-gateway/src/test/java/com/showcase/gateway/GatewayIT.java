@@ -47,7 +47,9 @@ import tools.jackson.databind.json.JsonMapper;
         "management.tracing.sampling.probability=1.0",
         "RATE_LIMIT_REPLENISH_RATE=1",
         "RATE_LIMIT_BURST_CAPACITY=5",
-        "LOGIN_RATE_LIMIT_BURST_CAPACITY=36"})
+        "LOGIN_RATE_LIMIT_BURST_CAPACITY=36",
+        // El test simula clientes distintos con X-Forwarded-For, como si hubiera un proxy delante.
+        "showcase.rate-limit.trusted-proxy-hops=1"})
 @Testcontainers
 class GatewayIT {
 
@@ -149,6 +151,8 @@ class GatewayIT {
             assertThat(body.get("authorization").asString()).isEqualTo("Bearer " + token);
             assertThat(traceId).isNotBlank();
             assertThat(body.get("traceparent").asString()).contains(traceId);
+            // El servicio recibe el host público (para sus redirecciones y URLs), no el suyo interno.
+            assertThat(body.get("forwardedHost").asString()).startsWith("localhost:");
         }
 
         @Test

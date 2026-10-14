@@ -29,6 +29,10 @@ spring:
     gateway:
       server:
         webflux:
+          # Las cabeceras X-Forwarded-* (host, puerto, protocolo, IP) solo se envían a los servicios si el cliente
+          # llega desde una de estas redes; sin ellas, auth-service redirigiría el login a su IP interna. En local y
+          # en Docker son la máquina y las redes privadas; en producción, la del balanceador que haya delante.
+          trusted-proxies: ${GATEWAY_TRUSTED_PROXIES:127[.]0[.]0[.]1|0:0:0:0:0:0:0:1|10[.].*|172[.](1[6-9]|2[0-9]|3[01])[.].*|192[.]168[.].*}
           filter:
             request-rate-limiter:
               # Al superar el límite se lanza una excepción en lugar de devolver un 429 vacío: así el
@@ -174,6 +178,12 @@ spring:
                 - RewritePath=/order-service/v3/api-docs, /v3/api-docs
   lifecycle:
     timeout-per-shutdown-phase: 30s
+
+showcase:
+  rate-limit:
+    # Proxies de confianza delante del gateway (p. ej. 1 con un balanceador): solo entonces se usa la IP de
+    # X-Forwarded-For para el rate limiting por IP; si no, la de la conexión (la cabecera se puede falsificar).
+    trusted-proxy-hops: ${RATE_LIMIT_TRUSTED_PROXY_HOPS:0}
 
 # Un único Swagger UI con un desplegable para la API de cada servicio.
 springdoc:
