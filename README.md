@@ -308,6 +308,44 @@ Toda la API se usa a través de `http://localhost:8080`. El gateway descubre las
 
 Los límites se ajustan con variables de entorno (`RATE_LIMIT_REPLENISH_RATE`, `RATE_LIMIT_BURST_CAPACITY`, `LOGIN_RATE_LIMIT_*`, `GATEWAY_TIMEOUT`).
 
+## Escalado horizontal
+
+Con `docker compose up` arrancan 3 réplicas de product-service y 2 de order-service (`PRODUCT_SERVICE_REPLICAS`, `ORDER_SERVICE_REPLICAS`, o `docker compose up -d --scale product-service=5`). Nada se guarda en memoria entre peticiones: lo compartido está en PostgreSQL o en Redis.
+
+| Pieza | Cómo funciona con varias réplicas |
+|---|---|
+| Descubrimiento y balanceo | Cada réplica se registra en Eureka con un id único; el gateway y Feign reparten las peticiones entre las réplicas vivas. La lista se refresca cada 5 s y una réplica que deja de enviar latidos sale del registro en 15 s |
+| `X-Instance-Id` | Cada respuesta indica qué réplica la atendió (el mismo id que aparece en Eureka) |
+| Apagado ordenado | Una réplica que se apaga termina las peticiones y los mensajes en curso (hasta 30 s) y el gateway reintenta los `GET` en otra réplica: no se pierde ninguna petición |
+| Colas de RabbitMQ | Todas las réplicas escuchan la misma cola (*competing consumers*): cada mensaje lo procesa una sola, con `prefetch` 10 y de 1 a 4 consumidores por réplica |
+| Tareas programadas | ShedLock (tabla `shedlock` de cada base de datos): cada tarea la ejecuta una sola réplica a la vez. Tareas: publicador del outbox (cada 5 s), limpieza de `processed_event` (de madrugada), desbloqueo automático de cuentas (cada minuto) y borrado de las autorizaciones OAuth2 caducadas (de madrugada) |
+| Reserva de stock | Lock distribuido por producto en Redis (Redisson, `lock:product:{id}`), cogido antes de abrir la transacción y soltado después del commit; con varios productos, todos los locks en el mismo orden para evitar interbloqueos. Si no se consigue en 3 s, `RESOURCE_BUSY` (423) y el mensaje se reintenta. `@Version` sigue como segunda red de seguridad |
+
+auth-service se mantiene en una réplica: genera su clave de firma de los JWT al arrancar. Para escalarlo hay que darle la misma clave a todas las réplicas con `JWT_PRIVATE_KEY` y `JWT_PUBLIC_KEY` (PEM).
+
+## Escenarios de demostración
+
+### Repartir el tráfico y apagar una réplica sin perder peticiones
+
+```bash
+docker compose up -d --build
+```
+```bash
+for i in $(seq 1 9); do curl -s -D - -o /dev/null http://localhost:8080/product-service/v3/api-docs | grep -i x-instance-id; done
+```
+
+Las respuestas se reparten entre las 3 réplicas (tres valores distintos de `X-Instance-Id`). Con las peticiones en marcha, apaga una réplica:
+
+```bash
+docker stop spring-microservices-showcase-product-service-2
+```
+
+Todas las peticiones siguen respondiendo 200: la réplica termina lo que tenía en curso, el gateway reintenta en otra y, en unos segundos, Eureka deja de enviarle tráfico. En http://localhost:8761 se ve cómo desaparece del registro.
+
+### Muchos pedidos a la vez sobre el último stock
+
+El test [StockConcurrencyIT](product-service/src/test/java/com/showcase/product/StockConcurrencyIT.java) lanza 20 reservas simultáneas sobre un producto con 5 unidades: se reservan exactamente 5, las otras 15 se rechazan con `INSUFFICIENT_STOCK` y el stock nunca queda negativo. Con el sistema en Docker, lo mismo se ve creando a la vez varios pedidos del mismo producto: los que no tienen stock pasan a `REJECTED`.
+
 ## Trazabilidad con Zipkin
 
 Todos los servicios, incluidos el gateway y auth-service, envían sus trazas a Zipkin (Micrometer Tracing con Brave). Una misma traza sigue la petición por el gateway, las llamadas Feign, cada consulta SQL (sin los valores de los parámetros) y los casos de uso marcados con `@Observed`. También sigue los mensajes de RabbitMQ: el outbox guarda el `traceparent` de la petición y el envío continúa esa traza, así que un pedido se ve de punta a punta: gateway → order-service → RabbitMQ → product-service → RabbitMQ → order-service.
