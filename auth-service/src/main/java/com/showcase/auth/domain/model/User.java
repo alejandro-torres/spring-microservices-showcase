@@ -22,7 +22,7 @@ public class User extends AuditedModel {
 
     private final String username;
     private String email;
-    private final String passwordHash;
+    private String passwordHash;
     private boolean enabled;
     private final Set<Role> roles;
     private int failedAttempts;
@@ -74,6 +74,11 @@ public class User extends AuditedModel {
     /** El bloqueo caduca solo: pasada la fecha {@code lockedUntil}, la cuenta vuelve a estar disponible. */
     public boolean isLocked(Instant now) {
         return lockedUntil != null && lockedUntil.isAfter(now);
+    }
+
+    /** La comprobación de la contraseña actual y del historial la hace el servicio, que conoce el hasher. */
+    public void changePassword(String newPasswordHash) {
+        this.passwordHash = Objects.requireNonNull(newPasswordHash, "newPasswordHash");
     }
 
     /** Desbloqueo manual (lo hace un ADMIN antes de que caduque el bloqueo). */

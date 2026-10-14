@@ -35,4 +35,9 @@ public interface UserService {
 
     /** Desbloqueo manual de una cuenta bloqueada por intentos fallidos. */
     User unlock(Long id);
+
+    /**
+     * Cambio de contraseña del propio usuario: exige la actual e impide reutilizar las últimas.
+     */
+    void changePassword(String username, String currentPassword, String newPassword);
 }

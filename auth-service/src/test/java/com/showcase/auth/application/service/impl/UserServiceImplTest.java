@@ -21,6 +21,7 @@ import com.showcase.auth.domain.exception.UserNotFoundException;
 import com.showcase.auth.domain.exception.UsernameAlreadyExistsException;
 import com.showcase.auth.domain.model.Role;
 import com.showcase.auth.domain.model.User;
+import com.showcase.auth.domain.repository.PasswordHistoryRepository;
 import com.showcase.auth.domain.repository.RoleRepository;
 import com.showcase.auth.domain.repository.UserRepository;
 import com.showcase.common.domain.exception.BusinessRuleException;
@@ -39,7 +40,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -58,8 +58,18 @@ class UserServiceImplTest {
     @Mock
     private SecurityAuditService auditService;
 
-    @InjectMocks
+    @Mock
+    private PasswordHistoryRepository passwordHistoryRepository;
+
+    private static final java.time.Instant NOW = java.time.Instant.parse("2026-10-14T12:00:00Z");
+
     private UserServiceImpl userService;
+
+    @org.junit.jupiter.api.BeforeEach
+    void createService() {
+        userService = new UserServiceImpl(userRepository, roleRepository, passwordHistoryRepository, passwordHasher,
+                auditService, java.time.Clock.fixed(NOW, java.time.ZoneOffset.UTC));
+    }
 
     @Captor
     private ArgumentCaptor<User> userCaptor;
@@ -91,6 +101,7 @@ class UserServiceImplTest {
             assertThat(saved.getPasswordHash()).isEqualTo("{bcrypt}cifrada");
             assertThat(saved.getRoles()).extracting(Role::getName).containsExactly("USER");
             assertThat(created).isSameAs(saved);
+            verify(passwordHistoryRepository).save(null, "{bcrypt}cifrada", NOW);
         }
 
         @Test
@@ -136,6 +147,66 @@ class UserServiceImplTest {
 
             assertThat(created.getRoles()).isEmpty();
             verify(roleRepository, never()).findAllById(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("changePassword")
+    class ChangePassword {
+
+        @Test
+        @DisplayName("cifra la nueva contraseña, la guarda en el historial y lo audita")
+        void changePassword_valid_shouldSaveHashAndHistory() {
+            var ana = user(10L, "ana");
+            given(userRepository.findByUsername("ana")).willReturn(Optional.of(ana));
+            given(passwordHasher.matches("Actual-123", ana.getPasswordHash())).willReturn(true);
+            given(passwordHistoryRepository.findRecentHashes(10L, 3)).willReturn(List.of("h1", "h2"));
+            given(passwordHasher.hash("Nueva-456!")).willReturn("{bcrypt}nueva");
+
+            userService.changePassword("ana", "Actual-123", "Nueva-456!");
+
+            assertThat(ana.getPasswordHash()).isEqualTo("{bcrypt}nueva");
+            verify(userRepository).save(ana);
+            verify(passwordHistoryRepository).save(10L, "{bcrypt}nueva", NOW);
+            verify(auditService).record(SecurityEventType.PASSWORD_CHANGED, "ana", null);
+        }
+
+        @Test
+        @DisplayName("rechaza una contraseña actual incorrecta con INVALID_CURRENT_PASSWORD (400)")
+        void changePassword_wrongCurrent_shouldThrow() {
+            given(userRepository.findByUsername("ana")).willReturn(Optional.of(user(10L, "ana")));
+
+            assertThatThrownBy(() -> userService.changePassword("ana", "incorrecta", "Nueva-456!"))
+                    .isInstanceOf(com.showcase.common.domain.exception.InvalidRequestException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.INVALID_CURRENT_PASSWORD);
+            verify(userRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("rechaza reutilizar una de las últimas contraseñas con PASSWORD_RECENTLY_USED (422)")
+        void changePassword_recentlyUsed_shouldThrow() {
+            var ana = user(10L, "ana");
+            given(userRepository.findByUsername("ana")).willReturn(Optional.of(ana));
+            given(passwordHasher.matches("Actual-123", ana.getPasswordHash())).willReturn(true);
+            given(passwordHasher.matches("Vieja-789!", ana.getPasswordHash())).willReturn(false);
+            given(passwordHistoryRepository.findRecentHashes(10L, 3)).willReturn(List.of("h-anterior"));
+            given(passwordHasher.matches("Vieja-789!", "h-anterior")).willReturn(true);
+
+            assertThatThrownBy(() -> userService.changePassword("ana", "Actual-123", "Vieja-789!"))
+                    .isInstanceOf(BusinessRuleException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.PASSWORD_RECENTLY_USED);
+            verify(passwordHasher, never()).hash(anyString());
+        }
+
+        @Test
+        @DisplayName("rechaza repetir la contraseña actual aunque no haya historial")
+        void changePassword_sameAsCurrent_shouldThrow() {
+            var ana = user(10L, "ana");
+            given(userRepository.findByUsername("ana")).willReturn(Optional.of(ana));
+            given(passwordHasher.matches("Actual-123", ana.getPasswordHash())).willReturn(true);
+
+            assertThatThrownBy(() -> userService.changePassword("ana", "Actual-123", "Actual-123"))
+                    .isInstanceOf(BusinessRuleException.class);
         }
     }
 

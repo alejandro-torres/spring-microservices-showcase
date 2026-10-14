@@ -5,6 +5,7 @@ import static com.showcase.auth.infrastructure.rest.filter.AuthQueryFields.USER_
 
 import com.showcase.auth.application.service.UserService;
 import com.showcase.auth.domain.model.User;
+import com.showcase.auth.infrastructure.rest.dto.request.ChangePasswordRequestDTO;
 import com.showcase.auth.infrastructure.rest.dto.request.CreateUserRequestDTO;
 import com.showcase.auth.infrastructure.rest.dto.request.UpdateUserRequestDTO;
 import com.showcase.auth.infrastructure.rest.dto.response.UserResponseDTO;
@@ -61,6 +62,15 @@ public class UserController {
     @GetMapping("/me")
     public UserResponseDTO me(@AuthenticationPrincipal Jwt jwt) {
         return mapper.toResponse(userService.findByUsername(jwt.getSubject()));
+    }
+
+    /** El usuario autenticado cambia su propia contraseña. */
+    @PreAuthorize("isAuthenticated()")
+    @PutMapping("/me/password")
+    public ResponseEntity<Void> changePassword(@AuthenticationPrincipal Jwt jwt,
+                                               @Valid @RequestBody ChangePasswordRequestDTO request) {
+        userService.changePassword(jwt.getSubject(), request.currentPassword(), request.newPassword());
+        return ResponseEntity.noContent().build();
     }
 
     @PreAuthorize("hasAuthority('user:read')")
