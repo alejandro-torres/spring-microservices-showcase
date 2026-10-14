@@ -37,7 +37,7 @@ public class OutboxPublisher {
     private static final Logger log = LoggerFactory.getLogger(OutboxPublisher.class);
 
     private static final String SELECT_PENDING = """
-            SELECT id, exchange, routing_key, event_type, CAST(payload AS text) AS payload, attempts
+            SELECT id, exchange, routing_key, event_type, CAST(payload AS text) AS payload, trace_parent, attempts
             FROM outbox_event
             WHERE status = 'PENDING'
             ORDER BY created_at, id
@@ -50,14 +50,17 @@ public class OutboxPublisher {
     private final TransactionTemplate transactionTemplate;
     private final MessagingProperties.Outbox settings;
     private final Clock clock;
+    private final OutboxTracing tracing;
 
     public OutboxPublisher(JdbcClient jdbcClient, RabbitTemplate rabbitTemplate,
-                           TransactionTemplate transactionTemplate, MessagingProperties properties, Clock clock) {
+                           TransactionTemplate transactionTemplate, MessagingProperties properties, Clock clock,
+                           OutboxTracing tracing) {
         this.jdbcClient = jdbcClient;
         this.rabbitTemplate = rabbitTemplate;
         this.transactionTemplate = transactionTemplate;
         this.settings = properties.outbox();
         this.clock = clock;
+        this.tracing = tracing;
     }
 
     @Scheduled(fixedDelayString = "${showcase.messaging.outbox.fixed-delay:5s}",
@@ -80,7 +83,9 @@ public class OutboxPublisher {
                 .list();
         int sent = 0;
         for (PendingEvent event : batch) {
-            SendResult result = send(event);
+            // El envío continúa la traza de la petición que guardó el evento, no la de esta tarea programada.
+            SendResult result = tracing.callWithParent(event.traceParent(), "outbox " + event.eventType(),
+                    () -> send(event));
             switch (result.outcome()) {
                 case CONFIRMED -> {
                     markSent(event.id());
@@ -163,7 +168,7 @@ public class OutboxPublisher {
     }
 
     record PendingEvent(UUID id, String exchange, String routingKey, String eventType, String payload,
-                        int attempts) {
+                        String traceParent, int attempts) {
     }
 
     private enum Outcome { CONFIRMED, UNROUTED, FAILED }

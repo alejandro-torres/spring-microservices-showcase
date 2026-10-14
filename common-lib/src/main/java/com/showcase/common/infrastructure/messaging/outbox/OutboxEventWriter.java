@@ -26,22 +26,24 @@ public class OutboxEventWriter {
 
     private static final String INSERT = """
             INSERT INTO outbox_event (id, aggregate_type, aggregate_id, event_type, exchange, routing_key, payload,
-                                      status, attempts, created_at)
+                                      trace_parent, status, attempts, created_at)
             VALUES (:id, :aggregateType, :aggregateId, :eventType, :exchange, :routingKey, CAST(:payload AS jsonb),
-                    'PENDING', 0, :createdAt)
+                    :traceParent, 'PENDING', 0, :createdAt)
             """;
 
     private final JdbcClient jdbcClient;
     private final JsonMapper jsonMapper;
     private final MessagingProperties properties;
     private final Clock clock;
+    private final OutboxTracing tracing;
 
     public OutboxEventWriter(JdbcClient jdbcClient, JsonMapper jsonMapper, MessagingProperties properties,
-                             Clock clock) {
+                             Clock clock, OutboxTracing tracing) {
         this.jdbcClient = jdbcClient;
         this.jsonMapper = jsonMapper;
         this.properties = properties;
         this.clock = clock;
+        this.tracing = tracing;
     }
 
     /**
@@ -64,6 +66,7 @@ public class OutboxEventWriter {
                 .param("exchange", properties.exchange())
                 .param("routingKey", eventType)
                 .param("payload", jsonMapper.writeValueAsString(envelope))
+                .param("traceParent", tracing.currentTraceParent())
                 .param("createdAt", Timestamp.from(Instant.now(clock)))
                 .update();
         return eventId;

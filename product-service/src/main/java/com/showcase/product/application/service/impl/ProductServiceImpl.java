@@ -11,6 +11,7 @@ import com.showcase.product.domain.model.Category;
 import com.showcase.product.domain.model.Product;
 import com.showcase.product.domain.repository.CategoryRepository;
 import com.showcase.product.domain.repository.ProductRepository;
+import io.micrometer.observation.annotation.Observed;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -49,6 +50,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Observed(name = "product.search", contextualName = "buscar productos")
     public PageResult<Product> findAll(List<FilterCriterion> filters, PageQuery pageQuery, boolean includeInactive) {
         return productRepository.findAll(filters, pageQuery, includeInactive);
     }

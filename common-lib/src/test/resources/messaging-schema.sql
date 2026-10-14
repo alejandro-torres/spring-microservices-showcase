@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS outbox_event (
     last_error     VARCHAR(500),
     created_at     TIMESTAMPTZ  NOT NULL,
     sent_at        TIMESTAMPTZ,
+    trace_parent   VARCHAR(55),
     CONSTRAINT ck_outbox_event_status CHECK (status IN ('PENDING', 'SENT', 'UNROUTED'))
 );
 

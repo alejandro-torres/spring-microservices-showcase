@@ -7,6 +7,7 @@ import com.showcase.customer.domain.exception.CustomerErrorCode;
 import com.showcase.customer.domain.model.Customer;
 import com.showcase.customer.domain.repository.CustomerRepository;
 import com.showcase.events.EventTypes;
+import io.micrometer.observation.annotation.Observed;
 import java.time.Instant;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -37,6 +38,7 @@ public class CustomerAccountServiceImpl implements CustomerAccountService {
      */
     @Override
     @Transactional
+    @Observed(name = "customer.create-for-user", contextualName = "crear cliente del usuario")
     public void createForUser(UUID eventId, Long userId, String email, String firstName, String lastName) {
         if (!isNew(eventId, EventTypes.USER_REGISTERED)) {
             return;

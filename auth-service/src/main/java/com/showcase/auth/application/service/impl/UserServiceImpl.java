@@ -23,6 +23,7 @@ import com.showcase.common.domain.exception.InvalidRequestException;
 import com.showcase.common.domain.filter.FilterCriterion;
 import com.showcase.common.domain.page.PageQuery;
 import com.showcase.common.domain.page.PageResult;
+import io.micrometer.observation.annotation.Observed;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.HashSet;
@@ -77,6 +78,7 @@ public class UserServiceImpl implements UserService {
     /** El usuario, sus roles, su historial de contraseñas y el evento del outbox se guardan juntos. */
     @Override
     @Transactional
+    @Observed(name = "user.register", contextualName = "registrar usuario")
     public User register(String username, String email, String rawPassword, String firstName, String lastName) {
         User user = createUser(username, email, rawPassword, () -> Set.of(roleRepository.findByName(DEFAULT_ROLE)
                 .orElseThrow(() -> new RoleNotFoundException(DEFAULT_ROLE))));

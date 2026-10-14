@@ -41,6 +41,19 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
         </dependency>
+        <!-- Trazas distribuidas: Micrometer Tracing (Brave) + Zipkin, spans de las consultas SQL y @Observed -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-zipkin</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>net.ttddyy.observation</groupId>
+            <artifactId>datasource-micrometer-spring-boot</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
+        </dependency>
         <!-- Mensajería con RabbitMQ (outbox, reintentos y DLQ en common-lib) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

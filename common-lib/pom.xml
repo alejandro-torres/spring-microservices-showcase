@@ -70,6 +70,17 @@
             <artifactId>spring-boot-starter-jdbc</artifactId>
             <optional>true</optional>
         </dependency>
+        <!-- Opcionales: propagar la traza por el outbox y spans con @Observed -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
+            <optional>true</optional>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -104,6 +115,11 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-rabbitmq</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-brave</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
