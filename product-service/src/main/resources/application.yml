@@ -35,6 +35,11 @@ spring:
         jwt:
           # Clave pública de auth-service para validar los JWT (se descarga y se cachea).
           jwk-set-uri: ${AUTH_JWK_SET_URI:http://localhost:9000/oauth2/jwks}
+  # Redis para los locks distribuidos (Redisson), el mismo que usan el gateway y auth-service.
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
@@ -70,6 +75,11 @@ spring:
     timeout-per-shutdown-phase: 30s
 
 showcase:
+  lock:
+    # Espera máxima a que otra réplica suelte el lock de un producto (después, RESOURCE_BUSY y reintento) y
+    # caducidad del lock por si la réplica que lo tiene muere.
+    wait-time: 3s
+    lease-time: 10s
   messaging:
     # Los eventos procesados se guardan 7 días (para descartar duplicados); después los borra una tarea nocturna.
     processed-event-retention: 7d

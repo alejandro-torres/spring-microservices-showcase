@@ -68,6 +68,11 @@
             <groupId>net.javacrumbs.shedlock</groupId>
             <artifactId>shedlock-provider-jdbc-template</artifactId>
         </dependency>
+        <!-- Locks distribuidos por producto para la reserva de stock con varias réplicas -->
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson</artifactId>
+        </dependency>
         <!-- Mensajería con RabbitMQ (outbox, reintentos y DLQ en common-lib) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

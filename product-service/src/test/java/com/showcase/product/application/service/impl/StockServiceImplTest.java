@@ -2,6 +2,7 @@ package com.showcase.product.application.service.impl;
 
 import static com.showcase.product.testdata.ProductMother.product;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -9,7 +10,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import com.showcase.common.domain.exception.BusinessRuleException;
+import com.showcase.common.domain.exception.CommonErrorCode;
 import com.showcase.common.domain.messaging.ProcessedEventRegistry;
+import com.showcase.product.application.lock.DistributedLockManager;
 import com.showcase.product.application.service.StockLine;
 import com.showcase.product.domain.event.StockReleasedEvent;
 import com.showcase.product.domain.event.StockReservationFailedEvent;
@@ -20,9 +24,12 @@ import com.showcase.product.domain.repository.ProductRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -31,6 +38,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.PlatformTransactionManager;
 
 @ExtendWith(MockitoExtension.class)
 class StockServiceImplTest {
@@ -48,6 +56,19 @@ class StockServiceImplTest {
     @Mock
     private StockEventPublisher eventPublisher;
 
+    @Mock
+    private PlatformTransactionManager transactionManager;
+
+    /** Lock que siempre se consigue y apunta qué claves se pidieron. */
+    private final List<String> lockedKeys = new ArrayList<>();
+    private final DistributedLockManager lockManager = new DistributedLockManager() {
+        @Override
+        public <T> T executeWithLocks(Collection<String> keys, Supplier<T> action) {
+            lockedKeys.addAll(keys);
+            return action.get();
+        }
+    };
+
     private StockServiceImpl stockService;
 
     private Product mouse;
@@ -55,10 +76,55 @@ class StockServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        stockService = new StockServiceImpl(productRepository, processedEvents, eventPublisher,
-                Clock.fixed(NOW, ZoneOffset.UTC));
+        stockService = new StockServiceImpl(productRepository, processedEvents, eventPublisher, lockManager,
+                transactionManager, Clock.fixed(NOW, ZoneOffset.UTC));
         mouse = product(10L, "Ratón", "5.00", 5);
         keyboard = product(11L, "Teclado", "20.00", 1);
+    }
+
+    @Nested
+    @DisplayName("lock distribuido")
+    class DistributedLock {
+
+        @Test
+        @DisplayName("pide un lock por producto y abre la transacción después de conseguirlos")
+        void reserve_shouldLockEveryProductBeforeTransaction() {
+            // given
+            given(processedEvents.registerIfAbsent(EVENT_ID, "order.created")).willReturn(false);
+
+            // when
+            stockService.reserve(EVENT_ID, 7L, LINES);
+
+            // then
+            assertThat(lockedKeys).containsExactlyInAnyOrder("lock:product:10", "lock:product:11");
+            verify(transactionManager).getTransaction(any());
+        }
+
+        @Test
+        @DisplayName("si no consigue el lock no abre la transacción ni toca el stock (el mensaje se reintentará)")
+        void reserve_whenLockBusy_shouldNotTouchStock() {
+            // given
+            var busy = new BusinessRuleException(CommonErrorCode.RESOURCE_BUSY, "lock:product:10");
+            var busyLockManager = new DistributedLockManager() {
+                @Override
+                public <T> T executeWithLocks(Collection<String> keys, Supplier<T> action) {
+                    throw busy;
+                }
+            };
+            var service = new StockServiceImpl(productRepository, processedEvents, eventPublisher, busyLockManager,
+                    transactionManager, Clock.fixed(NOW, ZoneOffset.UTC));
+
+            // when / then
+            assertThatThrownBy(() -> service.reserve(EVENT_ID, 7L, LINES)).isSameAs(busy);
+            verifyNoInteractions(transactionManager, productRepository, processedEvents, eventPublisher);
+        }
+
+        @Test
+        @DisplayName("una clave por producto aunque aparezca en varias líneas")
+        void lockKeys_shouldBeDistinctPerProduct() {
+            assertThat(StockServiceImpl.lockKeys(List.of(new StockLine(5L, 1), new StockLine(5L, 2))))
+                    .containsExactly("lock:product:5");
+        }
     }
 
     @Nested
