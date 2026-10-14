@@ -1,0 +1,35 @@
+server:
+  port: ${SERVER_PORT:8761}
+  shutdown: graceful
+
+spring:
+  application:
+    name: discovery-service
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+eureka:
+  instance:
+    hostname: ${EUREKA_HOSTNAME:localhost}
+  client:
+    # Es el propio registro: no se registra en sí mismo ni descarga el registro de otro.
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+  server:
+    # Retira enseguida las réplicas que dejan de enviar latidos (con pocas réplicas, la autoprotección de
+    # Eureka las mantendría registradas y el gateway seguiría enviándoles tráfico).
+    enable-self-preservation: false
+    eviction-interval-timer-in-ms: 5000
+    response-cache-update-interval-ms: 3000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
