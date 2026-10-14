@@ -1,1 +1,2 @@
 com.showcase.common.infrastructure.config.CommonWebAutoConfiguration
+com.showcase.common.infrastructure.messaging.config.CommonMessagingAutoConfiguration
