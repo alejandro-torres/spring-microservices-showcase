@@ -19,6 +19,10 @@
             <groupId>com.showcase</groupId>
             <artifactId>common-lib</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.showcase</groupId>
+            <artifactId>events-contract</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -31,6 +35,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <!-- Mensajería con RabbitMQ (outbox, reintentos y DLQ en common-lib) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>
 
         <!-- Seguridad: valida los JWT emitidos por auth-service con su clave pública (JWKS) -->
@@ -92,6 +101,16 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-rabbitmq</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

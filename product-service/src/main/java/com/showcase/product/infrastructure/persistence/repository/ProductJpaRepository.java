@@ -16,6 +16,10 @@ public interface ProductJpaRepository extends JpaRepository<ProductEntity, Long>
     @EntityGraph(attributePaths = "category")
     Optional<ProductEntity> findByIdAndActiveTrue(Long id);
 
+    /** Activo o no (para devolver stock de productos ya borrados). */
+    @EntityGraph(attributePaths = "category")
+    Optional<ProductEntity> findWithCategoryById(Long id);
+
     /** Listado con filtros dinámicos cargando la categoría en la misma consulta (sin N+1). */
     @Override
     @EntityGraph(attributePaths = "category")
