@@ -1,5 +1,6 @@
 package com.showcase.auth.infrastructure.persistence.entity;
 
+import com.showcase.common.infrastructure.persistence.entity.AuditedEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

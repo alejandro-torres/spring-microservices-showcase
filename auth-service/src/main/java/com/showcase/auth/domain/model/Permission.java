@@ -1,6 +1,7 @@
 package com.showcase.auth.domain.model;
 
 import com.showcase.auth.domain.exception.AuthErrorCode;
+import com.showcase.common.domain.model.AuditedModel;
 import com.showcase.common.domain.exception.InvalidRequestException;
 import java.time.Instant;
 import java.util.Locale;

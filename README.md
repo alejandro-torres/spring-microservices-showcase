@@ -32,6 +32,7 @@ En Windows (PowerShell o CMD) se usa `mvnw.cmd verify`. El informe de cobertura 
 |---|---|
 | `common-lib` | Excepciones de dominio, paginación (`PageQuery`/`PageResult`), filtros dinámicos (parser y `Specification` de JPA), gestión global de errores y mensajes en español e inglés |
 | `auth-service` | Usuarios, roles y permisos, y servidor de autorización OAuth2 que emite los JWT (puerto 9000) |
+| `product-service` | Catálogo de productos y categorías, y gestión del stock (puerto 8081) |
 
 ## Arrancar auth-service en local
 
@@ -111,6 +112,33 @@ Los listados admiten `page`, `size` (máximo 100), `sort`, `direction`, `include
 | Usuarios | `username`, `email` (eq, like, startsWith), `enabled` (eq), `role` (eq, in), `createdAt` (gte, lte, between) | `id`, `username`, `email`, `createdAt`, `updatedAt` |
 | Roles | `name` (eq, like, startsWith), `permission` (eq, in), `createdAt` | `id`, `name`, `createdAt` |
 | Permisos | `name` (eq, like, startsWith), `createdAt` | `id`, `name`, `createdAt` |
+
+## Arrancar product-service en local
+
+Con PostgreSQL en Docker y un catálogo de ejemplo (8 categorías y 64 productos):
+
+```bash
+./mvnw -pl product-service spring-boot:test-run -Dspring-boot.run.profiles=dev
+```
+
+La API valida los tokens con la clave pública de auth-service (`AUTH_JWK_SET_URI`, por defecto `http://localhost:9000/oauth2/jwks`), así que auth-service tiene que estar arrancado para obtener un token.
+
+| Recurso | Endpoints | Permisos |
+|---|---|---|
+| Productos | `POST`, `GET /{id}`, `GET`, `PUT /{id}`, `DELETE /{id}` en `/api/v1/products` | `product:read` / `product:write` |
+| Stock | `PUT /api/v1/products/{id}/stock` con `{"delta": -3}` (ajuste manual, nunca deja el stock en negativo) | Rol ADMIN |
+| Categorías | `POST`, `GET /{id}`, `GET`, `PUT /{id}`, `DELETE /{id}` en `/api/v1/categories`, y `GET /{id}/products` | `product:read` / `product:write` |
+
+| Recurso | Filtros | Ordenación |
+|---|---|---|
+| Productos | `name` (eq, like, startsWith), `price` (eq, gt, gte, lt, lte, between), `stock` (eq, gt, gte, lt, lte), `categoryId` (eq, in), `categoryName` (eq, like), `createdAt` (gte, lte, between) | `id`, `name`, `price`, `stock`, `createdAt`, `updatedAt` |
+| Categorías | `name` (eq, like, startsWith), `createdAt` | `id`, `name`, `createdAt` |
+
+Ejemplo: portátiles entre 500 y 1500 € con stock, del más caro al más barato:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "http://localhost:8081/api/v1/products?filter=categoryName:like:portatil&filter=price:between:500,1500&filter=stock:gt:0&sort=price&direction=desc"
+```
 
 ## Documentación
 
