@@ -11,19 +11,22 @@ import com.showcase.order.application.client.ProductInfo;
 import com.showcase.order.application.service.OrderLine;
 import com.showcase.order.application.service.OrderService;
 import com.showcase.order.application.service.OrderWriter;
+import com.showcase.order.domain.event.OrderCancelledEvent;
 import com.showcase.order.domain.exception.OrderErrorCode;
+import com.showcase.order.domain.messaging.OrderEventPublisher;
 import com.showcase.order.domain.model.Order;
 import com.showcase.order.domain.model.OrderItem;
-import com.showcase.order.domain.model.OrderStatus;
 import com.showcase.order.domain.model.ShippingAddress;
 import com.showcase.order.domain.repository.OrderRepository;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Crear y modificar un pedido exige consultar customer-service y product-service. Esas llamadas pueden tardar
+ * Crear un pedido exige consultar customer-service y product-service. Esas llamadas pueden tardar
  * segundos (o fallar por timeout), así que se hacen SIN transacción ({@code NOT_SUPPORTED}) para no tener
  * una conexión a la base de datos bloqueada mientras tanto; después, {@link OrderWriter} guarda en una
  * transacción corta.
@@ -40,13 +43,17 @@ public class OrderServiceImpl implements OrderService {
     private final OrderWriter orderWriter;
     private final CustomerClient customerClient;
     private final ProductClient productClient;
+    private final OrderEventPublisher eventPublisher;
+    private final Clock clock;
 
     public OrderServiceImpl(OrderRepository orderRepository, OrderWriter orderWriter, CustomerClient customerClient,
-                            ProductClient productClient) {
+                            ProductClient productClient, OrderEventPublisher eventPublisher, Clock clock) {
         this.orderRepository = orderRepository;
         this.orderWriter = orderWriter;
         this.customerClient = customerClient;
         this.productClient = productClient;
+        this.eventPublisher = eventPublisher;
+        this.clock = clock;
     }
 
     @Override
@@ -70,23 +77,27 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.findAll(filters, pageQuery, includeInactive);
     }
 
-    /** Se comprueba el estado antes de llamar a product-service para no hacer llamadas inútiles. */
     @Override
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public Order update(Long id, List<OrderLine> lines, Long version) {
-        Order current = findById(id);
-        if (current.getStatus() != OrderStatus.PENDING) {
-            throw new BusinessRuleException(OrderErrorCode.ORDER_NOT_MODIFIABLE, id, current.getStatus());
-        }
-        return orderWriter.replaceItems(id, version, toItems(lines));
+    @Transactional
+    public Order update(Long id, ShippingAddress shippingAddress, Long version) {
+        Order order = findById(id);
+        order.checkVersion(version);
+        order.changeShippingAddress(shippingAddress);
+        return orderRepository.save(order);
     }
 
+    /**
+     * El cambio de estado y el {@code OrderCancelledEvent} se guardan juntos: o se cancela y se pide devolver el
+     * stock, o no pasa ninguna de las dos cosas.
+     */
     @Override
     @Transactional
     public Order cancel(Long id) {
         Order order = findById(id);
         order.cancel();
-        return orderRepository.save(order);
+        Order saved = orderRepository.save(order);
+        eventPublisher.publish(OrderCancelledEvent.of(saved, Instant.now(clock)));
+        return saved;
     }
 
     @Override

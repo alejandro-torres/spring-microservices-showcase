@@ -1,10 +1,9 @@
 package com.showcase.order.domain.model;
 
-import java.util.Set;
-
 /**
  * Ciclo de vida de un pedido. PENDING espera la reserva de stock (saga con product-service), que lo pasa a
- * CONFIRMED o REJECTED. Un pedido pendiente o confirmado se puede cancelar.
+ * CONFIRMED o REJECTED. Solo un pedido confirmado (con el stock ya reservado) se puede cancelar; mientras está
+ * PENDING la saga sigue en curso.
  */
 public enum OrderStatus {
 
@@ -15,7 +14,7 @@ public enum OrderStatus {
 
     public boolean canTransitionTo(OrderStatus target) {
         return switch (this) {
-            case PENDING -> Set.of(CONFIRMED, REJECTED, CANCELLED).contains(target);
+            case PENDING -> target == CONFIRMED || target == REJECTED;
             case CONFIRMED -> target == CANCELLED;
             case REJECTED, CANCELLED -> false;
         };
