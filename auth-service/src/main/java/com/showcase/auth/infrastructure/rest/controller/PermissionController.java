@@ -17,6 +17,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import java.net.URI;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -43,6 +44,7 @@ public class PermissionController {
         this.filterParser = filterParser;
     }
 
+    @PreAuthorize("hasAuthority('permission:write')")
     @PostMapping
     public ResponseEntity<PermissionResponseDTO> create(@Valid @RequestBody CreatePermissionRequestDTO request) {
         Permission permission = permissionService.create(request.name(), request.description());
@@ -51,11 +53,14 @@ public class PermissionController {
         return ResponseEntity.created(location).body(mapper.toResponse(permission));
     }
 
+    @PreAuthorize("hasAuthority('permission:read')")
     @GetMapping("/{id}")
     public PermissionResponseDTO findById(@PathVariable @Positive Long id) {
         return mapper.toResponse(permissionService.findById(id));
     }
 
+    // Los registros borrados (includeInactive) solo los ve un ADMIN.
+    @PreAuthorize("hasAuthority('permission:read') and (!#includeInactive or hasRole('ADMIN'))")
     @GetMapping
     public PageResponseDTO<PermissionResponseDTO> findAll(
             FilterParameters filter,
@@ -71,12 +76,14 @@ public class PermissionController {
         return PageResponseDTO.from(result, mapper::toResponse);
     }
 
+    @PreAuthorize("hasAuthority('permission:write')")
     @PutMapping("/{id}")
     public PermissionResponseDTO update(@PathVariable @Positive Long id,
                                         @Valid @RequestBody UpdatePermissionRequestDTO request) {
         return mapper.toResponse(permissionService.update(id, request.description(), request.version()));
     }
 
+    @PreAuthorize("hasAuthority('permission:write')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable @Positive Long id) {
         permissionService.delete(id);

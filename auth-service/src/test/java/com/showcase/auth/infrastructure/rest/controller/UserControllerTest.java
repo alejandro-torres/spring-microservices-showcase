@@ -87,6 +87,48 @@ class UserControllerTest {
     }
 
     @Nested
+    @DisplayName("permisos (@PreAuthorize)")
+    class Permissions {
+
+        @Test
+        @DisplayName("con user:read puede consultar, pero no crear (403 en el formato común)")
+        void readOnlyUser_canReadButNotWrite() throws Exception {
+            given(userService.findById(10L)).willReturn(user(10L, "ana"));
+            var reader = TestJwt.withPermissions("lector", "user:read");
+
+            mockMvc.perform(get("/api/v1/users/10").with(reader)).andExpect(status().isOk());
+            mockMvc.perform(post("/api/v1/users").with(reader)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"username":"ana","email":"ana@example.com","password":"Secreta-123"}
+                                    """))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+            verify(userService, never()).create(any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("sin user:read no puede consultar usuarios")
+        void withoutPermission_shouldReturn403() throws Exception {
+            mockMvc.perform(get("/api/v1/users/10").with(TestJwt.withPermissions("cliente", "order:read")))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("includeInactive solo está permitido al rol ADMIN")
+        void includeInactive_onlyForAdmin() throws Exception {
+            given(userService.findAll(anyList(), any(PageQuery.class), anyBoolean()))
+                    .willReturn(PageResult.of(List.of(), 0, 10, 0));
+            var reader = TestJwt.withPermissions("lector", "user:read");
+
+            mockMvc.perform(get("/api/v1/users").with(reader)).andExpect(status().isOk());
+            mockMvc.perform(get("/api/v1/users").param("includeInactive", "true").with(reader))
+                    .andExpect(status().isForbidden());
+            perform(get("/api/v1/users").param("includeInactive", "true")).andExpect(status().isOk());
+        }
+    }
+
+    @Nested
     @DisplayName("POST /api/v1/users")
     class Create {
 
