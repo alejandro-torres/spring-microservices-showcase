@@ -27,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
@@ -53,6 +54,9 @@ class AccountLockoutIT {
 
     @Autowired
     private UserJpaRepository userJpaRepository;
+
+    @Autowired
+    private JdbcClient jdbcClient;
 
     private void login(String username, String password, String expectedRedirect) throws Exception {
         mockMvc.perform(post("/login").with(csrf()).param("username", username).param("password", password))
@@ -84,6 +88,10 @@ class AccountLockoutIT {
         var stored = userJpaRepository.findByUsernameAndActiveTrue("lock.service").orElseThrow();
         assertThat(stored.getLockedUntil()).isNotNull();
         assertThat(stored.getFailedAttempts()).isZero();
+        // Y el evento account.locked del outbox se confirmó en la misma transacción.
+        assertThat(jdbcClient.sql("SELECT count(*) FROM outbox_event WHERE event_type = 'account.locked' "
+                        + "AND aggregate_id = :id")
+                .param("id", String.valueOf(stored.getId())).query(Long.class).single()).isEqualTo(1);
     }
 
     @Test

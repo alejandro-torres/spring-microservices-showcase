@@ -153,7 +153,8 @@ class OAuth2FlowsIT {
         @DisplayName("un usuario registrado (rol USER) accede a /me pero no al listado de usuarios")
         void registeredUser_shouldOnlyAccessOwnData() throws Exception {
             mockMvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content("""
-                            {"username":"nuevo.cliente","email":"nuevo@example.com","password":"%s"}
+                            {"username":"nuevo.cliente","email":"nuevo@example.com","password":"%s",
+                             "firstName":"Nuevo","lastName":"Cliente"}
                             """.formatted(PASSWORD)))
                     .andExpect(status().isCreated());
 

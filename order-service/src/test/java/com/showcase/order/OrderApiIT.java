@@ -9,8 +9,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jayway.jsonpath.JsonPath;
+import com.showcase.order.application.service.OrderSagaService;
 import com.showcase.order.testdata.FakeRemoteServices;
 import com.showcase.order.testdata.TestJwt;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,7 +31,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 /**
  * De extremo a extremo: PostgreSQL real, Feign real contra un servidor HTTP falso (product y customer),
- * circuit breaker y reenvío del token del usuario.
+ * circuit breaker y reenvío del token del usuario. Las respuestas de la saga se simulan llamando al servicio
+ * (el recorrido completo por RabbitMQ está en {@code OrderSagaIT}).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -40,6 +43,9 @@ class OrderApiIT {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private OrderSagaService sagaService;
 
     @MockitoBean
     private JwtDecoder jwtDecoder;
@@ -96,14 +102,21 @@ class OrderApiIT {
         as(post("/api/v1/orders"), "{\"customerId\":4,\"items\":[{\"productId\":10,\"quantity\":1}]}")
                 .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("CUSTOMER_NOT_FOUND"));
 
-        // Cambiar las líneas: la del ratón conserva su id, la del teclado se borra.
-        as(put("/api/v1/orders/" + id), "{\"items\":[{\"productId\":10,\"quantity\":4}],\"version\":0}")
+        // PUT solo cambia la dirección: las líneas (ya enviadas a product-service) no se tocan.
+        as(put("/api/v1/orders/" + id), """
+                {"street":"Calle Mayor 5","city":"Sevilla","postalCode":"41001","country":"ES","version":0}""")
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(50.0))
-                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.shippingAddress.city").value("Sevilla"))
+                .andExpect(jsonPath("$.total").value(55.0))
                 .andExpect(jsonPath("$.items[0].id").value(mouseLineId));
-        as(put("/api/v1/orders/" + id), "{\"items\":[{\"productId\":10,\"quantity\":1}],\"version\":0}")
+        as(put("/api/v1/orders/" + id), """
+                {"street":"Calle Mayor 5","city":"Sevilla","postalCode":"41001","country":"ES","version":0}""")
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("CONCURRENT_MODIFICATION"));
+
+        // Un pedido pendiente tiene la saga en curso: no se puede cancelar.
+        mockMvc.perform(put("/api/v1/orders/" + id + "/cancel").with(TestJwt.manager()))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.code").value("ORDER_NOT_CANCELLABLE"));
 
         // Filtros: por producto (join con las líneas) y pedidos del cliente.
         mockMvc.perform(get("/api/v1/orders").with(TestJwt.reader()).param("filter", "productId:eq:10")
@@ -115,9 +128,14 @@ class OrderApiIT {
         // Solo se borran pedidos cerrados.
         mockMvc.perform(delete("/api/v1/orders/" + id).with(TestJwt.admin()))
                 .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("ORDER_NOT_DELETABLE"));
-        mockMvc.perform(put("/api/v1/orders/" + id + "/cancel").with(TestJwt.manager()))
-                .andExpect(jsonPath("$.status").value("CANCELLED"));
-        as(put("/api/v1/orders/" + id), "{\"items\":[{\"productId\":10,\"quantity\":1}],\"version\":2}")
+
+        // product-service rechaza la reserva: el pedido queda REJECTED con el motivo y ya se puede borrar.
+        sagaService.reject(UUID.randomUUID(), id, "INSUFFICIENT_STOCK");
+        mockMvc.perform(get("/api/v1/orders/" + id).with(TestJwt.admin()))
+                .andExpect(jsonPath("$.status").value("REJECTED"))
+                .andExpect(jsonPath("$.rejectionReason").value("INSUFFICIENT_STOCK"));
+        as(put("/api/v1/orders/" + id), """
+                {"street":"Calle Mayor 5","city":"Sevilla","postalCode":"41001","country":"ES","version":2}""")
                 .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("ORDER_NOT_MODIFIABLE"));
         mockMvc.perform(delete("/api/v1/orders/" + id).with(TestJwt.admin())).andExpect(status().isNoContent());
         mockMvc.perform(get("/api/v1/orders/" + id).with(TestJwt.admin())).andExpect(status().isNotFound());

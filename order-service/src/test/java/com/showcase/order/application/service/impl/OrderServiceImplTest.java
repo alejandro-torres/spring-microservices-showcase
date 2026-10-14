@@ -7,15 +7,14 @@ import static com.showcase.order.testdata.OrderMother.product;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.showcase.common.domain.exception.BusinessRuleException;
+import com.showcase.common.domain.exception.CommonErrorCode;
 import com.showcase.common.domain.exception.ResourceNotFoundException;
 import com.showcase.common.domain.page.PageQuery;
 import com.showcase.common.domain.page.PageResult;
@@ -25,17 +24,24 @@ import com.showcase.order.application.client.CustomerInfo;
 import com.showcase.order.application.client.ProductClient;
 import com.showcase.order.application.service.OrderLine;
 import com.showcase.order.application.service.OrderWriter;
+import com.showcase.order.domain.event.OrderCancelledEvent;
+import com.showcase.order.domain.event.OrderEventLine;
 import com.showcase.order.domain.exception.OrderErrorCode;
+import com.showcase.order.domain.messaging.OrderEventPublisher;
 import com.showcase.order.domain.model.Order;
 import com.showcase.order.domain.model.OrderStatus;
+import com.showcase.order.domain.model.ShippingAddress;
 import com.showcase.order.domain.repository.OrderRepository;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -43,6 +49,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class OrderServiceImplTest {
 
     private static final List<OrderLine> LINES = List.of(new OrderLine(10L, 2), new OrderLine(11L, 1));
+    private static final ShippingAddress NEW_ADDRESS = new ShippingAddress("Calle Mayor 5", "Sevilla", "41001", "ES");
+    private static final Instant NOW = Instant.parse("2026-10-14T10:00:00Z");
 
     @Mock
     private OrderRepository orderRepository;
@@ -56,8 +64,16 @@ class OrderServiceImplTest {
     @Mock
     private ProductClient productClient;
 
-    @InjectMocks
+    @Mock
+    private OrderEventPublisher eventPublisher;
+
     private OrderServiceImpl orderService;
+
+    @BeforeEach
+    void setUp() {
+        orderService = new OrderServiceImpl(orderRepository, orderWriter, customerClient, productClient,
+                eventPublisher, Clock.fixed(NOW, ZoneOffset.UTC));
+    }
 
     private void givenProducts() {
         given(productClient.findById(10L)).willReturn(Optional.of(product(10, "5", 50)));
@@ -153,25 +169,35 @@ class OrderServiceImplTest {
     class Update {
 
         @Test
-        @DisplayName("consulta los productos y delega en OrderWriter con la versión")
-        void update_pending_shouldReplaceItems() {
-            given(orderRepository.findById(1L)).willReturn(Optional.of(pending()));
-            givenProducts();
-            given(orderWriter.replaceItems(eq(1L), eq(0L), anyList())).willReturn(pending());
+        @DisplayName("cambia la dirección de envío comprobando la versión, sin llamar a otros servicios")
+        void update_shouldChangeShippingAddress() {
+            given(orderRepository.findById(1L)).willReturn(Optional.of(order(OrderStatus.CONFIRMED)));
+            given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
 
-            orderService.update(1L, LINES, 0L);
+            var order = orderService.update(1L, NEW_ADDRESS, 0L);
 
-            verify(orderWriter).replaceItems(eq(1L), eq(0L), argThat(items -> items.size() == 2));
+            assertThat(order.getShippingAddress()).isEqualTo(NEW_ADDRESS);
+            verifyNoInteractions(productClient, customerClient, orderWriter, eventPublisher);
         }
 
         @Test
-        @DisplayName("no llama a product-service si el pedido ya no es modificable")
-        void update_confirmed_shouldFailFast() {
-            given(orderRepository.findById(1L)).willReturn(Optional.of(order(OrderStatus.CONFIRMED)));
+        @DisplayName("lanza CONCURRENT_MODIFICATION si el pedido cambió desde que se leyó")
+        void update_withStaleVersion_shouldThrow() {
+            given(orderRepository.findById(1L)).willReturn(Optional.of(pending()));
 
-            assertThatThrownBy(() -> orderService.update(1L, LINES, 0L))
+            assertThatThrownBy(() -> orderService.update(1L, NEW_ADDRESS, 5L))
+                    .hasFieldOrPropertyWithValue("errorCode", CommonErrorCode.CONCURRENT_MODIFICATION);
+            verify(orderRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("lanza ORDER_NOT_MODIFIABLE si el pedido está cerrado")
+        void update_cancelled_shouldThrow() {
+            given(orderRepository.findById(1L)).willReturn(Optional.of(order(OrderStatus.CANCELLED)));
+
+            assertThatThrownBy(() -> orderService.update(1L, NEW_ADDRESS, 0L))
                     .hasFieldOrPropertyWithValue("errorCode", OrderErrorCode.ORDER_NOT_MODIFIABLE);
-            verifyNoInteractions(productClient, orderWriter);
+            verify(orderRepository, never()).save(any());
         }
     }
 
@@ -180,12 +206,25 @@ class OrderServiceImplTest {
     class CancelAndDelete {
 
         @Test
-        @DisplayName("cancel guarda el pedido cancelado")
-        void cancel_shouldSaveCancelled() {
-            given(orderRepository.findById(1L)).willReturn(Optional.of(pending()));
+        @DisplayName("cancel guarda el pedido cancelado y publica OrderCancelledEvent para devolver el stock")
+        void cancel_confirmed_shouldSaveAndPublish() {
+            given(orderRepository.findById(1L)).willReturn(Optional.of(order(OrderStatus.CONFIRMED)));
             given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
 
             assertThat(orderService.cancel(1L).getStatus()).isEqualTo(OrderStatus.CANCELLED);
+            verify(eventPublisher).publish(new OrderCancelledEvent(1L,
+                    List.of(new OrderEventLine(10L, 2), new OrderEventLine(11L, 1)), NOW));
+        }
+
+        @Test
+        @DisplayName("cancel rechaza un pedido pendiente con ORDER_NOT_CANCELLABLE y no publica nada")
+        void cancel_pending_shouldThrowAndNotPublish() {
+            given(orderRepository.findById(1L)).willReturn(Optional.of(pending()));
+
+            assertThatThrownBy(() -> orderService.cancel(1L))
+                    .hasFieldOrPropertyWithValue("errorCode", OrderErrorCode.ORDER_NOT_CANCELLABLE);
+            verify(orderRepository, never()).save(any());
+            verifyNoInteractions(eventPublisher);
         }
 
         @Test

@@ -31,7 +31,8 @@ public class RegistrationController {
 
     @PostMapping("/register")
     public ResponseEntity<UserResponseDTO> register(@Valid @RequestBody RegisterUserRequestDTO request) {
-        User user = userService.register(request.username(), request.email(), request.password());
+        User user = userService.register(request.username(), request.email(), request.password(),
+                request.firstName(), request.lastName());
         URI location = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/api/v1/users/{id}").buildAndExpand(user.getId()).toUri();
         return ResponseEntity.created(location).body(mapper.toResponse(user));

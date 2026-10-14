@@ -15,11 +15,14 @@ import com.showcase.auth.application.security.PasswordHasher;
 import com.showcase.auth.application.service.SecurityAuditService;
 import com.showcase.auth.application.service.TokenRevocationService;
 import com.showcase.auth.domain.model.SecurityEventType;
+import com.showcase.auth.domain.event.UserDisabledEvent;
+import com.showcase.auth.domain.event.UserRegisteredEvent;
 import com.showcase.auth.domain.exception.AuthErrorCode;
 import com.showcase.auth.domain.exception.EmailAlreadyExistsException;
 import com.showcase.auth.domain.exception.RoleNotFoundException;
 import com.showcase.auth.domain.exception.UserNotFoundException;
 import com.showcase.auth.domain.exception.UsernameAlreadyExistsException;
+import com.showcase.auth.domain.messaging.UserEventPublisher;
 import com.showcase.auth.domain.model.Role;
 import com.showcase.auth.domain.model.User;
 import com.showcase.auth.domain.repository.PasswordHistoryRepository;
@@ -65,6 +68,9 @@ class UserServiceImplTest {
     @Mock
     private TokenRevocationService tokenRevocationService;
 
+    @Mock
+    private UserEventPublisher eventPublisher;
+
     private static final java.time.Instant NOW = java.time.Instant.parse("2026-10-14T12:00:00Z");
 
     private UserServiceImpl userService;
@@ -72,7 +78,8 @@ class UserServiceImplTest {
     @org.junit.jupiter.api.BeforeEach
     void createService() {
         userService = new UserServiceImpl(userRepository, roleRepository, passwordHistoryRepository, passwordHasher,
-                auditService, tokenRevocationService, java.time.Clock.fixed(NOW, java.time.ZoneOffset.UTC));
+                auditService, tokenRevocationService, eventPublisher,
+                java.time.Clock.fixed(NOW, java.time.ZoneOffset.UTC));
     }
 
     @Captor
@@ -220,16 +227,18 @@ class UserServiceImplTest {
     class Register {
 
         @Test
-        @DisplayName("da de alta al usuario con el rol USER")
+        @DisplayName("da de alta al usuario con el rol USER y publica user.registered con su nombre")
         void register_shouldAssignUserRole() {
             given(roleRepository.findByName("USER")).willReturn(Optional.of(userRole()));
             given(passwordHasher.hash("Secreta-123")).willReturn("{bcrypt}cifrada");
             givenSaveReturnsArgument();
 
-            var registered = userService.register("ana", "ana@example.com", "Secreta-123");
+            var registered = userService.register("ana", "ana@example.com", "Secreta-123", "Ana", "García");
 
             assertThat(registered.getRoles()).extracting(Role::getName).containsExactly("USER");
             assertThat(registered.getPasswordHash()).isEqualTo("{bcrypt}cifrada");
+            verify(eventPublisher).publish(new UserRegisteredEvent(registered.getId(), "ana", "ana@example.com",
+                    "Ana", "García", NOW));
         }
 
         @Test
@@ -237,7 +246,7 @@ class UserServiceImplTest {
         void register_withExistingUsername_shouldFailFast() {
             given(userRepository.existsByUsername("ana")).willReturn(true);
 
-            assertThatThrownBy(() -> userService.register("ana", "ana@example.com", "Secreta-123"))
+            assertThatThrownBy(() -> userService.register("ana", "ana@example.com", "Secreta-123", "Ana", "García"))
                     .isInstanceOf(UsernameAlreadyExistsException.class);
             verify(roleRepository, never()).findByName(anyString());
             verify(passwordHasher, never()).hash(anyString());
@@ -246,7 +255,7 @@ class UserServiceImplTest {
         @Test
         @DisplayName("falla con ROLE_NOT_FOUND si el rol USER no existe")
         void register_withoutDefaultRole_shouldThrow() {
-            assertThatThrownBy(() -> userService.register("ana", "ana@example.com", "Secreta-123"))
+            assertThatThrownBy(() -> userService.register("ana", "ana@example.com", "Secreta-123", "Ana", "García"))
                     .isInstanceOf(RoleNotFoundException.class);
             verify(userRepository, never()).save(any());
         }
@@ -344,10 +353,11 @@ class UserServiceImplTest {
             assertThat(userCaptor.getValue().isEnabled()).isFalse();
             verify(auditService).record(SecurityEventType.USER_DISABLED, "ana", "deleted");
             verify(tokenRevocationService).revokeAllForUser("ana", "user deleted");
+            verify(eventPublisher).publish(new UserDisabledEvent(10L, "ana", NOW));
         }
 
         @Test
-        @DisplayName("audita la desactivación al poner enabled = false, pero no un cambio de email")
+        @DisplayName("audita la desactivación al poner enabled = false y publica user.disabled")
         void update_disablingUser_shouldAudit() {
             given(userRepository.findById(10L)).willReturn(Optional.of(user(10L, "ana")));
             givenSaveReturnsArgument();
@@ -355,6 +365,7 @@ class UserServiceImplTest {
             userService.update(10L, "ana@example.com", false, 0L);
 
             verify(auditService).record(SecurityEventType.USER_DISABLED, "ana", "enabled=false");
+            verify(eventPublisher).publish(new UserDisabledEvent(10L, "ana", NOW));
         }
 
         @Test

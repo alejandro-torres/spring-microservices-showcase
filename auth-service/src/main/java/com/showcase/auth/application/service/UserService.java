@@ -14,8 +14,11 @@ public interface UserService {
 
     User create(String username, String email, String rawPassword, Set<Long> roleIds);
 
-    /** Alta pública: el usuario recibe siempre el rol USER. */
-    User register(String username, String email, String rawPassword);
+    /**
+     * Alta pública: el usuario recibe siempre el rol USER. El nombre y los apellidos no se guardan aquí: viajan
+     * en el evento para que customer-service cree el perfil de cliente.
+     */
+    User register(String username, String email, String rawPassword, String firstName, String lastName);
 
     User findById(Long id);
 

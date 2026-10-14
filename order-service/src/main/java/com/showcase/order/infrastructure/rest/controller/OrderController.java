@@ -117,7 +117,7 @@ public class OrderController {
     @PreAuthorize("hasAuthority('order:write')")
     @PutMapping("/{id}")
     public OrderResponseDTO update(@PathVariable @Positive Long id, @Valid @RequestBody UpdateOrderRequestDTO request) {
-        return mapper.toResponse(orderService.update(id, mapper.toLines(request.items()), request.version()));
+        return mapper.toResponse(orderService.update(id, mapper.toShippingAddress(request), request.version()));
     }
 
     @PreAuthorize("hasAuthority('order:write')")

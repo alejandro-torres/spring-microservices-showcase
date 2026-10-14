@@ -2,6 +2,9 @@
 spring:
   flyway:
     locations: classpath:db/migration,classpath:db/dev-data
+    # Los datos de ejemplo son V1000: sin esto, una migración nueva del esquema (V3, V6...) se rechazaría en una
+    # base de desarrollo que ya los tiene.
+    out-of-order: true
   jpa:
     show-sql: false
 

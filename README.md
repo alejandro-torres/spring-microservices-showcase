@@ -30,15 +30,26 @@ En Windows (PowerShell o CMD) se usa `mvnw.cmd verify`. El informe de cobertura 
 
 | Módulo | Contenido |
 |---|---|
-| `common-lib` | Excepciones de dominio, paginación (`PageQuery`/`PageResult`), filtros dinámicos (parser y `Specification` de JPA), gestión global de errores y mensajes en español e inglés |
+| `common-lib` | Excepciones de dominio, paginación (`PageQuery`/`PageResult`), filtros dinámicos (parser y `Specification` de JPA), gestión global de errores y mensajes en español e inglés, y la mensajería común (outbox, consumo idempotente, reintentos y DLQ) |
+| `events-contract` | Contratos de los mensajes de RabbitMQ: el sobre común `EventEnvelopeDTO` y un `*MessageDTO` por evento |
 | `auth-service` | Usuarios, roles y permisos, y servidor de autorización OAuth2 que emite los JWT (puerto 9000) |
 | `product-service` | Catálogo de productos y categorías, y gestión del stock (puerto 8081) |
 | `customer-service` | Clientes y sus direcciones (puerto 8082) |
 | `order-service` | Pedidos y sus líneas; consulta clientes y productos con Feign y Resilience4j (puerto 8083) |
 
+## RabbitMQ en local
+
+Los servicios se comunican por RabbitMQ, así que al arrancarlos en local todos se conectan al mismo broker (`localhost:5672`, configurable con `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME` y `RABBITMQ_PASSWORD`). Se levanta una vez con Docker:
+
+```bash
+docker run -d --name showcase-rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
+```
+
+La consola de RabbitMQ queda en http://localhost:15672 (usuario y contraseña `guest`). Los tests de integración no lo necesitan: cada uno arranca su propio RabbitMQ con Testcontainers.
+
 ## Arrancar auth-service en local
 
-No hace falta instalar PostgreSQL ni Redis: el servicio se arranca con los dos en Docker (Testcontainers) y el perfil `dev`, que carga datos de ejemplo.
+No hace falta instalar PostgreSQL ni Redis: el servicio se arranca con los dos en Docker (Testcontainers) y el perfil `dev`, que carga datos de ejemplo. Solo necesita el RabbitMQ compartido de la sección anterior.
 
 ```bash
 ./mvnw install -DskipTests
@@ -99,7 +110,7 @@ Los tokens revocados se guardan en Redis con caducidad automática. Si Redis no 
 
 | Recurso | Endpoints | Permisos |
 |---|---|---|
-| Registro | `POST /api/v1/auth/register` (crea un usuario con el rol USER) | Público |
+| Registro | `POST /api/v1/auth/register` con `username`, `email`, `password`, `firstName` y `lastName` (crea un usuario con el rol USER; customer-service crea su perfil de cliente al recibir `user.registered`) | Público |
 | Usuario actual | `GET /api/v1/users/me` | Cualquier usuario autenticado |
 | Usuarios | `POST /api/v1/users`, `GET /api/v1/users/{id}`, `GET /api/v1/users`, `PUT /api/v1/users/{id}`, `DELETE /api/v1/users/{id}`, `POST` y `DELETE /api/v1/users/{id}/roles/{roleId}` | `user:read` / `user:write` |
 | Roles | `POST`, `GET /{id}`, `GET`, `PUT /{id}`, `DELETE /{id}` en `/api/v1/roles` | `role:read` / `role:write` |
@@ -171,13 +182,13 @@ Con PostgreSQL en Docker y 120 pedidos de ejemplo (de los clientes y productos d
 ./mvnw -pl order-service spring-boot:test-run -Dspring-boot.run.profiles=dev
 ```
 
-Escucha en el puerto 8083. Para crear o modificar pedidos consulta customer-service (dirección de envío) y product-service (nombre, precio y stock) con Feign, así que los dos tienen que estar arrancados. Sus URLs se configuran con `CUSTOMER_SERVICE_URL` y `PRODUCT_SERVICE_URL`.
+Escucha en el puerto 8083. Para crear pedidos consulta customer-service (dirección de envío) y product-service (nombre, precio y stock) con Feign, así que los dos tienen que estar arrancados. Sus URLs se configuran con `CUSTOMER_SERVICE_URL` y `PRODUCT_SERVICE_URL`.
 
 | Recurso | Endpoints | Permisos |
 |---|---|---|
-| Pedidos | `POST`, `GET /{id}`, `GET`, `PUT /{id}` (sustituye las líneas de un pedido pendiente) en `/api/v1/orders` | `order:read` / `order:write` |
+| Pedidos | `POST`, `GET /{id}`, `GET`, `PUT /{id}` (cambia la dirección de envío de un pedido no cerrado) en `/api/v1/orders` | `order:read` / `order:write` |
 | Pedidos de un cliente | `GET /api/v1/orders/by-customer/{customerId}` (paginado, del más reciente al más antiguo) | `order:read` |
-| Cancelar | `PUT /api/v1/orders/{id}/cancel` (pedidos pendientes o confirmados) | `order:write` |
+| Cancelar | `PUT /api/v1/orders/{id}/cancel` (solo pedidos confirmados; un pedido pendiente responde 422 `ORDER_NOT_CANCELLABLE`) | `order:write` |
 | Borrar | `DELETE /api/v1/orders/{id}` (borrado lógico de pedidos cancelados o rechazados) | `order:write` y rol ADMIN |
 
 La petición solo lleva productos y cantidades: el nombre y el precio se copian de product-service y la dirección de envío es la principal del cliente, para que el pedido no cambie si después cambia el catálogo.
@@ -191,11 +202,61 @@ La petición solo lleva productos y cantidades: el nombre y el precio se copian 
 | Situación | Respuesta |
 |---|---|
 | El cliente o un producto no existen | 404 (`CUSTOMER_NOT_FOUND`, `PRODUCT_NOT_FOUND`) |
-| No hay stock suficiente | 422 (`INSUFFICIENT_STOCK`); es una comprobación previa, la reserva real llegará con la saga de RabbitMQ |
+| No hay stock suficiente | 422 (`INSUFFICIENT_STOCK`); es una comprobación previa para fallar pronto, la reserva real la hace la saga |
 | El otro servicio falla o tarda más de 3 s | 503 (`SERVICE_UNAVAILABLE`) sin detalles del error remoto |
 | Varios fallos seguidos | El circuit breaker (Resilience4j) se abre 10 s y responde 503 al instante, sin esperar al timeout |
 
 El JWT del usuario se reenvía en cada llamada, así que se aplican sus propios permisos en el otro servicio. Las llamadas se hacen antes de abrir la transacción, para no tener una conexión a la base de datos bloqueada mientras se espera la respuesta.
+
+## Mensajería con RabbitMQ
+
+Feign se usa para las consultas síncronas (comprobar que algo existe); todo lo que cambia el estado de otro servicio va por RabbitMQ.
+
+### Flujos
+
+| Flujo | Eventos |
+|---|---|
+| Alta de usuario → perfil de cliente | auth `user.registered` → customer crea el cliente (sin direcciones) |
+| Usuario desactivado o borrado | auth `user.disabled` → customer marca el cliente como inactivo |
+| Cuenta bloqueada | auth `account.locked` → customer lo registra en su log (el bloqueo es temporal y no cambia el cliente) |
+| Saga de creación de pedido | order crea el pedido `PENDING` y publica `order.created` → product reserva el stock de todas las líneas o de ninguna y responde `stock.reserved` o `stock.reservation-failed` → order pasa el pedido a `CONFIRMED` o `REJECTED` (con el motivo en `rejectionReason`) |
+| Cancelación (compensación) | order cancela un pedido `CONFIRMED` y publica `order.cancelled` → product devuelve el stock y responde `stock.released` |
+
+Las líneas de un pedido quedan fijas al crearlo: son las que se reservan en la saga. Por eso `PUT /orders/{id}` solo cambia la dirección de envío.
+
+### Topología
+
+- Un exchange `topic` duradero por servicio que publica: `auth.events`, `order.events` y `product.events`. La routing key es el tipo de evento (`<entidad>.<acción>`).
+- Una cola duradera por consumidor y evento (`<servicio>.<evento>`, p. ej. `product-service.order-created`). Todas las réplicas de un servicio escuchan la misma cola, así que cada mensaje lo procesa una sola.
+- Cada cola manda sus mensajes rechazados al DLX del servicio (`<servicio>.dlx`), que los deja en su DLQ (`<cola>.dlq`).
+- Los nombres están en `application.yml` (`showcase.messaging`); exchanges, colas y bindings se declaran al arrancar.
+
+Todos los mensajes llevan el mismo sobre en JSON:
+
+```json
+{ "eventId": "uuid", "eventType": "order.created", "version": 1, "occurredAt": "2026-10-14T10:00:00Z",
+  "source": "order-service", "payload": { "orderId": 7, "customerId": 3, "lines": [{ "productId": 10, "quantity": 2 }] } }
+```
+
+### Fiabilidad
+
+| Problema | Solución |
+|---|---|
+| Guardar el cambio y no llegar a publicar el evento (o al revés) | **Outbox**: el evento se guarda en la tabla `outbox_event` en la misma transacción que el cambio; un publicador programado lo envía después |
+| No saber si RabbitMQ ha recibido el mensaje | **Publisher confirms y returns**: un evento solo pasa a `SENT` cuando RabbitMQ lo confirma y tenía una cola de destino. Si RabbitMQ está caído, el evento espera en la tabla |
+| Mensajes duplicados (RabbitMQ entrega "al menos una vez") | **Consumo idempotente**: cada consumidor guarda el `eventId` en `processed_event` en la misma transacción que su cambio y descarta los repetidos |
+| Fallos pasajeros (base de datos caída, conflicto de concurrencia) | **Reintentos**: 3 reintentos esperando 1 s, 2 s y 4 s; después, a la DLQ |
+| Fallos que no se arreglan reintentando (JSON mal formado, pedido inexistente, email repetido) | Directos a la **DLQ**, sin reintentos |
+
+### Administración de las DLQ (solo ADMIN)
+
+En cada servicio que consume eventos (customer, product y order):
+
+| Endpoint | Qué hace |
+|---|---|
+| `GET /api/v1/admin/dead-letters` | Lista las DLQ del servicio con su cola original y cuántos mensajes tienen |
+| `GET /api/v1/admin/dead-letters/{dlq}/messages?limit=10` | Muestra los primeros mensajes (con el motivo del rechazo) sin sacarlos de la DLQ |
+| `POST /api/v1/admin/dead-letters/{dlq}/replay?max=100` | Devuelve los mensajes a su cola original, una vez corregido el problema |
 
 ## Documentación
 

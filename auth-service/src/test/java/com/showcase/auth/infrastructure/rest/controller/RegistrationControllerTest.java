@@ -33,7 +33,8 @@ import org.springframework.test.web.servlet.MockMvc;
 class RegistrationControllerTest {
 
     private static final String BODY = """
-            {"username":"ana","email":"ana@example.com","password":"Secreta-123"}
+            {"username":"ana","email":"ana@example.com","password":"Secreta-123","firstName":"Ana",
+             "lastName":"García"}
             """;
 
     @Autowired
@@ -48,7 +49,7 @@ class RegistrationControllerTest {
     @Test
     @DisplayName("registra sin token y devuelve 201 con la ubicación del usuario")
     void register_withoutToken_shouldReturn201() throws Exception {
-        given(userService.register("ana", "ana@example.com", "Secreta-123")).willReturn(user(10L, "ana", userRole()));
+        given(userService.register("ana", "ana@example.com", "Secreta-123", "Ana", "García")).willReturn(user(10L, "ana", userRole()));
 
         mockMvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isCreated())
@@ -59,7 +60,7 @@ class RegistrationControllerTest {
     @Test
     @DisplayName("devuelve 409 si el email ya está registrado")
     void register_withExistingEmail_shouldReturn409() throws Exception {
-        given(userService.register("ana", "ana@example.com", "Secreta-123"))
+        given(userService.register("ana", "ana@example.com", "Secreta-123", "Ana", "García"))
                 .willThrow(new EmailAlreadyExistsException("ana@example.com"));
 
         mockMvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content(BODY))
@@ -75,6 +76,17 @@ class RegistrationControllerTest {
                         """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
-        verify(userService, never()).register(any(), any(), any());
+        verify(userService, never()).register(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("exige nombre y apellidos para crear el perfil de cliente")
+    void register_withoutName_shouldReturn400() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"username":"ana","email":"ana@example.com","password":"Secreta-123","firstName":" "}
+                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+        verify(userService, never()).register(any(), any(), any(), any(), any());
     }
 }

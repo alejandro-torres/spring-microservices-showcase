@@ -8,6 +8,7 @@ public record OrderResponseDTO(
         Long id,
         Long customerId,
         String status,
+        String rejectionReason,
         BigDecimal total,
         ShippingAddressResponseDTO shippingAddress,
         List<OrderItemResponseDTO> items,

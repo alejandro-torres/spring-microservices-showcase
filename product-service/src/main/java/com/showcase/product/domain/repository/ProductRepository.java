@@ -17,6 +17,9 @@ public interface ProductRepository {
     /** Solo productos activos, con su categoría. */
     Optional<Product> findById(Long id);
 
+    /** Incluye los borrados: al cancelar un pedido su stock vuelve aunque el producto ya no se venda. */
+    Optional<Product> findByIdIncludingInactive(Long id);
+
     PageResult<Product> findAll(List<FilterCriterion> filters, PageQuery pageQuery, boolean includeInactive);
 
     /** Productos activos de una categoría (consulta JPQL con su propia consulta de recuento). */

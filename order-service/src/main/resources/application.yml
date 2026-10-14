@@ -41,10 +41,53 @@ spring:
             # Fallar pronto: el usuario espera la respuesta mientras se consultan los otros servicios.
             connect-timeout: 2000
             read-timeout: 3000
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    # guest/guest solo sirve en local; en docker-compose cada servicio tiene su propio usuario.
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    # El outbox solo da un evento por enviado si RabbitMQ confirma que lo ha recibido (confirm) y que tenía
+    # una cola de destino (return con mandatory).
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+      observation-enabled: true
+    listener:
+      simple:
+        # ACK automático cuando el listener termina sin excepción (después del commit del servicio).
+        acknowledge-mode: auto
+        prefetch: 10
+        concurrency: 1
+        max-concurrency: 4
+        # Un mensaje rechazado no vuelve a la cola: va a su DLQ.
+        default-requeue-rejected: false
+        observation-enabled: true
+        retry:
+          enabled: true
+          # 1 intento + 3 reintentos esperando 1 s, 2 s y 4 s; después, a la DLQ.
+          max-retries: 3
+          initial-interval: 1s
+          multiplier: 2
+          max-interval: 4s
   lifecycle:
     timeout-per-shutdown-phase: 30s
 
 showcase:
+  messaging:
+    source: ${spring.application.name}
+    exchange: order.events
+    consumers:
+      stock-reserved:
+        queue: order-service.stock-reserved
+        exchange: product.events
+        routing-key: stock.reserved
+      stock-reservation-failed:
+        queue: order-service.stock-reservation-failed
+        exchange: product.events
+        routing-key: stock.reservation-failed
   clients:
     product-service:
       url: ${PRODUCT_SERVICE_URL:http://localhost:8081}

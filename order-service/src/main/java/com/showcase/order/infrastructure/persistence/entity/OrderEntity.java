@@ -25,19 +25,22 @@ public class OrderEntity extends AuditedEntity {
     @Column(nullable = false, length = 20)
     private OrderStatus status;
 
+    @Column(name = "rejection_reason", length = 100)
+    private String rejectionReason;
+
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal total;
 
-    @Column(name = "shipping_street", nullable = false, updatable = false)
+    @Column(name = "shipping_street", nullable = false)
     private String shippingStreet;
 
-    @Column(name = "shipping_city", nullable = false, updatable = false, length = 100)
+    @Column(name = "shipping_city", nullable = false, length = 100)
     private String shippingCity;
 
-    @Column(name = "shipping_postal_code", nullable = false, updatable = false, length = 20)
+    @Column(name = "shipping_postal_code", nullable = false, length = 20)
     private String shippingPostalCode;
 
-    @Column(name = "shipping_country", nullable = false, updatable = false, length = 2)
+    @Column(name = "shipping_country", nullable = false, length = 2)
     private String shippingCountry;
 
     /** Composición: las líneas se guardan y se borran (orphanRemoval) junto con el pedido. */
@@ -59,6 +62,14 @@ public class OrderEntity extends AuditedEntity {
 
     public void setStatus(OrderStatus status) {
         this.status = status;
+    }
+
+    public String getRejectionReason() {
+        return rejectionReason;
+    }
+
+    public void setRejectionReason(String rejectionReason) {
+        this.rejectionReason = rejectionReason;
     }
 
     public BigDecimal getTotal() {

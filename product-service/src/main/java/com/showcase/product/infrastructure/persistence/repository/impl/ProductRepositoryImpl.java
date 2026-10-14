@@ -58,6 +58,11 @@ public class ProductRepositoryImpl implements ProductRepository {
     }
 
     @Override
+    public Optional<Product> findByIdIncludingInactive(Long id) {
+        return productJpaRepository.findWithCategoryById(id).map(mapper::toDomain);
+    }
+
+    @Override
     public PageResult<Product> findAll(List<FilterCriterion> filters, PageQuery pageQuery, boolean includeInactive) {
         Page<ProductEntity> page = productJpaRepository.findAll(
                 specificationBuilder.build(filters, PRODUCTS, includeInactive),

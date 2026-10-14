@@ -1,12 +1,12 @@
 package com.showcase.order.application.service.impl;
 
-import com.showcase.common.domain.exception.ResourceNotFoundException;
 import com.showcase.order.application.service.OrderWriter;
-import com.showcase.order.domain.exception.OrderErrorCode;
+import com.showcase.order.domain.event.OrderCreatedEvent;
+import com.showcase.order.domain.messaging.OrderEventPublisher;
 import com.showcase.order.domain.model.Order;
-import com.showcase.order.domain.model.OrderItem;
 import com.showcase.order.domain.repository.OrderRepository;
-import java.util.List;
+import java.time.Clock;
+import java.time.Instant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,26 +14,25 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrderWriterImpl implements OrderWriter {
 
     private final OrderRepository orderRepository;
+    private final OrderEventPublisher eventPublisher;
+    private final Clock clock;
 
-    public OrderWriterImpl(OrderRepository orderRepository) {
+    public OrderWriterImpl(OrderRepository orderRepository, OrderEventPublisher eventPublisher, Clock clock) {
         this.orderRepository = orderRepository;
+        this.eventPublisher = eventPublisher;
+        this.clock = clock;
     }
 
-    /** El pedido y sus líneas se guardan juntos (cascada); en la fase de mensajería, también su evento. */
+    /**
+     * El pedido, sus líneas (cascada) y su evento en el outbox se guardan en la MISMA transacción: si algo falla
+     * no queda ni el pedido ni el evento, y nunca se publica un pedido que no se llegó a guardar.
+     * {@code timeout = 5}: con las llamadas remotas ya hechas, guardar nunca debería tardar más.
+     */
     @Override
-    @Transactional
+    @Transactional(timeout = 5)
     public Order create(Order order) {
-        return orderRepository.save(order);
-    }
-
-    /** Se vuelve a leer dentro de la transacción: entre la lectura inicial y ahora el pedido pudo cambiar. */
-    @Override
-    @Transactional
-    public Order replaceItems(Long id, Long version, List<OrderItem> items) {
-        Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(OrderErrorCode.ORDER_NOT_FOUND, id));
-        order.checkVersion(version);
-        order.replaceItems(items);
-        return orderRepository.save(order);
+        Order saved = orderRepository.save(order);
+        eventPublisher.publish(OrderCreatedEvent.of(saved, Instant.now(clock)));
+        return saved;
     }
 }
