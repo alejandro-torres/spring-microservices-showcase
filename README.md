@@ -36,20 +36,47 @@ En Windows (PowerShell o CMD) se usa `mvnw.cmd verify`. El informe de cobertura 
 | `product-service` | Catálogo de productos y categorías, y gestión del stock (puerto 8081) |
 | `customer-service` | Clientes y sus direcciones (puerto 8082) |
 | `order-service` | Pedidos y sus líneas; consulta clientes y productos con Feign y Resilience4j (puerto 8083) |
+| `discovery-service` | Registro de servicios con Eureka (puerto 8761) |
+| `api-gateway` | Punto de entrada único: valida el token, enruta, limita la tasa de peticiones y agrega Swagger (puerto 8080) |
 
-## RabbitMQ en local
+## Arrancar todo con Docker
 
-Los servicios se comunican por RabbitMQ, así que al arrancarlos en local todos se conectan al mismo broker (`localhost:5672`, configurable con `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME` y `RABBITMQ_PASSWORD`). Se levanta una vez con Docker:
+Requisito: Docker con Compose. Las imágenes se compilan dentro de Docker, así que no hace falta ni el JDK.
+
+```bash
+docker compose up -d --build
+```
+
+La primera vez tarda unos minutos (descarga las dependencias y compila los 6 servicios). Las contraseñas salen de un fichero `.env` (copia [.env.example](.env.example)); sin él se usan valores de desarrollo.
+
+| Consola | URL |
+|---|---|
+| API (gateway) | http://localhost:8080 |
+| Swagger UI de todos los servicios | http://localhost:8080/swagger-ui.html |
+| Eureka | http://localhost:8761 |
+| RabbitMQ | http://localhost:15672 (usuario `admin`, contraseña `admin-dev` o la de `.env`) |
+| Zipkin | http://localhost:9411 |
+
+Solo el gateway expone la API; los servicios no publican puertos. Hay una base de datos y un usuario de PostgreSQL por servicio, y un usuario de RabbitMQ por servicio con permisos solo sobre sus exchanges y colas ([docker/rabbitmq/setup-users.sh](docker/rabbitmq/setup-users.sh)). El perfil por defecto es `dev` (datos de ejemplo y el 100 % de las trazas); con `SPRING_PROFILES_ACTIVE=prod`, logs en JSON y el 10 % de las trazas.
+
+Los tokens se piden a través del gateway (`http://localhost:8080/oauth2/token`, login en `http://localhost:8080/login`), que es el emisor (`iss`) de los JWT.
+
+## Arrancar los servicios uno a uno (desarrollo)
+
+Para depurar un servicio desde el IDE, cada uno se arranca con `spring-boot:test-run`: levanta su PostgreSQL (y Redis en auth-service) en Docker con Testcontainers. Lo que comparten se arranca una vez:
 
 ```bash
 docker run -d --name showcase-rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
 ```
+```bash
+./mvnw -pl discovery-service spring-boot:run
+```
 
-La consola de RabbitMQ queda en http://localhost:15672 (usuario y contraseña `guest`). Los tests de integración no lo necesitan: cada uno arranca su propio RabbitMQ con Testcontainers.
+Todos se conectan a ese RabbitMQ (`localhost:5672`, usuario `guest`) y se registran en el Eureka de `localhost:8761`, así que se encuentran entre sí. Las trazas se envían a `localhost:9411` si hay un Zipkin arrancado (`docker run -d -p 9411:9411 openzipkin/zipkin:3`); si no, se descartan. Los tests de integración no necesitan nada de esto: cada uno arranca sus propios contenedores.
 
 ## Arrancar auth-service en local
 
-No hace falta instalar PostgreSQL ni Redis: el servicio se arranca con los dos en Docker (Testcontainers) y el perfil `dev`, que carga datos de ejemplo. Solo necesita el RabbitMQ compartido de la sección anterior.
+No hace falta instalar PostgreSQL ni Redis: el servicio se arranca con los dos en Docker (Testcontainers) y el perfil `dev`, que carga datos de ejemplo. Necesita el RabbitMQ y el Eureka compartidos de la sección anterior.
 
 ```bash
 ./mvnw install -DskipTests
@@ -182,7 +209,7 @@ Con PostgreSQL en Docker y 120 pedidos de ejemplo (de los clientes y productos d
 ./mvnw -pl order-service spring-boot:test-run -Dspring-boot.run.profiles=dev
 ```
 
-Escucha en el puerto 8083. Para crear pedidos consulta customer-service (dirección de envío) y product-service (nombre, precio y stock) con Feign, así que los dos tienen que estar arrancados. Sus URLs se configuran con `CUSTOMER_SERVICE_URL` y `PRODUCT_SERVICE_URL`.
+Escucha en el puerto 8083. Para crear pedidos consulta customer-service (dirección de envío) y product-service (nombre, precio y stock) con Feign, así que los dos tienen que estar arrancados. Feign los busca en Eureka y reparte las llamadas entre sus réplicas; `CUSTOMER_SERVICE_URL` y `PRODUCT_SERVICE_URL` fijan una URL concreta (solo para pruebas).
 
 | Recurso | Endpoints | Permisos |
 |---|---|---|
@@ -257,6 +284,42 @@ En cada servicio que consume eventos (customer, product y order):
 | `GET /api/v1/admin/dead-letters` | Lista las DLQ del servicio con su cola original y cuántos mensajes tienen |
 | `GET /api/v1/admin/dead-letters/{dlq}/messages?limit=10` | Muestra los primeros mensajes (con el motivo del rechazo) sin sacarlos de la DLQ |
 | `POST /api/v1/admin/dead-letters/{dlq}/replay?max=100` | Devuelve los mensajes a su cola original, una vez corregido el problema |
+
+## API Gateway
+
+Toda la API se usa a través de `http://localhost:8080`. El gateway descubre las réplicas de cada servicio en Eureka (`lb://product-service`...) y reparte las peticiones entre ellas.
+
+| Rutas | Servicio |
+|---|---|
+| `/api/v1/auth/**`, `/api/v1/users/**`, `/api/v1/roles/**`, `/api/v1/permissions/**`, `/api/v1/security-audit/**`, `/login`, `/oauth2/**`, `/.well-known/**` | auth-service |
+| `/api/v1/products/**`, `/api/v1/categories/**` | product-service |
+| `/api/v1/customers/**` | customer-service |
+| `/api/v1/orders/**` | order-service |
+| `/api/v1/admin/{servicio}/dead-letters/**` | Las DLQ de ese servicio (el gateway quita el prefijo) |
+
+| Función | Comportamiento |
+|---|---|
+| Autenticación | Valida la firma y la caducidad del JWT con el JWKS de auth-service y rechaza los tokens revocados (logout, cambio de contraseña, usuario desactivado) consultando la misma lista de Redis que auth-service. Públicas: registro, login, endpoints OAuth2, Swagger y health. El token se reenvía al servicio, que aplica sus permisos |
+| Rate limiting | Token bucket en Redis (compartido por todas las réplicas): 20 peticiones por segundo con ráfagas de 40 por usuario (`sub` del JWT) o por IP si no hay token; el login (`POST /login` y `/oauth2/token`), 5 por minuto por IP. Al superarlo, **429** con `Retry-After` y el formato de error común |
+| Circuit breaker | Uno por servicio (Resilience4j): una llamada que tarda más de 5 s cuenta como fallo; con la mitad de las últimas 20 fallidas se abre 10 s y responde **503** al instante |
+| Errores | 401, 403, 404, 429 y 503 del gateway en el mismo `ErrorResponseDTO` y los mismos idiomas que los servicios |
+| Traza | Cabecera `X-Trace-Id` en todas las respuestas: es el `traceId` que se busca en Zipkin |
+| CORS | Centralizado en el gateway (`CORS_ALLOWED_ORIGINS`) |
+
+Los límites se ajustan con variables de entorno (`RATE_LIMIT_REPLENISH_RATE`, `RATE_LIMIT_BURST_CAPACITY`, `LOGIN_RATE_LIMIT_*`, `GATEWAY_TIMEOUT`).
+
+## Trazabilidad con Zipkin
+
+Todos los servicios, incluidos el gateway y auth-service, envían sus trazas a Zipkin (Micrometer Tracing con Brave). Una misma traza sigue la petición por el gateway, las llamadas Feign, cada consulta SQL (sin los valores de los parámetros) y los casos de uso marcados con `@Observed`. También sigue los mensajes de RabbitMQ: el outbox guarda el `traceparent` de la petición y el envío continúa esa traza, así que un pedido se ve de punta a punta: gateway → order-service → RabbitMQ → product-service → RabbitMQ → order-service.
+
+Cada línea de log lleva `[traceId-spanId]`, y el `traceId` es el mismo que devuelven la cabecera `X-Trace-Id` y el campo `traceId` de los errores. Para buscar una petición: http://localhost:9411 → *Search by trace ID*.
+
+## Documentación de la API (Swagger)
+
+- Todos los servicios: http://localhost:8080/swagger-ui.html, con un desplegable por servicio.
+- Cada servicio arrancado en local: `http://localhost:<puerto>/swagger-ui.html`.
+
+Cada operación documenta sus posibles errores (400, 401, 403, 404, 409, 422, 500, 503) con el esquema `ErrorResponseDTO`. Para probar los endpoints protegidos, pulsa *Authorize* y pega un token.
 
 ## Documentación
 
