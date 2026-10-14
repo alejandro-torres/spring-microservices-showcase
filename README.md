@@ -34,6 +34,7 @@ En Windows (PowerShell o CMD) se usa `mvnw.cmd verify`. El informe de cobertura 
 | `auth-service` | Usuarios, roles y permisos, y servidor de autorización OAuth2 que emite los JWT (puerto 9000) |
 | `product-service` | Catálogo de productos y categorías, y gestión del stock (puerto 8081) |
 | `customer-service` | Clientes y sus direcciones (puerto 8082) |
+| `order-service` | Pedidos y sus líneas; consulta clientes y productos con Feign y Resilience4j (puerto 8083) |
 
 ## Arrancar auth-service en local
 
@@ -161,6 +162,40 @@ Reglas: el email (sin distinguir mayúsculas) y el usuario de auth-service son �
 | Recurso | Filtros | Ordenación |
 |---|---|---|
 | Clientes | `firstName`, `lastName`, `email` (eq, like, startsWith), `city` (eq, like; cualquiera de sus direcciones), `userId` (eq), `createdAt` (gte, lte, between) | `id`, `firstName`, `lastName`, `email`, `createdAt` |
+
+## Arrancar order-service en local
+
+Con PostgreSQL en Docker y 120 pedidos de ejemplo (de los clientes y productos de ejemplo de los otros servicios):
+
+```bash
+./mvnw -pl order-service spring-boot:test-run -Dspring-boot.run.profiles=dev
+```
+
+Escucha en el puerto 8083. Para crear o modificar pedidos consulta customer-service (dirección de envío) y product-service (nombre, precio y stock) con Feign, así que los dos tienen que estar arrancados. Sus URLs se configuran con `CUSTOMER_SERVICE_URL` y `PRODUCT_SERVICE_URL`.
+
+| Recurso | Endpoints | Permisos |
+|---|---|---|
+| Pedidos | `POST`, `GET /{id}`, `GET`, `PUT /{id}` (sustituye las líneas de un pedido pendiente) en `/api/v1/orders` | `order:read` / `order:write` |
+| Pedidos de un cliente | `GET /api/v1/orders/by-customer/{customerId}` (paginado, del más reciente al más antiguo) | `order:read` |
+| Cancelar | `PUT /api/v1/orders/{id}/cancel` (pedidos pendientes o confirmados) | `order:write` |
+| Borrar | `DELETE /api/v1/orders/{id}` (borrado lógico de pedidos cancelados o rechazados) | `order:write` y rol ADMIN |
+
+La petición solo lleva productos y cantidades: el nombre y el precio se copian de product-service y la dirección de envío es la principal del cliente, para que el pedido no cambie si después cambia el catálogo.
+
+| Recurso | Filtros | Ordenación |
+|---|---|---|
+| Pedidos | `status` (eq, in), `customerId` (eq), `productId` (eq; pedidos que contienen el producto), `total` (gte, lte, between), `createdAt` (gte, lte, between) | `id`, `total`, `status`, `createdAt` |
+
+### Llamadas a otros servicios
+
+| Situación | Respuesta |
+|---|---|
+| El cliente o un producto no existen | 404 (`CUSTOMER_NOT_FOUND`, `PRODUCT_NOT_FOUND`) |
+| No hay stock suficiente | 422 (`INSUFFICIENT_STOCK`); es una comprobación previa, la reserva real llegará con la saga de RabbitMQ |
+| El otro servicio falla o tarda más de 3 s | 503 (`SERVICE_UNAVAILABLE`) sin detalles del error remoto |
+| Varios fallos seguidos | El circuit breaker (Resilience4j) se abre 10 s y responde 503 al instante, sin esperar al timeout |
+
+El JWT del usuario se reenvía en cada llamada, así que se aplican sus propios permisos en el otro servicio. Las llamadas se hacen antes de abrir la transacción, para no tener una conexión a la base de datos bloqueada mientras se espera la respuesta.
 
 ## Documentación
 
