@@ -21,7 +21,15 @@ public record AuthSecurityProperties(
         @DefaultValue("15m") Duration accessTokenTtl,
         @DefaultValue("8h") Duration refreshTokenTtl,
         Jwt jwt,
-        @DefaultValue List<Client> clients) {
+        @DefaultValue List<Client> clients,
+        @DefaultValue Login login) {
+
+    /**
+     * @param maxFailedAttempts intentos fallidos seguidos que bloquean la cuenta
+     * @param lockDuration      duración del bloqueo
+     */
+    public record Login(@DefaultValue("5") int maxFailedAttempts, @DefaultValue("15m") Duration lockDuration) {
+    }
 
     public record Jwt(String keyId, String privateKey, String publicKey) {
 

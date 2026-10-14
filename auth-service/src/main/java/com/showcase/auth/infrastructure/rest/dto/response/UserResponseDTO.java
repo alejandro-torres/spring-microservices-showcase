@@ -11,6 +11,7 @@ public record UserResponseDTO(
         boolean enabled,
         boolean active,
         Set<String> roles,
+        Instant lockedUntil,
         Long version,
         Instant createdAt,
         Instant updatedAt) {

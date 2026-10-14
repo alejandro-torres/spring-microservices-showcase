@@ -5,6 +5,7 @@ import static com.showcase.auth.infrastructure.rest.filter.AuthQueryFields.USER_
 
 import com.showcase.auth.application.service.UserService;
 import com.showcase.auth.domain.model.User;
+import com.showcase.auth.infrastructure.rest.dto.request.ChangePasswordRequestDTO;
 import com.showcase.auth.infrastructure.rest.dto.request.CreateUserRequestDTO;
 import com.showcase.auth.infrastructure.rest.dto.request.UpdateUserRequestDTO;
 import com.showcase.auth.infrastructure.rest.dto.response.UserResponseDTO;
@@ -63,6 +64,15 @@ public class UserController {
         return mapper.toResponse(userService.findByUsername(jwt.getSubject()));
     }
 
+    /** El usuario autenticado cambia su propia contraseña. */
+    @PreAuthorize("isAuthenticated()")
+    @PutMapping("/me/password")
+    public ResponseEntity<Void> changePassword(@AuthenticationPrincipal Jwt jwt,
+                                               @Valid @RequestBody ChangePasswordRequestDTO request) {
+        userService.changePassword(jwt.getSubject(), request.currentPassword(), request.newPassword());
+        return ResponseEntity.noContent().build();
+    }
+
     @PreAuthorize("hasAuthority('user:read')")
     @GetMapping("/{id}")
     public UserResponseDTO findById(@PathVariable @Positive Long id) {
@@ -101,6 +111,12 @@ public class UserController {
     public ResponseEntity<Void> delete(@PathVariable @Positive Long id) {
         userService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasAuthority('user:write')")
+    @PutMapping("/{id}/unlock")
+    public UserResponseDTO unlock(@PathVariable @Positive Long id) {
+        return mapper.toResponse(userService.unlock(id));
     }
 
     @PreAuthorize("hasAuthority('user:write')")

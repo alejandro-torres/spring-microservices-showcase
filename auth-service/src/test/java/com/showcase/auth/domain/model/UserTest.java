@@ -112,6 +112,55 @@ class UserTest {
     }
 
     @Nested
+    @DisplayName("bloqueo por intentos fallidos")
+    class Lockout {
+
+        private static final java.time.Instant NOW = java.time.Instant.parse("2026-10-14T12:00:00Z");
+        private static final java.time.Duration LOCK = java.time.Duration.ofMinutes(15);
+
+        @Test
+        @DisplayName("cuenta los fallos y bloquea al llegar al máximo, reiniciando el contador")
+        void registerFailedLogin_shouldLockAtMaxAttempts() {
+            var user = user(10L, "ana");
+
+            for (int i = 1; i <= 4; i++) {
+                assertThat(user.registerFailedLogin(5, LOCK, NOW)).isFalse();
+                assertThat(user.getFailedAttempts()).isEqualTo(i);
+            }
+            assertThat(user.registerFailedLogin(5, LOCK, NOW)).isTrue();
+
+            assertThat(user.isLocked(NOW)).isTrue();
+            assertThat(user.getLockedUntil()).isEqualTo(NOW.plus(LOCK));
+            assertThat(user.getFailedAttempts()).isZero();
+        }
+
+        @Test
+        @DisplayName("el bloqueo caduca solo y no se cuentan intentos mientras dura")
+        void lock_shouldExpireAndIgnoreAttemptsWhileLocked() {
+            var user = user(10L, "ana");
+            user.registerFailedLogin(1, LOCK, NOW);
+
+            assertThat(user.registerFailedLogin(1, LOCK, NOW.plusSeconds(60))).isFalse();
+            assertThat(user.getFailedAttempts()).isZero();
+            assertThat(user.isLocked(NOW.plus(LOCK))).isFalse();
+        }
+
+        @Test
+        @DisplayName("un login correcto reinicia el contador y unlock quita el bloqueo")
+        void resetAndUnlock_shouldClearState() {
+            var user = user(10L, "ana");
+            user.registerFailedLogin(5, LOCK, NOW);
+            user.resetFailedLogins();
+            assertThat(user.getFailedAttempts()).isZero();
+
+            user.registerFailedLogin(1, LOCK, NOW);
+            user.unlock();
+            assertThat(user.isLocked(NOW)).isFalse();
+            assertThat(user.getLockedUntil()).isNull();
+        }
+    }
+
+    @Nested
     @DisplayName("update, deactivate y checkVersion")
     class Lifecycle {
 

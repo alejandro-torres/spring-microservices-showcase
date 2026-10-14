@@ -1,5 +1,6 @@
 package com.showcase.auth.infrastructure.rest.dto.request;
 
+import com.showcase.auth.infrastructure.rest.validation.StrongPassword;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -9,7 +10,7 @@ import jakarta.validation.constraints.Size;
 public record RegisterUserRequestDTO(
         @NotBlank @Size(min = 3, max = 30) @Pattern(regexp = "^[A-Za-z0-9._-]+$") String username,
         @NotBlank @Email @Size(max = 255) String email,
-        @NotBlank @Size(min = 8, max = 72) String password) {
+        @NotBlank @StrongPassword String password) {
 
     /** Evita que la contraseña aparezca en los logs si se imprime el DTO. */
     @Override

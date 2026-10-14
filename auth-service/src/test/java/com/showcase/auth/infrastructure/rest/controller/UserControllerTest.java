@@ -118,6 +118,33 @@ class UserControllerTest {
         }
 
         @Test
+        @DisplayName("PUT /me/password cambia la contraseña del usuario del token y devuelve 204")
+        void changePassword_shouldUseTokenSubject() throws Exception {
+            mockMvc.perform(put("/api/v1/users/me/password").with(TestJwt.withPermissions("ana"))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"currentPassword":"Actual-123","newPassword":"Nueva-456!"}
+                                    """))
+                    .andExpect(status().isNoContent());
+            verify(userService).changePassword("ana", "Actual-123", "Nueva-456!");
+        }
+
+        @Test
+        @DisplayName("PUT /me/password rechaza una contraseña débil con el mensaje traducido")
+        void changePassword_weakPassword_shouldReturn400() throws Exception {
+            mockMvc.perform(put("/api/v1/users/me/password").with(TestJwt.withPermissions("ana"))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"currentPassword":"Actual-123","newPassword":"debil"}
+                                    """))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errors[0].field").value("newPassword"))
+                    .andExpect(jsonPath("$.errors[0].message").value(
+                            "debe tener entre 8 y 72 caracteres, sin espacios, e incluir mayúsculas, minúsculas, números y símbolos"));
+            verify(userService, never()).changePassword(any(), any(), any());
+        }
+
+        @Test
         @DisplayName("sin user:read no puede consultar usuarios")
         void withoutPermission_shouldReturn403() throws Exception {
             mockMvc.perform(get("/api/v1/users/10").with(TestJwt.withPermissions("cliente", "order:read")))

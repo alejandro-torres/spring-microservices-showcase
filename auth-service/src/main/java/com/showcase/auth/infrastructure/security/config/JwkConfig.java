@@ -1,6 +1,7 @@
 package com.showcase.auth.infrastructure.security.config;
 
 import com.nimbusds.jose.jwk.JWKSet;
+import com.showcase.auth.infrastructure.security.RevokedTokenValidator;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
@@ -19,8 +20,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 
 /**
  * Claves RSA con las que se firman los JWT. Se publican en {@code /oauth2/jwks} para que el resto de
@@ -39,10 +43,18 @@ public class JwkConfig {
         return new ImmutableJWKSet<>(new JWKSet(rsaKey));
     }
 
-    /** auth-service también valida los tokens de su propia API con la misma clave. */
+    /**
+     * auth-service también valida los tokens de su propia API con la misma clave. A las comprobaciones por
+     * defecto (firma, fechas) se añade la de tokens revocados.
+     */
     @Bean
-    public JwtDecoder jwtDecoder(JWKSource<SecurityContext> jwkSource) {
-        return OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource);
+    public JwtDecoder jwtDecoder(JWKSource<SecurityContext> jwkSource, RevokedTokenValidator revokedTokenValidator) {
+        JwtDecoder decoder = OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource);
+        if (decoder instanceof NimbusJwtDecoder nimbusDecoder) {
+            nimbusDecoder.setJwtValidator(
+                    new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefault(), revokedTokenValidator));
+        }
+        return decoder;
     }
 
     private static RSAKey loadKey(AuthSecurityProperties.Jwt jwt) {

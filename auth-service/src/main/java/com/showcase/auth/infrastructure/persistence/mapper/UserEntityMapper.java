@@ -15,10 +15,9 @@ public interface UserEntityMapper {
     @Mapping(target = "roles", ignore = true)
     UserEntity toEntity(User user);
 
-    /** El username y la contraseña no se modifican desde aquí. */
+    /** El username no cambia nunca; la contraseña llega ya cifrada desde el dominio. */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "username", ignore = true)
-    @Mapping(target = "passwordHash", ignore = true)
     @Mapping(target = "roles", ignore = true)
     void updateEntity(User user, @MappingTarget UserEntity entity);
 }

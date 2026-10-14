@@ -34,7 +34,7 @@ class RegisteredClientsInitializerTest {
 
     private RegisteredClientsInitializer initializer(AuthSecurityProperties.Client... clients) {
         var properties = new AuthSecurityProperties("http://localhost:9000", Duration.ofMinutes(15),
-                Duration.ofHours(8), null, List.of(clients));
+                Duration.ofHours(8), null, List.of(clients), new AuthSecurityProperties.Login(5, Duration.ofMinutes(15)));
         return new RegisteredClientsInitializer(repository, properties, passwordEncoder);
     }
 
