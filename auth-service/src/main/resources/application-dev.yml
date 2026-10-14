@@ -1,0 +1,10 @@
+# Perfil de desarrollo: añade datos de ejemplo (usuarios, roles y permisos) para probar la paginación y los filtros.
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/dev-data
+  jpa:
+    show-sql: false
+
+logging:
+  level:
+    com.showcase: DEBUG
