@@ -3,7 +3,7 @@
 Guía para trabajar en este repositorio. La especificación completa está en [docs/prompt-microservicios.md](docs/prompt-microservicios.md) y los diagramas en [docs/diagramas-uml.html](docs/diagramas-uml.html); este fichero resume las reglas que se aplican siempre.
 
 ## Proyecto
-- Java 21, Spring Boot 3, Maven multimódulo con un POM padre.
+- Java 21, Spring Boot 4.1 (Spring Framework 7, Jackson 3), Spring Cloud 2025.1, Maven multimódulo con un POM padre y Maven Wrapper (`./mvnw`).
 - Servicios: `auth-service`, `product-service`, `customer-service`, `order-service`, `api-gateway`, `discovery-service`.
 - Módulos compartidos: `common-lib` (excepciones, paginación, filtros, manejo de errores) y `events-contract` (mensajes de RabbitMQ).
 - Base de paquetes: `com.showcase.<servicio>`.

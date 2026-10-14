@@ -1,6 +1,6 @@
 # Spring Microservices Showcase
 
-Sistema de microservicios en Java 21 y Spring Boot 3 con **arquitectura hexagonal**, pensado como demostración de lo que se puede construir en sistemas distribuidos con Java.
+Sistema de microservicios en Java 21 y Spring Boot 4 con **arquitectura hexagonal**, pensado como demostración de lo que se puede construir en sistemas distribuidos con Java.
 
 > 🚧 Proyecto en construcción. El desarrollo avanza por fases, cada una en su propio pull request.
 
