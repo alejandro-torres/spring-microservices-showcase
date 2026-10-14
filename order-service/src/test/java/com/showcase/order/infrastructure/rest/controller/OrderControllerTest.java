@@ -19,6 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.showcase.common.domain.exception.BusinessRuleException;
 import com.showcase.common.domain.exception.CommonErrorCode;
 import com.showcase.common.domain.exception.ExternalServiceException;
 import com.showcase.common.domain.filter.FilterOperator;
@@ -27,7 +28,9 @@ import com.showcase.common.domain.page.SortDirection;
 import com.showcase.common.infrastructure.config.CommonWebAutoConfiguration;
 import com.showcase.order.application.service.OrderLine;
 import com.showcase.order.application.service.OrderService;
+import com.showcase.order.domain.exception.OrderErrorCode;
 import com.showcase.order.domain.model.OrderStatus;
+import com.showcase.order.domain.model.ShippingAddress;
 import com.showcase.order.infrastructure.rest.mapper.OrderRestMapperImpl;
 import com.showcase.order.infrastructure.security.SecurityConfig;
 import com.showcase.order.testdata.TestJwt;
@@ -156,13 +159,27 @@ class OrderControllerTest {
     class Write {
 
         @Test
-        @DisplayName("PUT sustituye las líneas con la versión enviada")
+        @DisplayName("PUT cambia la dirección de envío con la versión enviada")
         void update_shouldReturn200() throws Exception {
-            given(orderService.update(1L, List.of(new OrderLine(12L, 1)), 0L)).willReturn(pending());
+            var address = new ShippingAddress("Calle Mayor 5", "Sevilla", "41001", "ES");
+            given(orderService.update(1L, address, 0L)).willReturn(pending());
 
             mockMvc.perform(put("/api/v1/orders/1").with(TestJwt.manager()).contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"items\":[{\"productId\":12,\"quantity\":1}],\"version\":0}"))
+                            .content("""
+                                    {"street":"Calle Mayor 5","city":"Sevilla","postalCode":"41001",
+                                     "country":"ES","version":0}"""))
                     .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("PUT devuelve 400 con un país que no son 2 letras en mayúsculas o sin versión")
+        void update_withInvalidBody_shouldReturn400() throws Exception {
+            mockMvc.perform(put("/api/v1/orders/1").with(TestJwt.manager()).contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"street":"Calle Mayor 5","city":"Sevilla","postalCode":"41001",
+                                     "country":"spain"}"""))
+                    .andExpect(status().isBadRequest());
+            verify(orderService, never()).update(any(), any(), any());
         }
 
         @Test
@@ -173,6 +190,17 @@ class OrderControllerTest {
             mockMvc.perform(put("/api/v1/orders/1/cancel").with(TestJwt.manager()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.status").value("CANCELLED"));
+        }
+
+        @Test
+        @DisplayName("PUT /cancel de un pedido pendiente devuelve 422 ORDER_NOT_CANCELLABLE")
+        void cancel_pending_shouldReturn422() throws Exception {
+            given(orderService.cancel(1L)).willThrow(
+                    new BusinessRuleException(OrderErrorCode.ORDER_NOT_CANCELLABLE, 1L, OrderStatus.PENDING));
+
+            mockMvc.perform(put("/api/v1/orders/1/cancel").with(TestJwt.manager()))
+                    .andExpect(status().isUnprocessableContent())
+                    .andExpect(jsonPath("$.code").value("ORDER_NOT_CANCELLABLE"));
         }
 
         @Test

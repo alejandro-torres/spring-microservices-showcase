@@ -80,28 +80,44 @@ class OrderTest {
     }
 
     @Nested
-    @DisplayName("replaceItems")
-    class ReplaceItems {
+    @DisplayName("changeShippingAddress")
+    class ChangeShippingAddress {
 
-        @Test
-        @DisplayName("sustituye las líneas de un pedido pendiente y recalcula el total")
-        void replaceItems_pending_shouldRecalculate() {
-            var order = pending();
+        private final ShippingAddress newAddress = new ShippingAddress("Calle Mayor 5", "Sevilla", "41001", "ES");
 
-            order.replaceItems(List.of(item(12, "7.25", 4)));
+        @ParameterizedTest(name = "{0}")
+        @CsvSource({"PENDING", "CONFIRMED"})
+        @DisplayName("cambia la dirección de un pedido abierto sin tocar sus líneas")
+        void changeShippingAddress_openOrder_shouldChangeAddress(OrderStatus status) {
+            var order = order(status);
 
-            assertThat(order.getTotal()).isEqualByComparingTo("29.00");
-            assertThat(order.getItems()).extracting(OrderItem::productId).containsExactly(12L);
+            order.changeShippingAddress(newAddress);
+
+            assertThat(order.getShippingAddress()).isEqualTo(newAddress);
+            assertThat(order.getTotal()).isEqualByComparingTo("30.00");
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @CsvSource({"REJECTED", "CANCELLED"})
+        @DisplayName("no permite cambiar un pedido cerrado")
+        void changeShippingAddress_closedOrder_shouldThrow(OrderStatus status) {
+            var order = order(status);
+
+            assertThatThrownBy(() -> order.changeShippingAddress(newAddress))
+                    .isInstanceOf(BusinessRuleException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", OrderErrorCode.ORDER_NOT_MODIFIABLE);
         }
 
         @Test
-        @DisplayName("no permite cambiar un pedido que ya no está pendiente")
-        void replaceItems_confirmed_shouldThrow() {
-            var order = order(OrderStatus.CONFIRMED);
-
-            assertThatThrownBy(() -> order.replaceItems(List.of(item(12, "1", 1))))
-                    .isInstanceOf(BusinessRuleException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", OrderErrorCode.ORDER_NOT_MODIFIABLE);
+        @DisplayName("una dirección necesita calle, ciudad, código postal y país de 2 letras en mayúsculas")
+        void shippingAddress_withInvalidData_shouldThrow() {
+            assertThatThrownBy(() -> new ShippingAddress(" ", "Madrid", "28013", "ES"))
+                    .isInstanceOf(InvalidRequestException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", OrderErrorCode.INVALID_ORDER_DATA);
+            assertThatThrownBy(() -> new ShippingAddress("Gran Vía 1", "Madrid", "28013", "es"))
+                    .isInstanceOf(InvalidRequestException.class);
+            assertThatThrownBy(() -> new ShippingAddress("Gran Vía 1", null, "28013", "ES"))
+                    .isInstanceOf(InvalidRequestException.class);
         }
     }
 
@@ -111,7 +127,7 @@ class OrderTest {
 
         @ParameterizedTest(name = "{0} -> {1}: {2}")
         @CsvSource({
-                "PENDING, CONFIRMED, true", "PENDING, REJECTED, true", "PENDING, CANCELLED, true",
+                "PENDING, CONFIRMED, true", "PENDING, REJECTED, true", "PENDING, CANCELLED, false",
                 "CONFIRMED, CANCELLED, true", "CONFIRMED, REJECTED, false", "CONFIRMED, PENDING, false",
                 "REJECTED, CANCELLED, false", "CANCELLED, CONFIRMED, false"})
         @DisplayName("solo se permiten las transiciones del ciclo de vida")
@@ -120,24 +136,43 @@ class OrderTest {
         }
 
         @Test
-        @DisplayName("confirm, reject y cancel cambian el estado")
+        @DisplayName("confirm y cancel cambian el estado; reject guarda además el motivo")
         void transitions_shouldChangeStatus() {
             var confirmed = pending();
             var rejected = pending();
             confirmed.confirm();
-            rejected.reject();
+            rejected.reject("INSUFFICIENT_STOCK");
             confirmed.cancel();
 
             assertThat(confirmed.getStatus()).isEqualTo(OrderStatus.CANCELLED);
             assertThat(rejected.getStatus()).isEqualTo(OrderStatus.REJECTED);
+            assertThat(rejected.getRejectionReason()).isEqualTo("INSUFFICIENT_STOCK");
         }
 
         @Test
-        @DisplayName("un pedido cancelado no se puede volver a cancelar")
-        void cancel_cancelled_shouldThrow() {
-            assertThatThrownBy(() -> order(OrderStatus.CANCELLED).cancel())
-                    .isInstanceOf(BusinessRuleException.class)
+        @DisplayName("un motivo de rechazo demasiado largo se recorta a 100 caracteres")
+        void reject_withLongReason_shouldTruncate() {
+            var order = pending();
+
+            order.reject("X".repeat(150));
+
+            assertThat(order.getRejectionReason()).hasSize(Order.MAX_REASON);
+        }
+
+        @Test
+        @DisplayName("un pedido ya confirmado no se puede rechazar")
+        void reject_confirmed_shouldThrow() {
+            assertThatThrownBy(() -> order(OrderStatus.CONFIRMED).reject("INSUFFICIENT_STOCK"))
                     .hasFieldOrPropertyWithValue("errorCode", OrderErrorCode.INVALID_STATUS_TRANSITION);
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @CsvSource({"PENDING", "REJECTED", "CANCELLED"})
+        @DisplayName("solo se cancela un pedido confirmado: uno pendiente aún está en la saga")
+        void cancel_notConfirmed_shouldThrowNotCancellable(OrderStatus status) {
+            assertThatThrownBy(() -> order(status).cancel())
+                    .isInstanceOf(BusinessRuleException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", OrderErrorCode.ORDER_NOT_CANCELLABLE);
         }
 
         @Test

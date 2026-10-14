@@ -1,81 +1,87 @@
 package com.showcase.order.application.service.impl;
 
-import static com.showcase.order.testdata.OrderMother.item;
 import static com.showcase.order.testdata.OrderMother.pending;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 
-import com.showcase.common.domain.exception.CommonErrorCode;
-import com.showcase.order.domain.exception.OrderErrorCode;
+import com.showcase.order.domain.event.OrderCreatedEvent;
+import com.showcase.order.domain.event.OrderEventLine;
+import com.showcase.order.domain.messaging.OrderEventPublisher;
 import com.showcase.order.domain.model.Order;
 import com.showcase.order.domain.repository.OrderRepository;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class OrderWriterImplTest {
 
+    private static final Instant NOW = Instant.parse("2026-10-14T10:00:00Z");
+
     @Mock
     private OrderRepository orderRepository;
 
-    @InjectMocks
+    @Mock
+    private OrderEventPublisher eventPublisher;
+
     private OrderWriterImpl orderWriter;
+
+    @BeforeEach
+    void setUp() {
+        orderWriter = new OrderWriterImpl(orderRepository, eventPublisher, Clock.fixed(NOW, ZoneOffset.UTC));
+    }
 
     @Nested
     @DisplayName("create")
     class Create {
 
         @Test
-        @DisplayName("guarda el pedido")
-        void create_shouldSave() {
+        @DisplayName("guarda el pedido y después publica OrderCreatedEvent con sus líneas")
+        void create_shouldSaveAndPublishEvent() {
+            // given
             var order = pending();
             given(orderRepository.save(order)).willReturn(order);
 
-            assertThat(orderWriter.create(order)).isSameAs(order);
-        }
-    }
+            // when
+            var saved = orderWriter.create(order);
 
-    @Nested
-    @DisplayName("replaceItems")
-    class ReplaceItems {
-
-        @Test
-        @DisplayName("vuelve a leer el pedido, comprueba la versión y guarda las líneas nuevas")
-        void replaceItems_shouldSave() {
-            given(orderRepository.findById(1L)).willReturn(Optional.of(pending()));
-            given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
-
-            var order = orderWriter.replaceItems(1L, 0L, List.of(item(12, "3", 1)));
-
-            assertThat(order.getTotal()).isEqualByComparingTo("3.00");
+            // then
+            assertThat(saved).isSameAs(order);
+            var captor = ArgumentCaptor.forClass(OrderCreatedEvent.class);
+            var ordered = inOrder(orderRepository, eventPublisher);
+            ordered.verify(orderRepository).save(order);
+            ordered.verify(eventPublisher).publish(captor.capture());
+            assertThat(captor.getValue()).isEqualTo(new OrderCreatedEvent(1L, 3L,
+                    List.of(new OrderEventLine(10L, 2), new OrderEventLine(11L, 1)), NOW));
         }
 
         @Test
-        @DisplayName("lanza CONCURRENT_MODIFICATION si el pedido cambió desde que se leyó")
-        void replaceItems_withStaleVersion_shouldThrow() {
-            given(orderRepository.findById(1L)).willReturn(Optional.of(pending()));
+        @DisplayName("el evento lleva el id que asigna la base de datos, no el del pedido sin guardar")
+        void create_shouldPublishSavedId() {
+            // given
+            var unsaved = Order.create(3L, pending().getShippingAddress(),
+                    pending().getItems());
+            given(orderRepository.save(any())).willReturn(pending());
 
-            assertThatThrownBy(() -> orderWriter.replaceItems(1L, 5L, List.of(item(12, "3", 1))))
-                    .hasFieldOrPropertyWithValue("errorCode", CommonErrorCode.CONCURRENT_MODIFICATION);
-            verify(orderRepository, never()).save(any());
-        }
+            // when
+            orderWriter.create(unsaved);
 
-        @Test
-        @DisplayName("lanza ORDER_NOT_FOUND si el pedido se borró entretanto")
-        void replaceItems_missing_shouldThrow() {
-            assertThatThrownBy(() -> orderWriter.replaceItems(1L, 0L, List.of(item(12, "3", 1))))
-                    .hasFieldOrPropertyWithValue("errorCode", OrderErrorCode.ORDER_NOT_FOUND);
+            // then
+            var captor = ArgumentCaptor.forClass(OrderCreatedEvent.class);
+            verify(eventPublisher).publish(captor.capture());
+            assertThat(captor.getValue().orderId()).isEqualTo(1L);
         }
     }
 }

@@ -21,7 +21,7 @@ public final class OrderMother {
 
     /** Pedido 1 del cliente 3: 2 x producto 10 (5,00) + 1 x producto 11 (20,00) = 30,00. */
     public static Order order(OrderStatus status) {
-        return new Order(1L, 3L, ADDRESS, status,
+        return new Order(1L, 3L, ADDRESS, status, null,
                 List.of(new OrderItem(100L, 10L, "Ratón", new BigDecimal("5.00"), 2),
                         new OrderItem(101L, 11L, "Teclado", new BigDecimal("20.00"), 1)),
                 true, 0L, CREATED_AT, CREATED_AT);
