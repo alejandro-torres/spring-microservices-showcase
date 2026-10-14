@@ -3,7 +3,9 @@ package com.showcase.auth.application.service.impl;
 import com.showcase.auth.application.security.LoginPolicy;
 import com.showcase.auth.application.service.LoginAttemptService;
 import com.showcase.auth.application.service.SecurityAuditService;
+import com.showcase.auth.domain.event.AccountLockedEvent;
 import com.showcase.auth.domain.exception.AccountLockedException;
+import com.showcase.auth.domain.messaging.UserEventPublisher;
 import com.showcase.auth.domain.model.SecurityEventType;
 import com.showcase.auth.domain.model.User;
 import com.showcase.auth.domain.repository.UserRepository;
@@ -20,13 +22,15 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
     private final UserRepository userRepository;
     private final SecurityAuditService auditService;
     private final LoginPolicy policy;
+    private final UserEventPublisher eventPublisher;
     private final Clock clock;
 
     public LoginAttemptServiceImpl(UserRepository userRepository, SecurityAuditService auditService,
-                                   LoginPolicy policy, Clock clock) {
+                                   LoginPolicy policy, UserEventPublisher eventPublisher, Clock clock) {
         this.userRepository = userRepository;
         this.auditService = auditService;
         this.policy = policy;
+        this.eventPublisher = eventPublisher;
         this.clock = clock;
     }
 
@@ -64,6 +68,9 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
                 lockedNow ? "attempts=" + policy.maxFailedAttempts() : "attempts=" + user.getFailedAttempts());
         if (lockedNow) {
             auditService.record(SecurityEventType.ACCOUNT_LOCKED, user.getUsername(), "until=" + user.getLockedUntil());
+            // Gracias a noRollbackFor, el evento del outbox también se confirma aunque se lance la excepción.
+            eventPublisher.publish(new AccountLockedEvent(user.getId(), user.getUsername(), user.getLockedUntil(),
+                    now));
             throw new AccountLockedException(user.getUsername(), user.getLockedUntil());
         }
     }

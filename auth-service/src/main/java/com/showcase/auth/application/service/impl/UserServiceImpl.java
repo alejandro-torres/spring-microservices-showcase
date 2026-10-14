@@ -4,11 +4,14 @@ import com.showcase.auth.application.security.PasswordHasher;
 import com.showcase.auth.application.service.SecurityAuditService;
 import com.showcase.auth.application.service.TokenRevocationService;
 import com.showcase.auth.application.service.UserService;
+import com.showcase.auth.domain.event.UserDisabledEvent;
+import com.showcase.auth.domain.event.UserRegisteredEvent;
 import com.showcase.auth.domain.exception.AuthErrorCode;
 import com.showcase.auth.domain.exception.EmailAlreadyExistsException;
 import com.showcase.auth.domain.exception.RoleNotFoundException;
 import com.showcase.auth.domain.exception.UserNotFoundException;
 import com.showcase.auth.domain.exception.UsernameAlreadyExistsException;
+import com.showcase.auth.domain.messaging.UserEventPublisher;
 import com.showcase.auth.domain.model.Role;
 import com.showcase.auth.domain.model.SecurityEventType;
 import com.showcase.auth.domain.model.User;
@@ -48,18 +51,20 @@ public class UserServiceImpl implements UserService {
     private final PasswordHasher passwordHasher;
     private final SecurityAuditService auditService;
     private final TokenRevocationService tokenRevocationService;
+    private final UserEventPublisher eventPublisher;
     private final Clock clock;
 
     public UserServiceImpl(UserRepository userRepository, RoleRepository roleRepository,
                            PasswordHistoryRepository passwordHistoryRepository, PasswordHasher passwordHasher,
                            SecurityAuditService auditService, TokenRevocationService tokenRevocationService,
-                           Clock clock) {
+                           UserEventPublisher eventPublisher, Clock clock) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordHistoryRepository = passwordHistoryRepository;
         this.passwordHasher = passwordHasher;
         this.auditService = auditService;
         this.tokenRevocationService = tokenRevocationService;
+        this.eventPublisher = eventPublisher;
         this.clock = clock;
     }
 
@@ -69,11 +74,15 @@ public class UserServiceImpl implements UserService {
         return createUser(username, email, rawPassword, () -> findRoles(roleIds));
     }
 
+    /** El usuario, sus roles, su historial de contraseñas y el evento del outbox se guardan juntos. */
     @Override
     @Transactional
-    public User register(String username, String email, String rawPassword) {
-        return createUser(username, email, rawPassword, () -> Set.of(roleRepository.findByName(DEFAULT_ROLE)
+    public User register(String username, String email, String rawPassword, String firstName, String lastName) {
+        User user = createUser(username, email, rawPassword, () -> Set.of(roleRepository.findByName(DEFAULT_ROLE)
                 .orElseThrow(() -> new RoleNotFoundException(DEFAULT_ROLE))));
+        eventPublisher.publish(new UserRegisteredEvent(user.getId(), user.getUsername(), user.getEmail(),
+                firstName, lastName, Instant.now(clock)));
+        return user;
     }
 
     @Override
@@ -150,6 +159,7 @@ public class UserServiceImpl implements UserService {
         if (wasEnabled && !enabled) {
             auditService.record(SecurityEventType.USER_DISABLED, saved.getUsername(), "enabled=false");
             tokenRevocationService.revokeAllForUser(saved.getUsername(), "user disabled");
+            eventPublisher.publish(new UserDisabledEvent(saved.getId(), saved.getUsername(), Instant.now(clock)));
         }
         return saved;
     }
@@ -162,6 +172,7 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
         auditService.record(SecurityEventType.USER_DISABLED, user.getUsername(), "deleted");
         tokenRevocationService.revokeAllForUser(user.getUsername(), "user deleted");
+        eventPublisher.publish(new UserDisabledEvent(user.getId(), user.getUsername(), Instant.now(clock)));
     }
 
     @Override
