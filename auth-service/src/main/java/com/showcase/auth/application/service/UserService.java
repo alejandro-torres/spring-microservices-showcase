@@ -14,7 +14,12 @@ public interface UserService {
 
     User create(String username, String email, String rawPassword, Set<Long> roleIds);
 
+    /** Alta pública: el usuario recibe siempre el rol USER. */
+    User register(String username, String email, String rawPassword);
+
     User findById(Long id);
+
+    User findByUsername(String username);
 
     PageResult<User> findAll(List<FilterCriterion> filters, PageQuery pageQuery, boolean includeInactive);
 

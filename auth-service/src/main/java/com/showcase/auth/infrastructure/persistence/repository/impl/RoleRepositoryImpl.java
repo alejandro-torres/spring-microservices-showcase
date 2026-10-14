@@ -60,6 +60,11 @@ public class RoleRepositoryImpl implements RoleRepository {
     }
 
     @Override
+    public Optional<Role> findByName(String name) {
+        return roleJpaRepository.findByNameAndActiveTrue(name).map(mapper::toDomain);
+    }
+
+    @Override
     public List<Role> findAllById(Collection<Long> ids) {
         if (ids.isEmpty()) {
             return List.of();

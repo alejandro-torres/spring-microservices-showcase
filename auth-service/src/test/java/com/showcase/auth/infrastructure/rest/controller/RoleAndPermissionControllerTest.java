@@ -21,6 +21,8 @@ import com.showcase.auth.application.service.RoleService;
 import com.showcase.auth.domain.exception.PermissionInUseException;
 import com.showcase.auth.domain.exception.RoleInUseException;
 import com.showcase.auth.infrastructure.rest.mapper.AuthRestMapperImpl;
+import com.showcase.auth.infrastructure.security.config.ApiSecurityConfig;
+import com.showcase.auth.testdata.TestJwt;
 import com.showcase.common.domain.page.PageQuery;
 import com.showcase.common.domain.page.PageResult;
 import com.showcase.common.infrastructure.config.CommonWebAutoConfiguration;
@@ -35,10 +37,13 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 @WebMvcTest({RoleController.class, PermissionController.class})
-@Import({CommonWebAutoConfiguration.class, AuthRestMapperImpl.class})
+@Import({CommonWebAutoConfiguration.class, ApiSecurityConfig.class, AuthRestMapperImpl.class})
 class RoleAndPermissionControllerTest {
 
     @Autowired
@@ -50,6 +55,13 @@ class RoleAndPermissionControllerTest {
     @MockitoBean
     private PermissionService permissionService;
 
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
+
+    private ResultActions perform(MockHttpServletRequestBuilder request) throws Exception {
+        return mockMvc.perform(request.with(TestJwt.admin()));
+    }
+
     @Nested
     @DisplayName("/api/v1/roles")
     class Roles {
@@ -59,7 +71,7 @@ class RoleAndPermissionControllerTest {
         void create_shouldReturn201() throws Exception {
             given(roleService.create("ADMIN", "Administración", Set.of(1L, 2L))).willReturn(adminRole());
 
-            mockMvc.perform(post("/api/v1/roles")
+            perform(post("/api/v1/roles")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"name":"ADMIN","description":"Administración","permissionIds":[1,2]}
@@ -77,10 +89,10 @@ class RoleAndPermissionControllerTest {
                     .willReturn(PageResult.of(List.of(adminRole()), 0, 10, 1));
             given(roleService.update(1L, "Admin", Set.of(1L), 0L)).willReturn(adminRole());
 
-            mockMvc.perform(get("/api/v1/roles").param("filter", "permission:eq:user:write"))
+            perform(get("/api/v1/roles").param("filter", "permission:eq:user:write"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content[0].name").value("ADMIN"));
-            mockMvc.perform(put("/api/v1/roles/1")
+            perform(put("/api/v1/roles/1")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"description":"Admin","permissionIds":[1],"version":0}
@@ -93,7 +105,7 @@ class RoleAndPermissionControllerTest {
         void delete_roleInUse_shouldReturn409() throws Exception {
             willThrow(new RoleInUseException("ADMIN", 3L)).given(roleService).delete(1L);
 
-            mockMvc.perform(delete("/api/v1/roles/1"))
+            perform(delete("/api/v1/roles/1"))
                     .andExpect(status().isConflict())
                     .andExpect(jsonPath("$.code").value("ROLE_IN_USE"))
                     .andExpect(jsonPath("$.message")
@@ -111,14 +123,14 @@ class RoleAndPermissionControllerTest {
             given(permissionService.create("report:read", "Ver informes")).willReturn(permission(20L, "report:read"));
             given(permissionService.findById(20L)).willReturn(permission(20L, "report:read"));
 
-            mockMvc.perform(post("/api/v1/permissions")
+            perform(post("/api/v1/permissions")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"name":"report:read","description":"Ver informes"}
                                     """))
                     .andExpect(status().isCreated())
                     .andExpect(header().string(HttpHeaders.LOCATION, endsWith("/api/v1/permissions/20")));
-            mockMvc.perform(get("/api/v1/permissions/20"))
+            perform(get("/api/v1/permissions/20"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.name").value("report:read"));
         }
@@ -126,7 +138,7 @@ class RoleAndPermissionControllerTest {
         @Test
         @DisplayName("rechaza un operador no permitido para el campo")
         void findAll_withOperatorNotAllowed_shouldReturn400() throws Exception {
-            mockMvc.perform(get("/api/v1/permissions").param("filter", "name:gte:a"))
+            perform(get("/api/v1/permissions").param("filter", "name:gte:a"))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("FILTER_OPERATOR_NOT_ALLOWED"));
         }
@@ -137,13 +149,13 @@ class RoleAndPermissionControllerTest {
             given(permissionService.update(20L, "Consultar", 0L)).willReturn(permission(20L, "report:read"));
             willThrow(new PermissionInUseException("report:read", 1L)).given(permissionService).delete(20L);
 
-            mockMvc.perform(put("/api/v1/permissions/20")
+            perform(put("/api/v1/permissions/20")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"description":"Consultar","version":0}
                                     """))
                     .andExpect(status().isOk());
-            mockMvc.perform(delete("/api/v1/permissions/20"))
+            perform(delete("/api/v1/permissions/20"))
                     .andExpect(status().isConflict())
                     .andExpect(jsonPath("$.code").value("PERMISSION_IN_USE"));
         }

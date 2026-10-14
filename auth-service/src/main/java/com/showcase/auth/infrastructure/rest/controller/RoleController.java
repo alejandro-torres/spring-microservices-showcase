@@ -17,6 +17,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import java.net.URI;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,6 +43,7 @@ public class RoleController {
         this.filterParser = filterParser;
     }
 
+    @PreAuthorize("hasAuthority('role:write')")
     @PostMapping
     public ResponseEntity<RoleResponseDTO> create(@Valid @RequestBody CreateRoleRequestDTO request) {
         Role role = roleService.create(request.name(), request.description(), request.permissionIds());
@@ -49,11 +51,14 @@ public class RoleController {
         return ResponseEntity.created(location).body(mapper.toResponse(role));
     }
 
+    @PreAuthorize("hasAuthority('role:read')")
     @GetMapping("/{id}")
     public RoleResponseDTO findById(@PathVariable @Positive Long id) {
         return mapper.toResponse(roleService.findById(id));
     }
 
+    // Los registros borrados (includeInactive) solo los ve un ADMIN.
+    @PreAuthorize("hasAuthority('role:read') and (!#includeInactive or hasRole('ADMIN'))")
     @GetMapping
     public PageResponseDTO<RoleResponseDTO> findAll(
             FilterParameters filter,
@@ -69,12 +74,14 @@ public class RoleController {
         return PageResponseDTO.from(result, mapper::toResponse);
     }
 
+    @PreAuthorize("hasAuthority('role:write')")
     @PutMapping("/{id}")
     public RoleResponseDTO update(@PathVariable @Positive Long id, @Valid @RequestBody UpdateRoleRequestDTO request) {
         return mapper.toResponse(
                 roleService.update(id, request.description(), request.permissionIds(), request.version()));
     }
 
+    @PreAuthorize("hasAuthority('role:write')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable @Positive Long id) {
         roleService.delete(id);

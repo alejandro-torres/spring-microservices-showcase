@@ -9,10 +9,16 @@ import com.showcase.common.infrastructure.i18n.ErrorMessageResolver;
 import com.showcase.common.infrastructure.persistence.specification.GenericSpecificationBuilder;
 import com.showcase.common.infrastructure.rest.filter.FilterCriteriaParser;
 import com.showcase.common.infrastructure.rest.filter.FilterParametersArgumentResolver;
+import com.showcase.common.infrastructure.security.JwtAuthoritiesConverter;
+import com.showcase.common.infrastructure.security.RestAccessDeniedHandler;
+import com.showcase.common.infrastructure.security.RestAuthenticationEntryPoint;
+import com.showcase.common.infrastructure.security.SecurityErrorResponseWriter;
+import com.showcase.common.infrastructure.security.SecurityExceptionHandler;
 import jakarta.validation.ConstraintViolationException;
 import java.time.Clock;
 import java.util.List;
 import java.util.Locale;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -28,6 +34,7 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Registra automáticamente la gestión de errores, la traducción de mensajes y el parser de filtros
@@ -98,6 +105,51 @@ public class CommonWebAutoConfiguration {
         @Override
         public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
             resolvers.add(new FilterParametersArgumentResolver());
+        }
+    }
+
+    /** Errores 401/403 en el formato común para los servicios con Spring Security. */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(name = "org.springframework.security.web.AuthenticationEntryPoint")
+    static class SecurityErrorsConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean
+        SecurityErrorResponseWriter securityErrorResponseWriter(ErrorResponseFactory errorResponseFactory,
+                                                                ObjectProvider<JsonMapper> jsonMapper,
+                                                                LocaleResolver localeResolver) {
+            return new SecurityErrorResponseWriter(errorResponseFactory,
+                    jsonMapper.getIfAvailable(() -> JsonMapper.builder().build()), localeResolver);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        RestAuthenticationEntryPoint restAuthenticationEntryPoint(SecurityErrorResponseWriter writer) {
+            return new RestAuthenticationEntryPoint(writer);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        RestAccessDeniedHandler restAccessDeniedHandler(SecurityErrorResponseWriter writer) {
+            return new RestAccessDeniedHandler(writer);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        SecurityExceptionHandler securityExceptionHandler(ErrorResponseFactory errorResponseFactory) {
+            return new SecurityExceptionHandler(errorResponseFactory);
+        }
+    }
+
+    /** Conversión de roles y permisos del JWT para los servicios que validan tokens. */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(name = "org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken")
+    static class JwtAuthoritiesConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean
+        JwtAuthoritiesConverter jwtAuthoritiesConverter() {
+            return new JwtAuthoritiesConverter();
         }
     }
 

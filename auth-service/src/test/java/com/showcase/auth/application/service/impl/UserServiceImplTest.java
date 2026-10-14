@@ -135,8 +135,55 @@ class UserServiceImplTest {
     }
 
     @Nested
+    @DisplayName("register")
+    class Register {
+
+        @Test
+        @DisplayName("da de alta al usuario con el rol USER")
+        void register_shouldAssignUserRole() {
+            given(roleRepository.findByName("USER")).willReturn(Optional.of(userRole()));
+            given(passwordHasher.hash("Secreta-123")).willReturn("{bcrypt}cifrada");
+            givenSaveReturnsArgument();
+
+            var registered = userService.register("ana", "ana@example.com", "Secreta-123");
+
+            assertThat(registered.getRoles()).extracting(Role::getName).containsExactly("USER");
+            assertThat(registered.getPasswordHash()).isEqualTo("{bcrypt}cifrada");
+        }
+
+        @Test
+        @DisplayName("comprueba la unicidad antes de buscar el rol o cifrar la contraseña")
+        void register_withExistingUsername_shouldFailFast() {
+            given(userRepository.existsByUsername("ana")).willReturn(true);
+
+            assertThatThrownBy(() -> userService.register("ana", "ana@example.com", "Secreta-123"))
+                    .isInstanceOf(UsernameAlreadyExistsException.class);
+            verify(roleRepository, never()).findByName(anyString());
+            verify(passwordHasher, never()).hash(anyString());
+        }
+
+        @Test
+        @DisplayName("falla con ROLE_NOT_FOUND si el rol USER no existe")
+        void register_withoutDefaultRole_shouldThrow() {
+            assertThatThrownBy(() -> userService.register("ana", "ana@example.com", "Secreta-123"))
+                    .isInstanceOf(RoleNotFoundException.class);
+            verify(userRepository, never()).save(any());
+        }
+    }
+
+    @Nested
     @DisplayName("findById y findAll")
     class Find {
+
+        @Test
+        @DisplayName("findByUsername normaliza el username y lanza USER_NOT_FOUND si no existe")
+        void findByUsername_shouldNormalizeOrThrow() {
+            var ana = user(10L, "ana");
+            given(userRepository.findByUsername("ana")).willReturn(Optional.of(ana));
+
+            assertThat(userService.findByUsername("ANA")).isSameAs(ana);
+            assertThatThrownBy(() -> userService.findByUsername("bea")).isInstanceOf(UserNotFoundException.class);
+        }
 
         @Test
         @DisplayName("devuelve el usuario o lanza USER_NOT_FOUND")

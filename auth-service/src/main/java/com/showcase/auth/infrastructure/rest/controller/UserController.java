@@ -17,6 +17,9 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import java.net.URI;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -45,6 +48,7 @@ public class UserController {
         this.filterParser = filterParser;
     }
 
+    @PreAuthorize("hasAuthority('user:write')")
     @PostMapping
     public ResponseEntity<UserResponseDTO> create(@Valid @RequestBody CreateUserRequestDTO request) {
         User user = userService.create(request.username(), request.email(), request.password(), request.roleIds());
@@ -52,6 +56,14 @@ public class UserController {
         return ResponseEntity.created(location).body(mapper.toResponse(user));
     }
 
+    /** Datos del usuario autenticado: el {@code sub} del token es su username. */
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/me")
+    public UserResponseDTO me(@AuthenticationPrincipal Jwt jwt) {
+        return mapper.toResponse(userService.findByUsername(jwt.getSubject()));
+    }
+
+    @PreAuthorize("hasAuthority('user:read')")
     @GetMapping("/{id}")
     public UserResponseDTO findById(@PathVariable @Positive Long id) {
         return mapper.toResponse(userService.findById(id));
@@ -61,6 +73,8 @@ public class UserController {
      * Listado paginado con filtros dinámicos, p. ej.
      * {@code ?filter=role:eq:ADMIN&filter=username:like:ana&page=0&size=10&sort=createdAt&direction=DESC}.
      */
+    // Los registros borrados (includeInactive) solo los ve un ADMIN.
+    @PreAuthorize("hasAuthority('user:read') and (!#includeInactive or hasRole('ADMIN'))")
     @GetMapping
     public PageResponseDTO<UserResponseDTO> findAll(
             FilterParameters filter,
@@ -76,22 +90,26 @@ public class UserController {
         return PageResponseDTO.from(result, mapper::toResponse);
     }
 
+    @PreAuthorize("hasAuthority('user:write')")
     @PutMapping("/{id}")
     public UserResponseDTO update(@PathVariable @Positive Long id, @Valid @RequestBody UpdateUserRequestDTO request) {
         return mapper.toResponse(userService.update(id, request.email(), request.enabled(), request.version()));
     }
 
+    @PreAuthorize("hasAuthority('user:write')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable @Positive Long id) {
         userService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasAuthority('user:write')")
     @PostMapping("/{id}/roles/{roleId}")
     public UserResponseDTO assignRole(@PathVariable @Positive Long id, @PathVariable @Positive Long roleId) {
         return mapper.toResponse(userService.assignRole(id, roleId));
     }
 
+    @PreAuthorize("hasAuthority('user:write')")
     @DeleteMapping("/{id}/roles/{roleId}")
     public UserResponseDTO removeRole(@PathVariable @Positive Long id, @PathVariable @Positive Long roleId) {
         return mapper.toResponse(userService.removeRole(id, roleId));

@@ -31,7 +31,7 @@ En Windows (PowerShell o CMD) se usa `mvnw.cmd verify`. El informe de cobertura 
 | Módulo | Contenido |
 |---|---|
 | `common-lib` | Excepciones de dominio, paginación (`PageQuery`/`PageResult`), filtros dinámicos (parser y `Specification` de JPA), gestión global de errores y mensajes en español e inglés |
-| `auth-service` | Usuarios, roles y permisos (puerto 9000). La parte de OAuth2 y seguridad llega en el siguiente PR |
+| `auth-service` | Usuarios, roles y permisos, y servidor de autorización OAuth2 que emite los JWT (puerto 9000) |
 
 ## Arrancar auth-service en local
 
@@ -44,17 +44,35 @@ No hace falta instalar PostgreSQL: el servicio se arranca con una base de datos 
 ./mvnw -pl auth-service spring-boot:test-run -Dspring-boot.run.profiles=dev
 ```
 
-Algunas peticiones para probarlo:
+### Autenticación (OAuth2)
+
+La API exige un JWT en la cabecera `Authorization: Bearer <token>`. auth-service lo emite:
+
+| Cliente | Flujo | Para qué |
+|---|---|---|
+| `web-client` | `authorization_code` con PKCE, sin secreto | Aplicaciones de navegador: el usuario inicia sesión en el formulario de auth-service |
+| `internal-service` | `client_credentials` | Llamadas entre microservicios (scope `internal`) |
+
+El token de un usuario dura 15 minutos y lleva sus roles y permisos (`roles`, `permissions`), que cada servicio comprueba con `@PreAuthorize`. Las claves públicas para validarlo están en `/oauth2/jwks` y la configuración en `/.well-known/openid-configuration`.
+
+Para probar la API desde la terminal, la forma más rápida es un token de servicio (en el perfil `dev`, el secreto de `internal-service` es `internal-dev-secret`):
 
 ```bash
-curl "http://localhost:9000/api/v1/users?filter=role:eq:ADMIN"
+curl -u internal-service:internal-dev-secret -d grant_type=client_credentials -d scope=internal http://localhost:9000/oauth2/token
+```
+
+Ese token identifica al servicio, no a un usuario, así que no tiene permisos de gestión. Para actuar como `admin` hay que seguir el flujo `authorization_code` desde un navegador o un cliente como Postman (con PKCE y `redirect_uri` `http://127.0.0.1:3000/callback`).
+
+Otros endpoints públicos:
+
+```bash
+curl -X POST http://localhost:9000/api/v1/auth/register -H "Content-Type: application/json" -d "{\"username\":\"nuevo\",\"email\":\"nuevo@example.com\",\"password\":\"Secreta-123\"}"
 ```
 ```bash
-curl "http://localhost:9000/api/v1/users?filter=enabled:eq:false&sort=createdAt&direction=desc&page=0&size=5"
+curl http://localhost:9000/oauth2/jwks
 ```
-```bash
-curl -H "Accept-Language: en" "http://localhost:9000/api/v1/users?filter=passwordHash:eq:x"
-```
+
+En otros entornos, las claves RSA (`JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY`) y el secreto de `internal-service` (`INTERNAL_CLIENT_SECRET`) se pasan por variables de entorno. Sin claves configuradas se genera un par en memoria (los tokens dejan de valer al reiniciar).
 
 ### Datos de ejemplo (solo perfil `dev`)
 
@@ -63,11 +81,15 @@ curl -H "Accept-Language: en" "http://localhost:9000/api/v1/users?filter=passwor
 
 ### API
 
-| Recurso | Endpoints |
-|---|---|
-| Usuarios | `POST /api/v1/users`, `GET /api/v1/users/{id}`, `GET /api/v1/users`, `PUT /api/v1/users/{id}`, `DELETE /api/v1/users/{id}`, `POST` y `DELETE /api/v1/users/{id}/roles/{roleId}` |
-| Roles | `POST`, `GET /{id}`, `GET`, `PUT /{id}`, `DELETE /{id}` en `/api/v1/roles` |
-| Permisos | `POST`, `GET /{id}`, `GET`, `PUT /{id}`, `DELETE /{id}` en `/api/v1/permissions` |
+| Recurso | Endpoints | Permisos |
+|---|---|---|
+| Registro | `POST /api/v1/auth/register` (crea un usuario con el rol USER) | Público |
+| Usuario actual | `GET /api/v1/users/me` | Cualquier usuario autenticado |
+| Usuarios | `POST /api/v1/users`, `GET /api/v1/users/{id}`, `GET /api/v1/users`, `PUT /api/v1/users/{id}`, `DELETE /api/v1/users/{id}`, `POST` y `DELETE /api/v1/users/{id}/roles/{roleId}` | `user:read` / `user:write` |
+| Roles | `POST`, `GET /{id}`, `GET`, `PUT /{id}`, `DELETE /{id}` en `/api/v1/roles` | `role:read` / `role:write` |
+| Permisos | `POST`, `GET /{id}`, `GET`, `PUT /{id}`, `DELETE /{id}` en `/api/v1/permissions` | `permission:read` / `permission:write` |
+
+`includeInactive=true` (ver registros borrados) solo está permitido al rol ADMIN.
 
 Los listados admiten `page`, `size` (máximo 100), `sort`, `direction`, `includeInactive` y filtros `filter=campo:operador:valor`:
 

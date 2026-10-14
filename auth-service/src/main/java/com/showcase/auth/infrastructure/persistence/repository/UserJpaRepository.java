@@ -14,6 +14,9 @@ public interface UserJpaRepository extends JpaRepository<UserEntity, Long>, JpaS
     @EntityGraph(attributePaths = {"roles", "roles.permissions"})
     Optional<UserEntity> findByIdAndActiveTrue(Long id);
 
+    @EntityGraph(attributePaths = {"roles", "roles.permissions"})
+    Optional<UserEntity> findByUsernameAndActiveTrue(String username);
+
     boolean existsByUsername(String username);
 
     boolean existsByEmail(String email);

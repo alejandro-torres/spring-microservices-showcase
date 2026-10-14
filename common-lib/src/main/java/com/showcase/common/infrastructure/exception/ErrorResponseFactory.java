@@ -40,8 +40,17 @@ public class ErrorResponseFactory {
 
     public ResponseEntity<ErrorResponseDTO> create(HttpStatus status, ErrorCode errorCode, List<Object> args,
                                                    List<FieldErrorDTO> fieldErrors, HttpServletRequest request) {
-        Locale locale = LocaleContextHolder.getLocale();
-        var body = new ErrorResponseDTO(
+        return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON)
+                .body(body(status, errorCode, args, fieldErrors, request, LocaleContextHolder.getLocale()));
+    }
+
+    /**
+     * Cuerpo de la respuesta de error. Lo usan también los filtros de seguridad, que se ejecutan antes que
+     * Spring MVC y por eso reciben el idioma explícitamente.
+     */
+    public ErrorResponseDTO body(HttpStatus status, ErrorCode errorCode, List<Object> args,
+                                 List<FieldErrorDTO> fieldErrors, HttpServletRequest request, Locale locale) {
+        return new ErrorResponseDTO(
                 Instant.now(clock),
                 status.value(),
                 status.getReasonPhrase(),
@@ -50,7 +59,6 @@ public class ErrorResponseFactory {
                 request.getRequestURI(),
                 MDC.get(TRACE_ID_KEY),
                 fieldErrors);
-        return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON).body(body);
     }
 
     /** Traduce el mensaje de un error de validación al idioma de la petición. */

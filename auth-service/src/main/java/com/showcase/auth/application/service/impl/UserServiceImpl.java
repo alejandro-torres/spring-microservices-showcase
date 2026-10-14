@@ -16,6 +16,7 @@ import com.showcase.common.domain.page.PageResult;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
+
+    static final String DEFAULT_ROLE = "USER";
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -42,6 +45,29 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public User create(String username, String email, String rawPassword, Set<Long> roleIds) {
+        return createUser(username, email, rawPassword, () -> findRoles(roleIds));
+    }
+
+    @Override
+    @Transactional
+    public User register(String username, String email, String rawPassword) {
+        return createUser(username, email, rawPassword, () -> Set.of(roleRepository.findByName(DEFAULT_ROLE)
+                .orElseThrow(() -> new RoleNotFoundException(DEFAULT_ROLE))));
+    }
+
+    @Override
+    public User findById(Long id) {
+        return userRepository.findById(id).orElseThrow(() -> new UserNotFoundException(id));
+    }
+
+    @Override
+    public User findByUsername(String username) {
+        return userRepository.findByUsername(User.normalizeUsername(username))
+                .orElseThrow(() -> new UserNotFoundException(username));
+    }
+
+    // Las comprobaciones de unicidad van antes de resolver los roles y de cifrar la contraseña (BCrypt es lento).
+    private User createUser(String username, String email, String rawPassword, Supplier<Set<Role>> roles) {
         String normalizedUsername = User.normalizeUsername(username);
         String normalizedEmail = User.normalizeEmail(email);
         if (userRepository.existsByUsername(normalizedUsername)) {
@@ -50,14 +76,8 @@ public class UserServiceImpl implements UserService {
         if (userRepository.existsByEmail(normalizedEmail)) {
             throw new EmailAlreadyExistsException(normalizedEmail);
         }
-        Set<Role> roles = findRoles(roleIds);
-        User user = User.create(normalizedUsername, normalizedEmail, passwordHasher.hash(rawPassword), roles);
+        User user = User.create(normalizedUsername, normalizedEmail, passwordHasher.hash(rawPassword), roles.get());
         return userRepository.save(user);
-    }
-
-    @Override
-    public User findById(Long id) {
-        return userRepository.findById(id).orElseThrow(() -> new UserNotFoundException(id));
     }
 
     @Override

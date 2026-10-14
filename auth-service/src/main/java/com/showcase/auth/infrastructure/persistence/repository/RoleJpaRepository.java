@@ -16,6 +16,9 @@ public interface RoleJpaRepository extends JpaRepository<RoleEntity, Long>, JpaS
     Optional<RoleEntity> findByIdAndActiveTrue(Long id);
 
     @EntityGraph(attributePaths = "permissions")
+    Optional<RoleEntity> findByNameAndActiveTrue(String name);
+
+    @EntityGraph(attributePaths = "permissions")
     List<RoleEntity> findAllByIdInAndActiveTrue(Collection<Long> ids);
 
     boolean existsByName(String name);

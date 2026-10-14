@@ -19,6 +19,7 @@ public enum CommonErrorCode implements ErrorCode {
     NOT_ACCEPTABLE(ErrorCategory.INVALID_REQUEST),
     UNSUPPORTED_MEDIA_TYPE(ErrorCategory.INVALID_REQUEST),
     UNAUTHORIZED(ErrorCategory.UNAUTHORIZED),
+    INVALID_TOKEN(ErrorCategory.UNAUTHORIZED),
     FORBIDDEN(ErrorCategory.FORBIDDEN),
     RESOURCE_NOT_FOUND(ErrorCategory.NOT_FOUND),
     ENDPOINT_NOT_FOUND(ErrorCategory.NOT_FOUND),
