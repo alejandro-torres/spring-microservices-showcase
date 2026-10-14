@@ -33,8 +33,57 @@ spring:
         jwt:
           # Clave pública de auth-service para validar los JWT (se descarga y se cachea).
           jwk-set-uri: ${AUTH_JWK_SET_URI:http://localhost:9000/oauth2/jwks}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    # guest/guest solo sirve en local; en docker-compose cada servicio tiene su propio usuario.
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    # El outbox solo da un evento por enviado si RabbitMQ confirma que lo ha recibido (confirm) y que tenía
+    # una cola de destino (return con mandatory).
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+      observation-enabled: true
+    listener:
+      simple:
+        # ACK automático cuando el listener termina sin excepción (después del commit del servicio).
+        acknowledge-mode: auto
+        prefetch: 10
+        concurrency: 1
+        max-concurrency: 4
+        # Un mensaje rechazado no vuelve a la cola: va a su DLQ.
+        default-requeue-rejected: false
+        observation-enabled: true
+        retry:
+          enabled: true
+          # 1 intento + 3 reintentos esperando 1 s, 2 s y 4 s; después, a la DLQ.
+          max-retries: 3
+          initial-interval: 1s
+          multiplier: 2
+          max-interval: 4s
   lifecycle:
     timeout-per-shutdown-phase: 30s
+
+showcase:
+  messaging:
+    source: ${spring.application.name}
+    # customer-service solo consume: no publica eventos (no tiene outbox).
+    consumers:
+      user-registered:
+        queue: customer-service.user-registered
+        exchange: auth.events
+        routing-key: user.registered
+      user-disabled:
+        queue: customer-service.user-disabled
+        exchange: auth.events
+        routing-key: user.disabled
+      account-locked:
+        queue: customer-service.account-locked
+        exchange: auth.events
+        routing-key: account.locked
 
 management:
   endpoints:
