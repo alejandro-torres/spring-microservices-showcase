@@ -25,6 +25,7 @@
         <module>order-service</module>
         <module>discovery-service</module>
         <module>api-gateway</module>
+        <module>coverage-report</module>
     </modules>
 
     <name>Spring Microservices Showcase</name>
@@ -202,4 +203,14 @@
             </plugin>
         </plugins>
     </build>
+
+    <!-- Pruebas de extremo a extremo contra el sistema levantado con docker compose: ./mvnw -Pe2e -pl e2e-tests verify -->
+    <profiles>
+        <profile>
+            <id>e2e</id>
+            <modules>
+                <module>e2e-tests</module>
+            </modules>
+        </profile>
+    </profiles>
 </project>
