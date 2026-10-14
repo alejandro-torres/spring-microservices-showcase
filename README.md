@@ -35,7 +35,7 @@ En Windows (PowerShell o CMD) se usa `mvnw.cmd verify`. El informe de cobertura 
 
 ## Arrancar auth-service en local
 
-No hace falta instalar PostgreSQL: el servicio se arranca con una base de datos en Docker (Testcontainers) y el perfil `dev`, que carga datos de ejemplo.
+No hace falta instalar PostgreSQL ni Redis: el servicio se arranca con los dos en Docker (Testcontainers) y el perfil `dev`, que carga datos de ejemplo.
 
 ```bash
 ./mvnw install -DskipTests
@@ -73,6 +73,19 @@ curl http://localhost:9000/oauth2/jwks
 ```
 
 En otros entornos, las claves RSA (`JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY`) y el secreto de `internal-service` (`INTERNAL_CLIENT_SECRET`) se pasan por variables de entorno. Sin claves configuradas se genera un par en memoria (los tokens dejan de valer al reiniciar).
+
+### Protección de las cuentas
+
+| Medida | Comportamiento |
+|---|---|
+| Bloqueo por intentos | 5 contraseñas incorrectas seguidas bloquean la cuenta 15 minutos (configurable en `showcase.security.login`). El bloqueo caduca solo o lo quita un ADMIN con `PUT /api/v1/users/{id}/unlock` |
+| Política de contraseñas | De 8 a 72 caracteres, sin espacios, con mayúsculas, minúsculas, números y símbolos. No se pueden reutilizar las 3 últimas |
+| Cambio de contraseña | `PUT /api/v1/users/me/password` con la contraseña actual y la nueva |
+| Cierre de sesión | `POST /api/v1/auth/logout` revoca el token al instante |
+| Revocación automática | Cambiar la contraseña, desactivar o borrar un usuario o quitarle un rol invalida todos sus tokens anteriores |
+| Auditoría | Logins, bloqueos, cambios de roles y de contraseña y revocaciones, con IP, user agent y traceId. La consulta un ADMIN en `GET /api/v1/security-audit` |
+
+Los tokens revocados se guardan en Redis con caducidad automática. Si Redis no responde, la API rechaza los tokens (es preferible un 401 a aceptar uno que podría estar revocado).
 
 ### Datos de ejemplo (solo perfil `dev`)
 
