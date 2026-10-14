@@ -21,14 +21,14 @@ Infraestructura:
 - Grafana: dashboards y alertas sobre métricas, logs y trazas.
 
 # Stack técnico
-- Java 21, Spring Boot 3.x, Maven multimódulo con un `pom.xml` padre
+- Java 21, Spring Boot 4.1 (Spring Framework 7, Jakarta EE 11, Jackson 3), Spring Cloud 2025.1, Maven multimódulo con un `pom.xml` padre y Maven Wrapper
 - Spring Data JPA + Hibernate
 - PostgreSQL 16 (una base de datos por microservicio: patrón Database per Service)
 - Flyway para las migraciones
 - MapStruct para mapear entre capas
 - Lombok (solo en la infraestructura, nunca en el dominio)
 - Bean Validation (Jakarta Validation)
-- Spring Security 6 + Spring Authorization Server (en `auth-service`) + OAuth2 Resource Server (en el resto)
+- Spring Security 7 con su servidor de autorización OAuth2 integrado (en `auth-service`) + OAuth2 Resource Server (en el resto)
 - Springdoc OpenAPI (Swagger UI con soporte de Bearer/OAuth2)
 - Spring Cloud: Eureka, Gateway (con `RequestRateLimiter` sobre Redis), OpenFeign y Resilience4j (circuit breaker)
 - Micrometer Tracing (bridge Brave) + reporter de Zipkin para la trazabilidad distribuida
@@ -269,7 +269,7 @@ Reglas:
 - El gateway y los handlers de seguridad (401/403/429) también devuelven el mensaje en el idioma pedido.
 
 # auth-service: usuarios, roles y OAuth2
-- Implementado con Spring Authorization Server, emite tokens JWT firmados con RSA y expone el JWKS (`/oauth2/jwks`).
+- Implementado con el servidor de autorización OAuth2 de Spring Security 7 (antes proyecto Spring Authorization Server), emite tokens JWT firmados con RSA y expone el JWKS (`/oauth2/jwks`).
 - Flujos soportados: `authorization_code` con PKCE (frontends), `client_credentials` (comunicación entre microservicios) y `refresh_token`.
 - Modelo: `User` (username, email, password con BCrypt, enabled, accountNonLocked), `Role` (ADMIN, USER, ...) y `Permission` (p. ej. `product:read`, `product:write`), con relaciones muchos a muchos.
 - Endpoints de gestión (protegidos, solo ADMIN): CRUD de usuarios paginado con `Page`, CRUD de roles, asignar y quitar roles a un usuario, activar y desactivar usuarios.
