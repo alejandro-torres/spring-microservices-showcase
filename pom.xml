@@ -21,6 +21,7 @@
         <module>auth-service</module>
         <module>product-service</module>
         <module>customer-service</module>
+        <module>order-service</module>
     </modules>
 
     <name>Spring Microservices Showcase</name>
