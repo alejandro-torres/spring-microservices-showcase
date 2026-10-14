@@ -3,6 +3,7 @@ package com.showcase.product.application.service.impl;
 import com.showcase.common.domain.messaging.ProcessedEventRegistry;
 import com.showcase.events.EventTypes;
 import com.showcase.product.application.lock.DistributedLockManager;
+import com.showcase.product.application.metrics.StockMetrics;
 import com.showcase.product.application.service.StockLine;
 import com.showcase.product.application.service.StockService;
 import com.showcase.product.domain.event.StockReleasedEvent;
@@ -50,17 +51,19 @@ public class StockServiceImpl implements StockService {
     private final ProcessedEventRegistry processedEvents;
     private final StockEventPublisher eventPublisher;
     private final DistributedLockManager lockManager;
+    private final StockMetrics metrics;
     private final TransactionTemplate reserveTransaction;
     private final TransactionTemplate releaseTransaction;
     private final Clock clock;
 
     public StockServiceImpl(ProductRepository productRepository, ProcessedEventRegistry processedEvents,
                             StockEventPublisher eventPublisher, DistributedLockManager lockManager,
-                            PlatformTransactionManager transactionManager, Clock clock) {
+                            StockMetrics metrics, PlatformTransactionManager transactionManager, Clock clock) {
         this.productRepository = productRepository;
         this.processedEvents = processedEvents;
         this.eventPublisher = eventPublisher;
         this.lockManager = lockManager;
+        this.metrics = metrics;
         this.reserveTransaction = new TransactionTemplate(transactionManager);
         this.reserveTransaction.setIsolationLevel(TransactionDefinition.ISOLATION_REPEATABLE_READ);
         this.reserveTransaction.setTimeout(5);
@@ -125,6 +128,7 @@ public class StockServiceImpl implements StockService {
             productRepository.save(reservation.product());
         }
         eventPublisher.publish(new StockReservedEvent(orderId, now));
+        metrics.stockReserved();
         log.info("Stock reservado para el pedido {} ({} líneas)", orderId, reservations.size());
     }
 
@@ -141,11 +145,13 @@ public class StockServiceImpl implements StockService {
                     orderId, line.productId(), line.quantity()));
         }
         eventPublisher.publish(new StockReleasedEvent(orderId, Instant.now(clock)));
+        metrics.stockReleased();
         log.info("Stock devuelto del pedido cancelado {}", orderId);
     }
 
     private void fail(Long orderId, ProductErrorCode reason, Long productId, Instant now) {
         eventPublisher.publish(new StockReservationFailedEvent(orderId, reason.code(), productId, now));
+        metrics.reservationFailed(reason.code());
         log.info("No se reserva el stock del pedido {}: {} en el producto {}", orderId, reason, productId);
     }
 

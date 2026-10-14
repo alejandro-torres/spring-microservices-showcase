@@ -13,6 +13,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import com.showcase.common.domain.exception.BusinessRuleException;
 import com.showcase.common.domain.exception.ResourceNotFoundException;
 import com.showcase.common.domain.messaging.ProcessedEventRegistry;
+import com.showcase.order.application.metrics.OrderMetrics;
 import com.showcase.order.domain.exception.OrderErrorCode;
 import com.showcase.order.domain.model.Order;
 import com.showcase.order.domain.model.OrderStatus;
@@ -39,6 +40,9 @@ class OrderSagaServiceImplTest {
     @Mock
     private ProcessedEventRegistry processedEvents;
 
+    @Mock
+    private OrderMetrics metrics;
+
     @InjectMocks
     private OrderSagaServiceImpl sagaService;
 
@@ -60,6 +64,7 @@ class OrderSagaServiceImplTest {
             var captor = ArgumentCaptor.forClass(Order.class);
             verify(orderRepository).save(captor.capture());
             assertThat(captor.getValue().getStatus()).isEqualTo(OrderStatus.CONFIRMED);
+            verify(metrics).orderConfirmed();
         }
 
         @Test
@@ -72,7 +77,7 @@ class OrderSagaServiceImplTest {
             sagaService.confirm(EVENT_ID, 1L);
 
             // then
-            verifyNoInteractions(orderRepository);
+            verifyNoInteractions(orderRepository, metrics);
         }
 
         @Test
@@ -122,6 +127,7 @@ class OrderSagaServiceImplTest {
             verify(orderRepository).save(captor.capture());
             assertThat(captor.getValue().getStatus()).isEqualTo(OrderStatus.REJECTED);
             assertThat(captor.getValue().getRejectionReason()).isEqualTo("INSUFFICIENT_STOCK");
+            verify(metrics).orderRejected("INSUFFICIENT_STOCK");
         }
 
         @Test
@@ -134,7 +140,7 @@ class OrderSagaServiceImplTest {
             sagaService.reject(EVENT_ID, 1L, "INSUFFICIENT_STOCK");
 
             // then
-            verifyNoInteractions(orderRepository);
+            verifyNoInteractions(orderRepository, metrics);
         }
     }
 }

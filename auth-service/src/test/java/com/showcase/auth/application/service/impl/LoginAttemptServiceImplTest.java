@@ -12,6 +12,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.showcase.auth.application.metrics.AuthMetrics;
 import com.showcase.auth.application.security.LoginPolicy;
 import com.showcase.auth.application.service.SecurityAuditService;
 import com.showcase.auth.domain.event.AccountLockedEvent;
@@ -36,8 +37,9 @@ class LoginAttemptServiceImplTest {
     private final UserRepository userRepository = mock(UserRepository.class);
     private final SecurityAuditService auditService = mock(SecurityAuditService.class);
     private final UserEventPublisher eventPublisher = mock(UserEventPublisher.class);
+    private final AuthMetrics metrics = mock(AuthMetrics.class);
     private final LoginAttemptServiceImpl service = new LoginAttemptServiceImpl(userRepository, auditService,
-            new LoginPolicy(3, Duration.ofMinutes(15)), eventPublisher, Clock.fixed(NOW, ZoneOffset.UTC));
+            new LoginPolicy(3, Duration.ofMinutes(15)), eventPublisher, metrics, Clock.fixed(NOW, ZoneOffset.UTC));
 
     @Nested
     @DisplayName("onFailure")
@@ -73,6 +75,7 @@ class LoginAttemptServiceImplTest {
             order.verify(userRepository).save(ana);
             order.verify(auditService).record(eq(SecurityEventType.ACCOUNT_LOCKED), eq("ana"), anyString());
             verify(eventPublisher).publish(new AccountLockedEvent(10L, "ana", NOW.plus(Duration.ofMinutes(15)), NOW));
+            verify(metrics).accountLocked();
         }
 
         @Test

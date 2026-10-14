@@ -22,6 +22,7 @@ import com.showcase.common.domain.page.SortDirection;
 import com.showcase.order.application.client.CustomerClient;
 import com.showcase.order.application.client.CustomerInfo;
 import com.showcase.order.application.client.ProductClient;
+import com.showcase.order.application.metrics.OrderMetrics;
 import com.showcase.order.application.service.OrderLine;
 import com.showcase.order.application.service.OrderWriter;
 import com.showcase.order.domain.event.OrderCancelledEvent;
@@ -67,12 +68,15 @@ class OrderServiceImplTest {
     @Mock
     private OrderEventPublisher eventPublisher;
 
+    @Mock
+    private OrderMetrics metrics;
+
     private OrderServiceImpl orderService;
 
     @BeforeEach
     void setUp() {
         orderService = new OrderServiceImpl(orderRepository, orderWriter, customerClient, productClient,
-                eventPublisher, Clock.fixed(NOW, ZoneOffset.UTC));
+                eventPublisher, metrics, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     private void givenProducts() {
@@ -214,6 +218,7 @@ class OrderServiceImplTest {
             assertThat(orderService.cancel(1L).getStatus()).isEqualTo(OrderStatus.CANCELLED);
             verify(eventPublisher).publish(new OrderCancelledEvent(1L,
                     List.of(new OrderEventLine(10L, 2), new OrderEventLine(11L, 1)), NOW));
+            verify(metrics).orderCancelled();
         }
 
         @Test

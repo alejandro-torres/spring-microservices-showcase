@@ -1,5 +1,6 @@
 package com.showcase.order.application.service.impl;
 
+import com.showcase.order.application.metrics.OrderMetrics;
 import com.showcase.order.application.service.OrderWriter;
 import com.showcase.order.domain.event.OrderCreatedEvent;
 import com.showcase.order.domain.messaging.OrderEventPublisher;
@@ -15,11 +16,14 @@ public class OrderWriterImpl implements OrderWriter {
 
     private final OrderRepository orderRepository;
     private final OrderEventPublisher eventPublisher;
+    private final OrderMetrics metrics;
     private final Clock clock;
 
-    public OrderWriterImpl(OrderRepository orderRepository, OrderEventPublisher eventPublisher, Clock clock) {
+    public OrderWriterImpl(OrderRepository orderRepository, OrderEventPublisher eventPublisher, OrderMetrics metrics,
+                           Clock clock) {
         this.orderRepository = orderRepository;
         this.eventPublisher = eventPublisher;
+        this.metrics = metrics;
         this.clock = clock;
     }
 
@@ -33,6 +37,7 @@ public class OrderWriterImpl implements OrderWriter {
     public Order create(Order order) {
         Order saved = orderRepository.save(order);
         eventPublisher.publish(OrderCreatedEvent.of(saved, Instant.now(clock)));
+        metrics.orderCreated();
         return saved;
     }
 }

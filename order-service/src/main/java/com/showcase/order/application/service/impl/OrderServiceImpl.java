@@ -8,6 +8,7 @@ import com.showcase.common.domain.page.PageResult;
 import com.showcase.order.application.client.CustomerClient;
 import com.showcase.order.application.client.ProductClient;
 import com.showcase.order.application.client.ProductInfo;
+import com.showcase.order.application.metrics.OrderMetrics;
 import com.showcase.order.application.service.OrderLine;
 import com.showcase.order.application.service.OrderService;
 import com.showcase.order.application.service.OrderWriter;
@@ -45,15 +46,18 @@ public class OrderServiceImpl implements OrderService {
     private final CustomerClient customerClient;
     private final ProductClient productClient;
     private final OrderEventPublisher eventPublisher;
+    private final OrderMetrics metrics;
     private final Clock clock;
 
     public OrderServiceImpl(OrderRepository orderRepository, OrderWriter orderWriter, CustomerClient customerClient,
-                            ProductClient productClient, OrderEventPublisher eventPublisher, Clock clock) {
+                            ProductClient productClient, OrderEventPublisher eventPublisher, OrderMetrics metrics,
+                            Clock clock) {
         this.orderRepository = orderRepository;
         this.orderWriter = orderWriter;
         this.customerClient = customerClient;
         this.productClient = productClient;
         this.eventPublisher = eventPublisher;
+        this.metrics = metrics;
         this.clock = clock;
     }
 
@@ -100,6 +104,7 @@ public class OrderServiceImpl implements OrderService {
         order.cancel();
         Order saved = orderRepository.save(order);
         eventPublisher.publish(OrderCancelledEvent.of(saved, Instant.now(clock)));
+        metrics.orderCancelled();
         return saved;
     }
 

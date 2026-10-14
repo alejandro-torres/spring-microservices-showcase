@@ -3,6 +3,7 @@ package com.showcase.order.application.service.impl;
 import com.showcase.common.domain.exception.ResourceNotFoundException;
 import com.showcase.common.domain.messaging.ProcessedEventRegistry;
 import com.showcase.events.EventTypes;
+import com.showcase.order.application.metrics.OrderMetrics;
 import com.showcase.order.application.service.OrderSagaService;
 import com.showcase.order.domain.exception.OrderErrorCode;
 import com.showcase.order.domain.model.Order;
@@ -29,35 +30,44 @@ public class OrderSagaServiceImpl implements OrderSagaService {
 
     private final OrderRepository orderRepository;
     private final ProcessedEventRegistry processedEvents;
+    private final OrderMetrics metrics;
 
-    public OrderSagaServiceImpl(OrderRepository orderRepository, ProcessedEventRegistry processedEvents) {
+    public OrderSagaServiceImpl(OrderRepository orderRepository, ProcessedEventRegistry processedEvents,
+                                OrderMetrics metrics) {
         this.orderRepository = orderRepository;
         this.processedEvents = processedEvents;
+        this.metrics = metrics;
     }
 
     @Override
     @Transactional
     @Observed(name = "order.saga.confirm", contextualName = "confirmar pedido")
     public void confirm(UUID eventId, Long orderId) {
-        apply(eventId, EventTypes.STOCK_RESERVED, orderId, Order::confirm);
+        if (apply(eventId, EventTypes.STOCK_RESERVED, orderId, Order::confirm)) {
+            metrics.orderConfirmed();
+        }
     }
 
     @Override
     @Transactional
     @Observed(name = "order.saga.reject", contextualName = "rechazar pedido")
     public void reject(UUID eventId, Long orderId, String reason) {
-        apply(eventId, EventTypes.STOCK_RESERVATION_FAILED, orderId, order -> order.reject(reason));
+        if (apply(eventId, EventTypes.STOCK_RESERVATION_FAILED, orderId, order -> order.reject(reason))) {
+            metrics.orderRejected(reason);
+        }
     }
 
-    private void apply(UUID eventId, String eventType, Long orderId, Consumer<Order> change) {
+    /** @return si el evento era nuevo y se ha aplicado (false con un duplicado) */
+    private boolean apply(UUID eventId, String eventType, Long orderId, Consumer<Order> change) {
         if (!processedEvents.registerIfAbsent(eventId, eventType)) {
             log.info("Evento {} ({}) ya procesado; se ignora el duplicado", eventId, eventType);
-            return;
+            return false;
         }
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException(OrderErrorCode.ORDER_NOT_FOUND, orderId));
         change.accept(order);
         orderRepository.save(order);
         log.info("Pedido {} pasa a {} por el evento {}", orderId, order.getStatus(), eventType);
+        return true;
     }
 }
