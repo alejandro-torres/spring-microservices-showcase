@@ -1,0 +1,6 @@
+apiVersion: v2
+name: showcase
+description: Microservicios de spring-microservices-showcase (Eureka, gateway, auth, product, customer, order) con PostgreSQL, Redis, RabbitMQ y Zipkin.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

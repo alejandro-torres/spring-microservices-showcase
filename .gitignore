@@ -51,3 +51,6 @@ desktop.ini
 
 # Datos locales de Docker
 docker/data/
+
+# Claves generadas para Kubernetes (k8s/deploy.sh)
+k8s/.secrets/

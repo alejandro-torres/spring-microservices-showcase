@@ -1,0 +1,63 @@
+# Redis: rate limit del gateway, revocación de tokens y locks distribuidos (Redisson).
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  labels:
+    {{- include "showcase.labels" . | nindent 4 }}
+    {{- include "showcase.selector" "redis" | nindent 4 }}
+spec:
+  selector:
+    {{- include "showcase.selector" "redis" | nindent 4 }}
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  labels:
+    {{- include "showcase.labels" . | nindent 4 }}
+    {{- include "showcase.selector" "redis" | nindent 4 }}
+spec:
+  serviceName: redis
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "showcase.selector" "redis" | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "showcase.labels" . | nindent 8 }}
+        {{- include "showcase.selector" "redis" | nindent 8 }}
+    spec:
+      containers:
+        - name: redis
+          image: {{ .Values.redis.image }}
+          ports:
+            - name: redis
+              containerPort: 6379
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.redis.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.redis.storage }}

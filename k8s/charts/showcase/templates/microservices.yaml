@@ -1,0 +1,158 @@
+{{- /*
+Un Deployment, Service, ConfigMap y Secret por microservicio, generados a partir de .Values.services.
+*/ -}}
+{{- $root := . -}}
+{{- range $name, $svc := .Values.services }}
+{{- $managementPort := $svc.managementPort | default $svc.port }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "showcase.labels" $root | nindent 4 }}
+    {{- include "showcase.selector" $name | nindent 4 }}
+data:
+  # Logs en JSON (ECS) con traceId y spanId.
+  LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+  {{- if ne $name "discovery-service" }}
+  SPRING_PROFILES_ACTIVE: {{ $root.Values.springProfile | quote }}
+  EUREKA_URL: http://discovery-service:8761/eureka/
+  ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
+  AUTH_JWK_SET_URI: http://auth-service:9000/oauth2/jwks
+  {{- end }}
+  {{- with $svc.database }}
+  DB_URL: jdbc:postgresql://postgres:5432/{{ . }}_db
+  DB_USERNAME: {{ . | quote }}
+  {{- end }}
+  {{- with $svc.rabbitmq }}
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_USERNAME: {{ $name }}
+  {{- end }}
+  {{- if $svc.redis }}
+  REDIS_HOST: redis
+  {{- end }}
+  {{- if eq $name "auth-service" }}
+  # Los tokens se piden a través del gateway: el emisor es su URL pública.
+  AUTH_ISSUER: {{ $root.Values.publicUrl | quote }}
+  {{- end }}
+  {{- if eq $name "api-gateway" }}
+  CORS_ALLOWED_ORIGINS: {{ $root.Values.corsAllowedOrigins | quote }}
+  {{- end }}
+  {{- range $key, $value := $svc.env }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "showcase.labels" $root | nindent 4 }}
+    {{- include "showcase.selector" $name | nindent 4 }}
+type: Opaque
+stringData:
+  {{- with $svc.database }}
+  DB_PASSWORD: {{ index $root.Values.secrets.db . | quote }}
+  {{- end }}
+  {{- with $svc.rabbitmq }}
+  RABBITMQ_PASSWORD: {{ index $root.Values.secrets.rabbitmq . | quote }}
+  {{- end }}
+  {{- if eq $name "auth-service" }}
+  INTERNAL_CLIENT_SECRET: {{ $root.Values.secrets.internalClientSecret | quote }}
+  # Clave RSA compartida: los tokens siguen siendo válidos aunque se reinicie o escale auth-service.
+  JWT_PRIVATE_KEY: {{ required "Falta secrets.jwtPrivateKey (usa k8s/deploy.sh o --set-file)" $root.Values.secrets.jwtPrivateKey | quote }}
+  JWT_PUBLIC_KEY: {{ required "Falta secrets.jwtPublicKey (usa k8s/deploy.sh o --set-file)" $root.Values.secrets.jwtPublicKey | quote }}
+  {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "showcase.labels" $root | nindent 4 }}
+    {{- include "showcase.selector" $name | nindent 4 }}
+spec:
+  selector:
+    {{- include "showcase.selector" $name | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ $svc.port }}
+      targetPort: http
+    {{- if ne $managementPort $svc.port }}
+    - name: management
+      port: {{ $managementPort }}
+      targetPort: management
+    {{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "showcase.labels" $root | nindent 4 }}
+    {{- include "showcase.selector" $name | nindent 4 }}
+spec:
+  replicas: {{ $svc.replicas }}
+  selector:
+    matchLabels:
+      {{- include "showcase.selector" $name | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "showcase.labels" $root | nindent 8 }}
+        {{- include "showcase.selector" $name | nindent 8 }}
+      annotations:
+        # Si cambian la configuración o los secretos, los pods se vuelven a crear al hacer helm upgrade.
+        checksum/config: {{ toJson $svc | sha256sum }}
+        checksum/secrets: {{ toJson $root.Values.secrets | sha256sum }}
+    spec:
+      # Sin las variables REDIS_PORT=tcp://... que Kubernetes crea por cada Service: chocan con las de Spring.
+      enableServiceLinks: false
+      {{- if or $svc.database $svc.rabbitmq }}
+      initContainers:
+        {{- if $svc.database }}
+        {{- include "showcase.waitFor" (dict "root" $root "args" (list "postgres" 5432)) | nindent 8 }}
+        {{- end }}
+        {{- if $svc.rabbitmq }}
+        {{- include "showcase.waitFor" (dict "root" $root "args" (list "rabbitmq" 5672)) | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: {{ $name }}
+          image: "{{ $root.Values.image.repository }}/{{ $name }}:{{ $root.Values.image.tag }}"
+          imagePullPolicy: {{ $root.Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ $svc.port }}
+            {{- if ne $managementPort $svc.port }}
+            - name: management
+              containerPort: {{ $managementPort }}
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ $name }}
+            - secretRef:
+                name: {{ $name }}
+          # El primer arranque de la JVM es lento: hasta 3 minutos antes de que empiecen las demás sondas.
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: {{ $managementPort }}
+            periodSeconds: 5
+            failureThreshold: 36
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: {{ $managementPort }}
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: {{ $managementPort }}
+            periodSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml ($svc.resources | default $root.Values.defaultResources) | nindent 12 }}
+{{- end }}
