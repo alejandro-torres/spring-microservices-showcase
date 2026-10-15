@@ -4,10 +4,13 @@ import com.showcase.common.domain.exception.ErrorCode;
 import com.showcase.common.infrastructure.i18n.ErrorMessageResolver;
 import com.showcase.common.infrastructure.rest.dto.response.ErrorResponseDTO;
 import com.showcase.gateway.infrastructure.trace.ExchangeTraceIds;
+import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -48,13 +51,25 @@ public class GatewayErrorWriter {
                 status.getReasonPhrase(),
                 errorCode.code(),
                 messageResolver.resolve(errorCode, List.of(args), locale(exchange)),
-                exchange.getRequest().getPath().value(),
+                path(exchange),
                 ExchangeTraceIds.of(exchange).orElse(null),
                 List.of());
         response.setStatusCode(status);
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
         DataBuffer buffer = response.bufferFactory().wrap(jsonMapper.writeValueAsBytes(body));
         return response.writeWith(Mono.just(buffer));
+    }
+
+    /**
+     * Ruta que llamó el cliente. Si la petición se reenvió dentro del gateway (p. ej. el {@code forward:/fallback/...}
+     * del circuit breaker), la ruta actual es interna, así que se usa la primera URI que guarda Spring Cloud Gateway.
+     */
+    static String path(ServerWebExchange exchange) {
+        Set<URI> originalUris = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ORIGINAL_REQUEST_URL_ATTR);
+        if (originalUris != null && !originalUris.isEmpty()) {
+            return originalUris.iterator().next().getRawPath();
+        }
+        return exchange.getRequest().getPath().value();
     }
 
     /** Español o inglés según {@code Accept-Language}; español si no llega o no está soportado. */

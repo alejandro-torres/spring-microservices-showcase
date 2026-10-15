@@ -281,7 +281,9 @@ class GatewayIT {
                     .expectStatus().isEqualTo(HttpStatus.SERVICE_UNAVAILABLE).expectBody().returnResult();
 
             // then
-            assertThat(json(result).get("code").asString()).isEqualTo("SERVICE_UNAVAILABLE");
+            var body = json(result);
+            assertThat(body.get("code").asString()).isEqualTo("SERVICE_UNAVAILABLE");
+            assertThat(body.get("path").asString()).isEqualTo("/api/v1/customers");
         }
 
         @Test
