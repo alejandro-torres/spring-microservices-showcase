@@ -72,6 +72,8 @@ Solo el gateway expone la API; los servicios no publican puertos. Hay una base d
 
 Los tokens se piden a través del gateway (`http://localhost:8080/oauth2/token`, login en `http://localhost:8080/login`), que es el emisor (`iss`) de los JWT. El gateway reenvía a los servicios las cabeceras `X-Forwarded-*` de los clientes que llegan desde la propia máquina o desde redes privadas (`GATEWAY_TRUSTED_PROXIES`); con un balanceador delante, indica su red ahí y `RATE_LIMIT_TRUSTED_PROXY_HOPS=1` para que el rate limiting use la IP real del cliente.
 
+En [docs/curl-examples.md](docs/curl-examples.md) hay un recorrido completo con `curl`: cómo obtener un token de usuario, listados con filtros, cada código de error, cierre de sesión y cómo seguir un pedido en Zipkin y RabbitMQ.
+
 ## Arrancar los servicios uno a uno (desarrollo)
 
 Para depurar un servicio desde el IDE, cada uno se arranca con `spring-boot:test-run`: levanta su PostgreSQL (y Redis en auth-service) en Docker con Testcontainers. Lo que comparten se arranca una vez:
@@ -118,7 +120,7 @@ Ese token identifica al servicio, no a un usuario, así que no tiene permisos de
 Otros endpoints públicos:
 
 ```bash
-curl -X POST http://localhost:9000/api/v1/auth/register -H "Content-Type: application/json" -d "{\"username\":\"nuevo\",\"email\":\"nuevo@example.com\",\"password\":\"Secreta-123\"}"
+curl -X POST http://localhost:9000/api/v1/auth/register -H "Content-Type: application/json" -d "{\"username\":\"nuevo\",\"email\":\"nuevo@example.com\",\"password\":\"Secreta-123\",\"firstName\":\"Nuevo\",\"lastName\":\"Usuario\"}"
 ```
 ```bash
 curl http://localhost:9000/oauth2/jwks
@@ -404,6 +406,7 @@ Cada operación documenta sus posibles errores (400, 401, 403, 404, 409, 422, 50
 
 - [Especificación del proyecto](docs/prompt-microservicios.md)
 - [Diagramas UML](docs/diagramas-uml.html)
+- [Ejemplos con curl](docs/curl-examples.md): token, paginación, cada error en español e inglés, logout, Zipkin y RabbitMQ
 
 ## Licencia
 
