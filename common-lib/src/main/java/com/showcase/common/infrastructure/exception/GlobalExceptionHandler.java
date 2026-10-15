@@ -7,6 +7,7 @@ import com.showcase.common.infrastructure.rest.dto.response.FieldErrorDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
@@ -38,17 +39,13 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
  */
 @RestControllerAdvice
 @Order(Ordered.LOWEST_PRECEDENCE)
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     private final ErrorResponseFactory responses;
     private final ErrorCodeHttpStatusMapper statusMapper;
-
-    public GlobalExceptionHandler(ErrorResponseFactory responses, ErrorCodeHttpStatusMapper statusMapper) {
-        this.responses = responses;
-        this.statusMapper = statusMapper;
-    }
 
     @ExceptionHandler(DomainException.class)
     public ResponseEntity<ErrorResponseDTO> handleDomain(DomainException ex, HttpServletRequest request) {

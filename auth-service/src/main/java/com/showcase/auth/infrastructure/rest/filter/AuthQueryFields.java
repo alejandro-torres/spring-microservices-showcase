@@ -13,11 +13,14 @@ import com.showcase.common.infrastructure.rest.filter.FilterFields;
 import com.showcase.common.infrastructure.rest.filter.FilterableField;
 import java.time.Instant;
 import java.util.Set;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /**
  * Lista blanca de filtros y campos de ordenación de cada recurso. Lo que no aparece aquí
  * no se puede usar en {@code filter} ni en {@code sort} (p. ej. nunca el hash de la contraseña).
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class AuthQueryFields {
 
     private static final FilterableField CREATED_AT = FilterableField.of("createdAt", Instant.class, GTE, LTE, BETWEEN);
@@ -51,7 +54,4 @@ public final class AuthQueryFields {
             FilterableField.of("occurredAt", Instant.class, GTE, LTE, BETWEEN));
 
     public static final Set<String> AUDIT_SORT = Set.of("id", "occurredAt");
-
-    private AuthQueryFields() {
-    }
 }

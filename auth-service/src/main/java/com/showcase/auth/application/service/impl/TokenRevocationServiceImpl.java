@@ -9,23 +9,17 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class TokenRevocationServiceImpl implements TokenRevocationService {
 
     private final RevokedTokenRepository revokedTokenRepository;
     private final SecurityAuditService auditService;
     private final TokenPolicy tokenPolicy;
     private final Clock clock;
-
-    public TokenRevocationServiceImpl(RevokedTokenRepository revokedTokenRepository,
-                                      SecurityAuditService auditService, TokenPolicy tokenPolicy, Clock clock) {
-        this.revokedTokenRepository = revokedTokenRepository;
-        this.auditService = auditService;
-        this.tokenPolicy = tokenPolicy;
-        this.clock = clock;
-    }
 
     @Override
     public void revoke(String tokenId, Instant expiresAt, String username) {

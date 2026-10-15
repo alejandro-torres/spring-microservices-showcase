@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Declarable;
@@ -21,10 +23,8 @@ import org.springframework.amqp.core.TopicExchange;
  * Cada cola rechaza sus mensajes fallidos al DLX del servicio ({@code <servicio>.dlx}, de tipo direct), que
  * los deja en su DLQ ({@code <cola>.dlq}).
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class MessagingTopology {
-
-    private MessagingTopology() {
-    }
 
     public static Declarables declarables(MessagingProperties properties) {
         List<Declarable> declarables = new ArrayList<>();

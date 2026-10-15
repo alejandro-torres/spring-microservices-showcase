@@ -8,24 +8,18 @@ import com.showcase.order.domain.model.Order;
 import com.showcase.order.domain.repository.OrderRepository;
 import java.time.Clock;
 import java.time.Instant;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class OrderWriterImpl implements OrderWriter {
 
     private final OrderRepository orderRepository;
     private final OrderEventPublisher eventPublisher;
     private final OrderMetrics metrics;
     private final Clock clock;
-
-    public OrderWriterImpl(OrderRepository orderRepository, OrderEventPublisher eventPublisher, OrderMetrics metrics,
-                           Clock clock) {
-        this.orderRepository = orderRepository;
-        this.eventPublisher = eventPublisher;
-        this.metrics = metrics;
-        this.clock = clock;
-    }
 
     /**
      * El pedido, sus líneas (cascada) y su evento en el outbox se guardan en la MISMA transacción: si algo falla

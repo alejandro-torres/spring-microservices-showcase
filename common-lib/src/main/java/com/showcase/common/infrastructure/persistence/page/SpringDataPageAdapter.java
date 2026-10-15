@@ -5,6 +5,8 @@ import com.showcase.common.domain.page.PageResult;
 import com.showcase.common.domain.page.SortDirection;
 import com.showcase.common.infrastructure.persistence.specification.FilterMapping;
 import java.util.function.Function;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -14,10 +16,8 @@ import org.springframework.data.domain.Sort;
  * Traduce entre la paginación del dominio ({@link PageQuery}, {@link PageResult}) y la de
  * Spring Data ({@link Pageable}, {@link Page}). Solo lo usan los {@code *RepositoryImpl}.
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SpringDataPageAdapter {
-
-    private SpringDataPageAdapter() {
-    }
 
     /** El campo de ordenación pasa por el mismo {@link FilterMapping} que los filtros (nombre público → path JPA). */
     public static Pageable toPageable(PageQuery query, FilterMapping mapping) {

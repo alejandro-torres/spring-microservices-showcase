@@ -4,6 +4,7 @@ import com.showcase.auth.application.service.LoginAttemptService;
 import com.showcase.auth.application.service.SecurityAuditService;
 import com.showcase.auth.domain.exception.AccountLockedException;
 import com.showcase.auth.domain.model.SecurityEventType;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
@@ -18,17 +19,13 @@ import org.springframework.stereotype.Component;
  * Solo atiende al login con usuario y contraseña (no a la validación de cada JWT ni a client_credentials).
  */
 @Component
+@RequiredArgsConstructor
 public class AuthenticationEventsListener {
 
     private static final Logger log = LoggerFactory.getLogger(AuthenticationEventsListener.class);
 
     private final LoginAttemptService loginAttemptService;
     private final SecurityAuditService auditService;
-
-    public AuthenticationEventsListener(LoginAttemptService loginAttemptService, SecurityAuditService auditService) {
-        this.loginAttemptService = loginAttemptService;
-        this.auditService = auditService;
-    }
 
     @EventListener
     public void onSuccess(AuthenticationSuccessEvent event) {

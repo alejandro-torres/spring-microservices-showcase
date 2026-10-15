@@ -11,20 +11,17 @@ import com.showcase.common.domain.filter.FilterCriterion;
 import com.showcase.common.domain.page.PageQuery;
 import com.showcase.common.domain.page.PageResult;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class PermissionServiceImpl implements PermissionService {
 
     private final PermissionRepository permissionRepository;
     private final RoleRepository roleRepository;
-
-    public PermissionServiceImpl(PermissionRepository permissionRepository, RoleRepository roleRepository) {
-        this.permissionRepository = permissionRepository;
-        this.roleRepository = roleRepository;
-    }
 
     @Override
     @Transactional

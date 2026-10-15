@@ -29,6 +29,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -44,6 +45,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
 @RequestMapping("/api/v1/orders")
+@RequiredArgsConstructor
 public class OrderController {
 
     static final FilterFields FILTERS = FilterFields.of(
@@ -58,12 +60,6 @@ public class OrderController {
     private final OrderService orderService;
     private final OrderRestMapper mapper;
     private final FilterCriteriaParser filterParser;
-
-    public OrderController(OrderService orderService, OrderRestMapper mapper, FilterCriteriaParser filterParser) {
-        this.orderService = orderService;
-        this.mapper = mapper;
-        this.filterParser = filterParser;
-    }
 
     @PreAuthorize("hasAuthority('order:write')")
     @PostMapping

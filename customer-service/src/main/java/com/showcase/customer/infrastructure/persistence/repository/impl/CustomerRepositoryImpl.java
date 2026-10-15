@@ -21,10 +21,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
 
 @Repository
+@RequiredArgsConstructor
 public class CustomerRepositoryImpl implements CustomerRepository {
 
     /** {@code city} filtra por la ciudad de cualquiera de sus direcciones (join con la colección). */
@@ -33,13 +35,6 @@ public class CustomerRepositoryImpl implements CustomerRepository {
     private final CustomerJpaRepository jpaRepository;
     private final CustomerEntityMapper mapper;
     private final GenericSpecificationBuilder specificationBuilder;
-
-    public CustomerRepositoryImpl(CustomerJpaRepository jpaRepository, CustomerEntityMapper mapper,
-                                  GenericSpecificationBuilder specificationBuilder) {
-        this.jpaRepository = jpaRepository;
-        this.mapper = mapper;
-        this.specificationBuilder = specificationBuilder;
-    }
 
     @Override
     public Customer save(Customer customer) {

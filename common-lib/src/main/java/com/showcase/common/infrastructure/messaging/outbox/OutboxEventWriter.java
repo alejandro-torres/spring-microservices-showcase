@@ -8,6 +8,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ import tools.jackson.databind.json.JsonMapper;
  * Usa JDBC y no JPA para que la misma clase sirva a todos los servicios sin registrar entidades; comparte la
  * conexión de la transacción de JPA en curso.
  */
+@RequiredArgsConstructor
 public class OutboxEventWriter {
 
     private static final String INSERT = """
@@ -36,15 +38,6 @@ public class OutboxEventWriter {
     private final MessagingProperties properties;
     private final Clock clock;
     private final OutboxTracing tracing;
-
-    public OutboxEventWriter(JdbcClient jdbcClient, JsonMapper jsonMapper, MessagingProperties properties,
-                             Clock clock, OutboxTracing tracing) {
-        this.jdbcClient = jdbcClient;
-        this.jsonMapper = jsonMapper;
-        this.properties = properties;
-        this.clock = clock;
-        this.tracing = tracing;
-    }
 
     /**
      * Envuelve el mensaje en el sobre común y lo guarda pendiente de enviar. La routing key es el tipo de evento.

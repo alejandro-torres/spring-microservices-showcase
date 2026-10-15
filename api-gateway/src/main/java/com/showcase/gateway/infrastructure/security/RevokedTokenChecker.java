@@ -1,6 +1,7 @@
 package com.showcase.gateway.infrastructure.security;
 
 import java.time.Instant;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
@@ -17,16 +18,13 @@ import reactor.core.publisher.Mono;
  * Las claves son las de {@code RedisRevokedTokenRepositoryImpl} de auth-service: si cambian allí, cambian aquí.
  */
 @Component
+@RequiredArgsConstructor
 public class RevokedTokenChecker {
 
     static final String TOKEN_KEY = "auth:revoked:token:";
     static final String USER_KEY = "auth:revoked:user:";
 
     private final ReactiveStringRedisTemplate redis;
-
-    public RevokedTokenChecker(ReactiveStringRedisTemplate redis) {
-        this.redis = redis;
-    }
 
     public Mono<Boolean> isRevoked(Jwt jwt) {
         Mono<Boolean> tokenRevoked = jwt.getId() == null ? Mono.just(false) : redis.hasKey(TOKEN_KEY + jwt.getId());

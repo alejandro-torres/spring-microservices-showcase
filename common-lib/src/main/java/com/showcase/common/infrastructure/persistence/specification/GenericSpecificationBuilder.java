@@ -14,6 +14,7 @@ import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
 
 /**
@@ -28,21 +29,17 @@ import org.springframework.data.jpa.domain.Specification;
  *   <li>Por defecto solo devuelve registros activos (borrado lógico).</li>
  * </ul>
  */
+@RequiredArgsConstructor
 public class GenericSpecificationBuilder {
 
     static final String ACTIVE_FIELD = "active";
     private static final char ESCAPE = '\\';
 
+    /**
+     * Si {@code like} y {@code startsWith} ignoran las tildes con {@code unaccent} de PostgreSQL (la extensión la
+     * crean las migraciones de cada servicio). Sin PostgreSQL (p. ej. H2), false.
+     */
     private final boolean useUnaccent;
-
-    /** Con {@code unaccent} de PostgreSQL (la extensión la crean las migraciones de cada servicio). */
-    public GenericSpecificationBuilder() {
-        this(true);
-    }
-
-    public GenericSpecificationBuilder(boolean useUnaccent) {
-        this.useUnaccent = useUnaccent;
-    }
 
     public <T> Specification<T> build(List<FilterCriterion> criteria, FilterMapping mapping, boolean includeInactive) {
         return (root, query, cb) -> {

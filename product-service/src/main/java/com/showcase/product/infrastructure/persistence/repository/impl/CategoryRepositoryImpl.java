@@ -15,22 +15,17 @@ import com.showcase.product.infrastructure.persistence.mapper.CategoryEntityMapp
 import com.showcase.product.infrastructure.persistence.repository.CategoryJpaRepository;
 import java.util.List;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
 
 @Repository
+@RequiredArgsConstructor
 public class CategoryRepositoryImpl implements CategoryRepository {
 
     private final CategoryJpaRepository jpaRepository;
     private final CategoryEntityMapper mapper;
     private final GenericSpecificationBuilder specificationBuilder;
-
-    public CategoryRepositoryImpl(CategoryJpaRepository jpaRepository, CategoryEntityMapper mapper,
-                                  GenericSpecificationBuilder specificationBuilder) {
-        this.jpaRepository = jpaRepository;
-        this.mapper = mapper;
-        this.specificationBuilder = specificationBuilder;
-    }
 
     @Override
     public Category save(Category category) {

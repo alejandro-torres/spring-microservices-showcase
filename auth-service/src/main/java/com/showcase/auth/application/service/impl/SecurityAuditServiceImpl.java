@@ -12,24 +12,19 @@ import com.showcase.common.domain.page.PageResult;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class SecurityAuditServiceImpl implements SecurityAuditService {
 
     private final SecurityAuditRepository auditRepository;
     private final RequestMetadataProvider requestMetadataProvider;
     private final Clock clock;
-
-    public SecurityAuditServiceImpl(SecurityAuditRepository auditRepository,
-                                    RequestMetadataProvider requestMetadataProvider, Clock clock) {
-        this.auditRepository = auditRepository;
-        this.requestMetadataProvider = requestMetadataProvider;
-        this.clock = clock;
-    }
 
     /**
      * REQUIRES_NEW suspende la transacción del llamador y abre una nueva que se confirma al salir de

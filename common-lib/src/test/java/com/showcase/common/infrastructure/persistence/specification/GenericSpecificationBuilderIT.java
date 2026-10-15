@@ -60,7 +60,7 @@ class GenericSpecificationBuilderIT {
     @Autowired
     private EntityManager entityManager;
 
-    private final GenericSpecificationBuilder builder = new GenericSpecificationBuilder();
+    private final GenericSpecificationBuilder builder = new GenericSpecificationBuilder(true);
 
     private CategoryEntity laptops;
     private CategoryEntity clothes;

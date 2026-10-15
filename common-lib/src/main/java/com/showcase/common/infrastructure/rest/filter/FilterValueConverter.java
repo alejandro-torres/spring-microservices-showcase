@@ -6,6 +6,8 @@ import java.time.LocalDate;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /**
  * Convierte el texto de un filtro al tipo Java del campo.
@@ -15,9 +17,6 @@ final class FilterValueConverter {
     private static final Set<Class<?>> SUPPORTED = Set.of(
             String.class, Long.class, Integer.class, BigDecimal.class, Boolean.class,
             Instant.class, LocalDate.class, UUID.class);
-
-    private FilterValueConverter() {
-    }
 
     static boolean supports(Class<?> type) {
         return SUPPORTED.contains(type) || type.isEnum();

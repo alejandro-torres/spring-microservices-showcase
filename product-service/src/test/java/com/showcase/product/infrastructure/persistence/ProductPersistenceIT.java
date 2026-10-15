@@ -61,7 +61,7 @@ class ProductPersistenceIT {
 
         @Bean
         GenericSpecificationBuilder genericSpecificationBuilder() {
-            return new GenericSpecificationBuilder();
+            return new GenericSpecificationBuilder(true);
         }
     }
 

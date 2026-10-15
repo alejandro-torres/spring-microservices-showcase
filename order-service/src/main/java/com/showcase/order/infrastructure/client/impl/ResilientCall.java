@@ -9,6 +9,8 @@ import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import java.util.Optional;
 import java.util.function.Supplier;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,9 +22,6 @@ import org.slf4j.LoggerFactory;
 final class ResilientCall {
 
     private static final Logger log = LoggerFactory.getLogger(ResilientCall.class);
-
-    private ResilientCall() {
-    }
 
     static <T> Optional<T> findOptional(CircuitBreaker circuitBreaker, Supplier<T> call) {
         try {

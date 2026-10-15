@@ -3,6 +3,7 @@ package com.showcase.gateway.infrastructure.ratelimit;
 import java.net.InetSocketAddress;
 import java.security.Principal;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.cloud.gateway.support.ipresolver.XForwardedRemoteAddressResolver;
@@ -25,14 +26,12 @@ import reactor.core.publisher.Mono;
  * límite del login.
  */
 @Configuration(proxyBeanMethods = false)
+@RequiredArgsConstructor
 public class RateLimitConfig {
 
+    /** Proxies de confianza delante del gateway (0: el gateway recibe directamente a los clientes). */
+    @Value("${showcase.rate-limit.trusted-proxy-hops:0}")
     private final int trustedProxyHops;
-
-    /** @param trustedProxyHops proxies de confianza delante del gateway (0: el gateway recibe a los clientes) */
-    public RateLimitConfig(@Value("${showcase.rate-limit.trusted-proxy-hops:0}") int trustedProxyHops) {
-        this.trustedProxyHops = trustedProxyHops;
-    }
 
     @Bean
     @Primary

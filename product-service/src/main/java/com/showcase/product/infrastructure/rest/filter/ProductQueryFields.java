@@ -15,10 +15,13 @@ import com.showcase.common.infrastructure.rest.filter.FilterableField;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Set;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /**
  * Lista blanca de filtros y campos de ordenación del catálogo.
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ProductQueryFields {
 
     private static final FilterableField CREATED_AT = FilterableField.of("createdAt", Instant.class, GTE, LTE, BETWEEN);
@@ -38,7 +41,4 @@ public final class ProductQueryFields {
             CREATED_AT);
 
     public static final Set<String> CATEGORY_SORT = Set.of("id", "name", "createdAt");
-
-    private ProductQueryFields() {
-    }
 }

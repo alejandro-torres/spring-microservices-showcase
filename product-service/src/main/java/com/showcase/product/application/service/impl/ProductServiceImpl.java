@@ -14,6 +14,7 @@ import com.showcase.product.domain.repository.ProductRepository;
 import io.micrometer.observation.annotation.Observed;
 import java.math.BigDecimal;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,15 +23,11 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
-
-    public ProductServiceImpl(ProductRepository productRepository, CategoryRepository categoryRepository) {
-        this.productRepository = productRepository;
-        this.categoryRepository = categoryRepository;
-    }
 
     /** {@code timeout}: una escritura del catálogo nunca debería tener la conexión ocupada más de 5 s. */
     @Override

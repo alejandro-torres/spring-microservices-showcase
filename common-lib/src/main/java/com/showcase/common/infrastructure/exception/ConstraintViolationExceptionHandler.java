@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
@@ -27,16 +28,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  */
 @RestControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
+@RequiredArgsConstructor
 public class ConstraintViolationExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ConstraintViolationExceptionHandler.class);
     private static final Set<String> INTERNAL_ATTRIBUTES = Set.of("message", "groups", "payload");
 
     private final ErrorResponseFactory responses;
-
-    public ConstraintViolationExceptionHandler(ErrorResponseFactory responses) {
-        this.responses = responses;
-    }
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ErrorResponseDTO> handleConstraintViolation(ConstraintViolationException ex,

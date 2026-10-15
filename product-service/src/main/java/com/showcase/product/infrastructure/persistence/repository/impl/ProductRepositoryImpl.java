@@ -16,6 +16,7 @@ import com.showcase.product.infrastructure.persistence.repository.CategoryJpaRep
 import com.showcase.product.infrastructure.persistence.repository.ProductJpaRepository;
 import java.util.List;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
 
@@ -23,20 +24,13 @@ import org.springframework.stereotype.Repository;
  * Adaptador de persistencia de productos con Spring Data JPA. Participa en la transacción del servicio.
  */
 @Repository
+@RequiredArgsConstructor
 public class ProductRepositoryImpl implements ProductRepository {
 
     private final ProductJpaRepository productJpaRepository;
     private final CategoryJpaRepository categoryJpaRepository;
     private final ProductEntityMapper mapper;
     private final GenericSpecificationBuilder specificationBuilder;
-
-    public ProductRepositoryImpl(ProductJpaRepository productJpaRepository, CategoryJpaRepository categoryJpaRepository,
-                                 ProductEntityMapper mapper, GenericSpecificationBuilder specificationBuilder) {
-        this.productJpaRepository = productJpaRepository;
-        this.categoryJpaRepository = categoryJpaRepository;
-        this.mapper = mapper;
-        this.specificationBuilder = specificationBuilder;
-    }
 
     @Override
     public Product save(Product product) {

@@ -1,6 +1,7 @@
 package com.showcase.auth.infrastructure.security;
 
 import com.showcase.auth.application.service.TokenRevocationService;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.oauth2.core.OAuth2Error;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Component;
  * que podría estar revocado.
  */
 @Component
+@RequiredArgsConstructor
 public class RevokedTokenValidator implements OAuth2TokenValidator<Jwt> {
 
     private static final Logger log = LoggerFactory.getLogger(RevokedTokenValidator.class);
@@ -26,10 +28,6 @@ public class RevokedTokenValidator implements OAuth2TokenValidator<Jwt> {
             new OAuth2Error(OAuth2ErrorCodes.INVALID_TOKEN, "Revocation check unavailable", null);
 
     private final TokenRevocationService tokenRevocationService;
-
-    public RevokedTokenValidator(TokenRevocationService tokenRevocationService) {
-        this.tokenRevocationService = tokenRevocationService;
-    }
 
     @Override
     public OAuth2TokenValidatorResult validate(Jwt jwt) {

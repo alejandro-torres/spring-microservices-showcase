@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +42,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     static final String DEFAULT_ROLE = "USER";
@@ -56,21 +58,6 @@ public class UserServiceImpl implements UserService {
     private final UserEventPublisher eventPublisher;
     private final AuthMetrics metrics;
     private final Clock clock;
-
-    public UserServiceImpl(UserRepository userRepository, RoleRepository roleRepository,
-                           PasswordHistoryRepository passwordHistoryRepository, PasswordHasher passwordHasher,
-                           SecurityAuditService auditService, TokenRevocationService tokenRevocationService,
-                           UserEventPublisher eventPublisher, AuthMetrics metrics, Clock clock) {
-        this.userRepository = userRepository;
-        this.roleRepository = roleRepository;
-        this.passwordHistoryRepository = passwordHistoryRepository;
-        this.passwordHasher = passwordHasher;
-        this.auditService = auditService;
-        this.tokenRevocationService = tokenRevocationService;
-        this.eventPublisher = eventPublisher;
-        this.metrics = metrics;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional

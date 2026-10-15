@@ -2,11 +2,14 @@ package com.showcase.auth.infrastructure.persistence.specification;
 
 import com.showcase.common.infrastructure.persistence.specification.FilterMapping;
 import java.util.Map;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /**
  * Traducción de los nombres públicos de filtros y ordenación a los paths JPA de cada entidad.
  * Los campos que no aparecen se usan tal cual.
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class AuthFilterMappings {
 
     /** {@code role} filtra por el nombre de los roles del usuario (join con user_roles). */
@@ -16,7 +19,4 @@ public final class AuthFilterMappings {
     public static final FilterMapping ROLES = FilterMapping.of(Map.of("permission", "permissions.name"));
 
     public static final FilterMapping PERMISSIONS = FilterMapping.identity();
-
-    private AuthFilterMappings() {
-    }
 }

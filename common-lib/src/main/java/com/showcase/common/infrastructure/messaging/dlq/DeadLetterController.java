@@ -6,6 +6,7 @@ import com.showcase.common.infrastructure.messaging.dlq.dto.response.DeadLetterR
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,13 +23,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/admin/dead-letters")
 @PreAuthorize("hasRole('ADMIN')")
+@RequiredArgsConstructor
 public class DeadLetterController {
 
     private final DeadLetterQueueAdmin admin;
-
-    public DeadLetterController(DeadLetterQueueAdmin admin) {
-        this.admin = admin;
-    }
 
     @GetMapping
     public List<DeadLetterQueueResponseDTO> queues() {

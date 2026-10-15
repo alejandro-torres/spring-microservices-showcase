@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
@@ -31,20 +32,13 @@ import org.springframework.stereotype.Repository;
  * No abre transacciones propias; participa en la del servicio.
  */
 @Repository
+@RequiredArgsConstructor
 public class UserRepositoryImpl implements UserRepository {
 
     private final UserJpaRepository userJpaRepository;
     private final RoleJpaRepository roleJpaRepository;
     private final UserEntityMapper mapper;
     private final GenericSpecificationBuilder specificationBuilder;
-
-    public UserRepositoryImpl(UserJpaRepository userJpaRepository, RoleJpaRepository roleJpaRepository,
-                              UserEntityMapper mapper, GenericSpecificationBuilder specificationBuilder) {
-        this.userJpaRepository = userJpaRepository;
-        this.roleJpaRepository = roleJpaRepository;
-        this.mapper = mapper;
-        this.specificationBuilder = specificationBuilder;
-    }
 
     @Override
     public User save(User user) {

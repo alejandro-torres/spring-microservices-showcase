@@ -3,6 +3,7 @@ package com.showcase.common.infrastructure.messaging.outbox;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.binder.MeterBinder;
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
@@ -11,13 +12,10 @@ import org.springframework.jdbc.core.simple.JdbcClient;
  * cola recibía y hay que revisar. Prometheus lee el valor en cada consulta (el índice parcial de los pendientes
  * hace que la consulta sea barata).
  */
+@RequiredArgsConstructor
 public class OutboxMetrics implements MeterBinder {
 
     private final JdbcClient jdbcClient;
-
-    public OutboxMetrics(JdbcClient jdbcClient) {
-        this.jdbcClient = jdbcClient;
-    }
 
     @Override
     public void bindTo(MeterRegistry registry) {

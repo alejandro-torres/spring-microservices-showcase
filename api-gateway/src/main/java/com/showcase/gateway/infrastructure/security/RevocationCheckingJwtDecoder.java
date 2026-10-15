@@ -1,5 +1,6 @@
 package com.showcase.gateway.infrastructure.security;
 
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.oauth2.jwt.BadJwtException;
@@ -18,6 +19,7 @@ import reactor.core.publisher.Mono;
  * <p>
  * Si Redis no responde, el token se rechaza: es preferible un 401 a dejar pasar un token que quizá esté revocado.
  */
+@RequiredArgsConstructor
 public class RevocationCheckingJwtDecoder implements ReactiveJwtDecoder {
 
     private static final Logger log = LoggerFactory.getLogger(RevocationCheckingJwtDecoder.class);
@@ -25,11 +27,6 @@ public class RevocationCheckingJwtDecoder implements ReactiveJwtDecoder {
 
     private final ReactiveJwtDecoder delegate;
     private final RevokedTokenChecker revokedTokenChecker;
-
-    public RevocationCheckingJwtDecoder(ReactiveJwtDecoder delegate, RevokedTokenChecker revokedTokenChecker) {
-        this.delegate = delegate;
-        this.revokedTokenChecker = revokedTokenChecker;
-    }
 
     @Override
     public Mono<Jwt> decode(String token) {

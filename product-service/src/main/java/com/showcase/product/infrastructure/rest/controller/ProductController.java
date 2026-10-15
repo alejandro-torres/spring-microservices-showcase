@@ -17,6 +17,7 @@ import com.showcase.product.infrastructure.rest.mapper.ProductRestMapper;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import java.net.URI;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -35,18 +36,12 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
  */
 @RestController
 @RequestMapping("/api/v1/products")
+@RequiredArgsConstructor
 public class ProductController {
 
     private final ProductService productService;
     private final ProductRestMapper mapper;
     private final FilterCriteriaParser filterParser;
-
-    public ProductController(ProductService productService, ProductRestMapper mapper,
-                             FilterCriteriaParser filterParser) {
-        this.productService = productService;
-        this.mapper = mapper;
-        this.filterParser = filterParser;
-    }
 
     @PreAuthorize("hasAuthority('product:write')")
     @PostMapping

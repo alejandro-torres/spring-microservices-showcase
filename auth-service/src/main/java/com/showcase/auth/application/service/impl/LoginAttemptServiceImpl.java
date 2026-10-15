@@ -14,10 +14,12 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class LoginAttemptServiceImpl implements LoginAttemptService {
 
     private final UserRepository userRepository;
@@ -26,17 +28,6 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
     private final UserEventPublisher eventPublisher;
     private final AuthMetrics metrics;
     private final Clock clock;
-
-    public LoginAttemptServiceImpl(UserRepository userRepository, SecurityAuditService auditService,
-                                   LoginPolicy policy, UserEventPublisher eventPublisher, AuthMetrics metrics,
-                                   Clock clock) {
-        this.userRepository = userRepository;
-        this.auditService = auditService;
-        this.policy = policy;
-        this.eventPublisher = eventPublisher;
-        this.metrics = metrics;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional
