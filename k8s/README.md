@@ -54,6 +54,36 @@ gratuitas con versiones fijas, y en producción la base de datos sería un servi
 Las contraseñas de [values.yaml](charts/showcase/values.yaml) son las de desarrollo; para otro entorno se pasan con
 `--set` o con un fichero de valores propio.
 
+## Observabilidad (namespace `monitoring`)
+
+```bash
+k8s/observability/install.sh        # Prometheus, Grafana, Alertmanager, Loki, Alloy y Tempo
+k8s/deploy.sh                       # vuelve a desplegar la aplicación con las trazas hacia Tempo
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80
+```
+
+Grafana queda en http://localhost:3000 (admin / admin), con los mismos dashboards que Docker Compose en la carpeta
+*Showcase* y además los de Kubernetes (pods, nodos, recursos).
+
+- **Métricas**: [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack).
+  El chart crea un `PodMonitor` por servicio y otro para RabbitMQ, con las mismas etiquetas que en Compose
+  (`job="microservices"`, `eureka_app`), así que los dashboards de [docker/grafana/dashboards](../docker/grafana/dashboards)
+  y las alertas de [docker/prometheus/alerts.yml](../docker/prometheus/alerts.yml) se cargan sin cambios. Además hay
+  alertas de pods en CrashLoop, pods que no están listos y Deployments sin todas sus réplicas
+  ([alerts-kubernetes.yml](observability/alerts-kubernetes.yml)).
+- **Logs**: Grafana Alloy corre como DaemonSet (un pod por nodo), lee los ficheros de log de los pods de
+  `showcase` y los envía a Loki con las etiquetas `service`, `container` y `level`, y el `traceId` como metadato.
+- **Trazas**: Tempo, con disco persistente, sustituye a Zipkin. Recibe los spans en formato Zipkin, así que en los
+  microservicios solo cambia `ZIPKIN_ENDPOINT`. `deploy.sh` lo detecta y aplica
+  [showcase-values.yaml](observability/showcase-values.yaml).
+
+**Buscar por traceId**: en *Explore → Loki*, `{service=~".+"} | traceId="<traceId>"` muestra los logs de la petición
+en todos los servicios, y el enlace *Ver la traza en Tempo* de cada línea abre la traza. En sentido contrario, desde
+una traza de Tempo se llega a sus logs, y desde los exemplars de las gráficas de latencia, a la traza de esa petición.
+
+En kind saltan dos alertas sin importancia: `NodeClockNotSynchronising`, porque los nodos son contenedores sin NTP,
+y `CPUThrottlingHigh` mientras arrancan las JVM con el límite de 1 CPU.
+
 ## Comandos útiles
 
 ```bash
