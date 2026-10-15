@@ -10,6 +10,7 @@ import com.showcase.product.application.service.ProductService;
 import com.showcase.product.application.service.StockLine;
 import com.showcase.product.application.service.StockService;
 import com.showcase.product.infrastructure.lock.impl.RedissonDistributedLockManagerImpl;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -110,9 +111,9 @@ class StockConcurrencyIT {
         void lockHeldByOtherReplica_shouldFailWithResourceBusy() throws Exception {
             // given: otra "réplica" coge el lock y lo retiene
             var otherReplica = new RedissonDistributedLockManagerImpl(redisson, Duration.ofSeconds(1),
-                    Duration.ofSeconds(10));
+                    Duration.ofSeconds(10), new SimpleMeterRegistry());
             var impatient = new RedissonDistributedLockManagerImpl(redisson, Duration.ofMillis(200),
-                    Duration.ofSeconds(10));
+                    Duration.ofSeconds(10), new SimpleMeterRegistry());
             CountDownLatch locked = new CountDownLatch(1);
             CountDownLatch release = new CountDownLatch(1);
             ExecutorService pool = Executors.newSingleThreadExecutor();
@@ -135,6 +136,37 @@ class StockConcurrencyIT {
             pool.shutdown();
             assertThat(impatient.executeWithLocks(List.of("lock:product:1", "lock:product:2"), () -> "ok"))
                     .isEqualTo("ok");
+        }
+    }
+
+    @Nested
+    @DisplayName("lock tras un fallo")
+    class LockAfterFailure {
+
+        @Test
+        @DisplayName("si la operación falla, el lock se suelta igualmente y otra réplica puede cogerlo")
+        void failingAction_shouldReleaseLock() {
+            // given
+            var replica = new RedissonDistributedLockManagerImpl(redisson, Duration.ofMillis(200),
+                    Duration.ofSeconds(10), new SimpleMeterRegistry());
+            var otherReplica = new RedissonDistributedLockManagerImpl(redisson, Duration.ofMillis(200),
+                    Duration.ofSeconds(10), new SimpleMeterRegistry());
+
+            // when
+            assertThatThrownBy(() -> replica.executeWithLocks(List.of("lock:product:77"), () -> {
+                throw new IllegalStateException("fallo en mitad de la reserva");
+            })).isInstanceOf(IllegalStateException.class);
+
+            // then: desde otro hilo (otra "réplica") se consigue enseguida, sin esperar a que caduque
+            ExecutorService pool = Executors.newSingleThreadExecutor();
+            try {
+                assertThat(pool.submit(() -> otherReplica.executeWithLocks(List.of("lock:product:77"), () -> "ok"))
+                        .get(5, TimeUnit.SECONDS)).isEqualTo("ok");
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            } finally {
+                pool.shutdown();
+            }
         }
     }
 

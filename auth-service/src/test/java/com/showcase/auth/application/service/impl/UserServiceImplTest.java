@@ -11,6 +11,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.showcase.auth.application.metrics.AuthMetrics;
 import com.showcase.auth.application.security.PasswordHasher;
 import com.showcase.auth.application.service.SecurityAuditService;
 import com.showcase.auth.application.service.TokenRevocationService;
@@ -71,6 +72,9 @@ class UserServiceImplTest {
     @Mock
     private UserEventPublisher eventPublisher;
 
+    @Mock
+    private AuthMetrics metrics;
+
     private static final java.time.Instant NOW = java.time.Instant.parse("2026-10-14T12:00:00Z");
 
     private UserServiceImpl userService;
@@ -78,7 +82,7 @@ class UserServiceImplTest {
     @org.junit.jupiter.api.BeforeEach
     void createService() {
         userService = new UserServiceImpl(userRepository, roleRepository, passwordHistoryRepository, passwordHasher,
-                auditService, tokenRevocationService, eventPublisher,
+                auditService, tokenRevocationService, eventPublisher, metrics,
                 java.time.Clock.fixed(NOW, java.time.ZoneOffset.UTC));
     }
 
@@ -239,6 +243,7 @@ class UserServiceImplTest {
             assertThat(registered.getPasswordHash()).isEqualTo("{bcrypt}cifrada");
             verify(eventPublisher).publish(new UserRegisteredEvent(registered.getId(), "ana", "ana@example.com",
                     "Ana", "García", NOW));
+            verify(metrics).userRegistered();
         }
 
         @Test

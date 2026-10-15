@@ -2,6 +2,7 @@ package com.showcase.product.infrastructure.config;
 
 import com.showcase.product.application.lock.DistributedLockManager;
 import com.showcase.product.infrastructure.lock.impl.RedissonDistributedLockManagerImpl;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
@@ -30,9 +31,9 @@ public class LockConfig {
      * @param leaseTime caducidad del lock por si la réplica que lo tiene muere sin soltarlo
      */
     @Bean
-    public DistributedLockManager distributedLockManager(RedissonClient redisson,
+    public DistributedLockManager distributedLockManager(RedissonClient redisson, MeterRegistry meterRegistry,
                                                          @Value("${showcase.lock.wait-time:3s}") Duration waitTime,
                                                          @Value("${showcase.lock.lease-time:10s}") Duration leaseTime) {
-        return new RedissonDistributedLockManagerImpl(redisson, waitTime, leaseTime);
+        return new RedissonDistributedLockManagerImpl(redisson, waitTime, leaseTime, meterRegistry);
     }
 }

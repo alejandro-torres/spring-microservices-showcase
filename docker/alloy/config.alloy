@@ -1,0 +1,58 @@
+// Grafana Alloy: recoge los logs de todos los contenedores de docker compose y los envía a Loki.
+// Cada línea lleva las etiquetas service (servicio de compose) y container (la réplica concreta).
+
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+  filter {
+    name   = "label"
+    values = ["com.docker.compose.project=spring-microservices-showcase"]
+  }
+}
+
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+}
+
+loki.source.docker "containers" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.relabel.containers.output
+  relabel_rules = discovery.relabel.containers.rules
+  forward_to    = [loki.process.json.receiver]
+}
+
+// Los microservicios escriben JSON (ECS, con objetos anidados: {"log":{"level":...},"service":{...}}): se extraen
+// el nivel como etiqueta (para filtrar) y el traceId, el spanId y la réplica como metadatos (para buscar los logs
+// de una traza y saltar a Zipkin) sin multiplicar las series de Loki.
+loki.process "json" {
+  stage.json {
+    expressions = {
+      level    = "log.level",
+      traceId  = "traceId",
+      spanId   = "spanId",
+      instance = "service.node.name",
+    }
+  }
+  stage.labels {
+    values = { level = "" }
+  }
+  stage.structured_metadata {
+    values = { traceId = "", spanId = "", instance = "" }
+  }
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

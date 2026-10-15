@@ -1,5 +1,6 @@
 package com.showcase.auth.application.service.impl;
 
+import com.showcase.auth.application.metrics.AuthMetrics;
 import com.showcase.auth.application.security.PasswordHasher;
 import com.showcase.auth.application.service.SecurityAuditService;
 import com.showcase.auth.application.service.TokenRevocationService;
@@ -53,12 +54,13 @@ public class UserServiceImpl implements UserService {
     private final SecurityAuditService auditService;
     private final TokenRevocationService tokenRevocationService;
     private final UserEventPublisher eventPublisher;
+    private final AuthMetrics metrics;
     private final Clock clock;
 
     public UserServiceImpl(UserRepository userRepository, RoleRepository roleRepository,
                            PasswordHistoryRepository passwordHistoryRepository, PasswordHasher passwordHasher,
                            SecurityAuditService auditService, TokenRevocationService tokenRevocationService,
-                           UserEventPublisher eventPublisher, Clock clock) {
+                           UserEventPublisher eventPublisher, AuthMetrics metrics, Clock clock) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordHistoryRepository = passwordHistoryRepository;
@@ -66,6 +68,7 @@ public class UserServiceImpl implements UserService {
         this.auditService = auditService;
         this.tokenRevocationService = tokenRevocationService;
         this.eventPublisher = eventPublisher;
+        this.metrics = metrics;
         this.clock = clock;
     }
 
@@ -84,6 +87,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new RoleNotFoundException(DEFAULT_ROLE))));
         eventPublisher.publish(new UserRegisteredEvent(user.getId(), user.getUsername(), user.getEmail(),
                 firstName, lastName, Instant.now(clock)));
+        metrics.userRegistered();
         return user;
     }
 

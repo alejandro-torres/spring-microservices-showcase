@@ -3,6 +3,8 @@ package com.showcase.product.infrastructure.lock.impl;
 import com.showcase.common.domain.exception.CommonErrorCode;
 import com.showcase.common.domain.exception.DomainException;
 import com.showcase.product.application.lock.DistributedLockManager;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
@@ -22,14 +24,33 @@ import org.redisson.api.RedissonClient;
  */
 public class RedissonDistributedLockManagerImpl implements DistributedLockManager {
 
+    static final String WAIT_METRIC = "distributed.lock.wait";
+
     private final RedissonClient redisson;
     private final Duration waitTime;
     private final Duration leaseTime;
+    private final Timer acquiredTimer;
+    private final Timer busyTimer;
 
-    public RedissonDistributedLockManagerImpl(RedissonClient redisson, Duration waitTime, Duration leaseTime) {
+    /**
+     * @param meterRegistry métrica {@code distributed.lock.wait}: cuánto se espera por los locks, separando los que
+     *                      se consiguen ({@code outcome=acquired}) de los que se rinden ({@code outcome=busy})
+     */
+    public RedissonDistributedLockManagerImpl(RedissonClient redisson, Duration waitTime, Duration leaseTime,
+                                              MeterRegistry meterRegistry) {
         this.redisson = redisson;
         this.waitTime = waitTime;
         this.leaseTime = leaseTime;
+        this.acquiredTimer = waitTimer(meterRegistry, "acquired");
+        this.busyTimer = waitTimer(meterRegistry, "busy");
+    }
+
+    private static Timer waitTimer(MeterRegistry registry, String outcome) {
+        return Timer.builder(WAIT_METRIC)
+                .description("Tiempo de espera por los locks distribuidos")
+                .tag("outcome", outcome)
+                .publishPercentileHistogram()
+                .register(registry);
     }
 
     @Override
@@ -40,12 +61,15 @@ public class RedissonDistributedLockManagerImpl implements DistributedLockManage
         }
         RLock lock = locks.length == 1 ? locks[0] : new RedissonMultiLock(locks);
         boolean acquired;
+        long start = System.nanoTime();
         try {
             acquired = lock.tryLock(waitTime.toMillis(), leaseTime.toMillis(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            busyTimer.record(System.nanoTime() - start, TimeUnit.NANOSECONDS);
             throw new ResourceBusyException(String.join(",", keys), e);
         }
+        (acquired ? acquiredTimer : busyTimer).record(System.nanoTime() - start, TimeUnit.NANOSECONDS);
         if (!acquired) {
             throw new ResourceBusyException(String.join(",", keys), null);
         }

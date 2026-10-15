@@ -1,0 +1,16 @@
+{
+  "uid": "showcase-load",
+  "title": "3. Reparto de carga",
+  "description": "Peticiones por réplica: muestra el balanceo y qué pasa al apagar una réplica.",
+  "tags": ["showcase"],
+  "timezone": "browser",
+  "schemaVersion": 41,
+  "refresh": "10s",
+  "time": {"from": "now-30m", "to": "now"},
+  "templating": {"list": []},
+  "panels": [
+    {"id":1,"type":"timeseries","title":"Peticiones por segundo por réplica","description":"Cada línea es una réplica (el valor de X-Instance-Id).","datasource":{"type":"prometheus","uid":"prometheus"},"gridPos":{"x":0,"y":0,"w":24,"h":8},"fieldConfig":{"defaults":{"unit":"reqps"},"overrides":[]},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]},"tooltip":{"mode":"multi"}},"targets":[{"refId":"A","datasource":{"type":"prometheus","uid":"prometheus"},"expr":"sum by (application, instance) (rate(http_server_requests_seconds_count{uri!~\"/actuator.*\", application!=\"api-gateway\"}[1m]))","legendFormat":"{{instance}}","exemplar":true}]},
+    {"id":2,"type":"timeseries","title":"Réplicas que responden","description":"Al apagar una réplica, su línea cae a 0 y Eureka la retira.","datasource":{"type":"prometheus","uid":"prometheus"},"gridPos":{"x":0,"y":8,"w":12,"h":8},"fieldConfig":{"defaults":{"unit":"none"},"overrides":[]},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]},"tooltip":{"mode":"multi"}},"targets":[{"refId":"A","datasource":{"type":"prometheus","uid":"prometheus"},"expr":"up{job=\"microservices\"}","legendFormat":"{{instance}}","exemplar":true}]},
+    {"id":3,"type":"timeseries","title":"Peticiones del gateway por ruta","description":"Tráfico que enruta el gateway a cada servicio.","datasource":{"type":"prometheus","uid":"prometheus"},"gridPos":{"x":12,"y":8,"w":12,"h":8},"fieldConfig":{"defaults":{"unit":"reqps"},"overrides":[]},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]},"tooltip":{"mode":"multi"}},"targets":[{"refId":"A","datasource":{"type":"prometheus","uid":"prometheus"},"expr":"sum by (routeId) (rate(spring_cloud_gateway_requests_seconds_count[1m]))","legendFormat":"{{routeId}}","exemplar":true}]}
+  ]
+}

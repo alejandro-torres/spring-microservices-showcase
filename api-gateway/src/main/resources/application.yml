@@ -29,6 +29,10 @@ spring:
     gateway:
       server:
         webflux:
+          # Las cabeceras X-Forwarded-* (host, puerto, protocolo, IP) solo se envían a los servicios si el cliente
+          # llega desde una de estas redes; sin ellas, auth-service redirigiría el login a su IP interna. En local y
+          # en Docker son la máquina y las redes privadas; en producción, la del balanceador que haya delante.
+          trusted-proxies: ${GATEWAY_TRUSTED_PROXIES:127[.]0[.]0[.]1|0:0:0:0:0:0:0:1|10[.].*|172[.](1[6-9]|2[0-9]|3[01])[.].*|192[.]168[.].*}
           filter:
             request-rate-limiter:
               # Al superar el límite se lanza una excepción en lugar de devolver un 429 vacío: así el
@@ -175,6 +179,12 @@ spring:
   lifecycle:
     timeout-per-shutdown-phase: 30s
 
+showcase:
+  rate-limit:
+    # Proxies de confianza delante del gateway (p. ej. 1 con un balanceador): solo entonces se usa la IP de
+    # X-Forwarded-For para el rate limiting por IP; si no, la de la conexión (la cabecera se puede falsificar).
+    trusted-proxy-hops: ${RATE_LIMIT_TRUSTED_PROXY_HOPS:0}
+
 # Un único Swagger UI con un desplegable para la API de cada servicio.
 springdoc:
   swagger-ui:
@@ -214,8 +224,30 @@ eureka:
     prefer-ip-address: true
     lease-renewal-interval-in-seconds: 5
     lease-expiration-duration-in-seconds: 15
+    # Prometheus descubre las réplicas en Eureka y lee aquí en qué puerto están sus métricas.
+    metadata-map:
+      prometheus-port: ${management.server.port:${server.port}}
 
 management:
+  # Actuator (health, métricas) en un puerto propio: el 8080 es público y el 8081 solo se ve en la red interna.
+  server:
+    port: ${MANAGEMENT_PORT:8081}
+  metrics:
+    # Etiquetas comunes de todas las métricas: servicio, réplica (la misma de X-Instance-Id) y entorno.
+    tags:
+      application: ${spring.application.name}
+      instance: ${showcase.instance-id}
+      environment: ${ENVIRONMENT:dev}
+    distribution:
+      # Histograma de latencias para calcular p50/p95/p99 en Prometheus; con trazas, cada cubo lleva un
+      # exemplar con el traceId de una petición real (para saltar de la gráfica a Zipkin).
+      percentiles-histogram:
+        http.server.requests: true
+        http.client.requests: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
   tracing:
     sampling:
       probability: ${TRACING_SAMPLING_PROBABILITY:0.1}
@@ -225,8 +257,17 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
   endpoint:
     health:
       probes:
         enabled: true
+
+# Logs estructurados (cuando se activan con logging.structured.format.console=ecs, como en Docker y en prod):
+# cada línea es un JSON con el servicio, la réplica, el entorno y el traceId/spanId de la petición.
+logging:
+  structured:
+    ecs:
+      service:
+        node-name: ${showcase.instance-id}
+        environment: ${ENVIRONMENT:dev}

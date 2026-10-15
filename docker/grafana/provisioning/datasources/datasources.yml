@@ -1,0 +1,44 @@
+# Datasources provisionados al arrancar Grafana, enlazados entre sí por el traceId:
+#   - Prometheus → Zipkin: cada exemplar de las gráficas de latencia abre su traza.
+#   - Loki → Zipkin: el traceId de cada línea de log abre su traza.
+#   - Zipkin → Loki: desde una traza se ven los logs de esa petición.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: zipkin
+
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      derivedFields:
+        - name: traceId
+          matcherType: regex
+          matcherRegex: '"traceId":"(\w+)"'
+          url: "$${__value.raw}"
+          datasourceUid: zipkin
+          urlDisplayLabel: Ver la traza en Zipkin
+
+  - name: Zipkin
+    uid: zipkin
+    type: zipkin
+    access: proxy
+    url: http://zipkin:9411
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki
+        spanStartTimeShift: "-5m"
+        spanEndTimeShift: "5m"
+        customQuery: true
+        query: '{service=~".+"} | traceId="$${__trace.traceId}"'

@@ -14,6 +14,7 @@ import com.showcase.common.domain.exception.BusinessRuleException;
 import com.showcase.common.domain.exception.CommonErrorCode;
 import com.showcase.common.domain.messaging.ProcessedEventRegistry;
 import com.showcase.product.application.lock.DistributedLockManager;
+import com.showcase.product.application.metrics.StockMetrics;
 import com.showcase.product.application.service.StockLine;
 import com.showcase.product.domain.event.StockReleasedEvent;
 import com.showcase.product.domain.event.StockReservationFailedEvent;
@@ -59,6 +60,9 @@ class StockServiceImplTest {
     @Mock
     private PlatformTransactionManager transactionManager;
 
+    @Mock
+    private StockMetrics metrics;
+
     /** Lock que siempre se consigue y apunta qué claves se pidieron. */
     private final List<String> lockedKeys = new ArrayList<>();
     private final DistributedLockManager lockManager = new DistributedLockManager() {
@@ -76,7 +80,7 @@ class StockServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        stockService = new StockServiceImpl(productRepository, processedEvents, eventPublisher, lockManager,
+        stockService = new StockServiceImpl(productRepository, processedEvents, eventPublisher, lockManager, metrics,
                 transactionManager, Clock.fixed(NOW, ZoneOffset.UTC));
         mouse = product(10L, "Ratón", "5.00", 5);
         keyboard = product(11L, "Teclado", "20.00", 1);
@@ -112,7 +116,7 @@ class StockServiceImplTest {
                 }
             };
             var service = new StockServiceImpl(productRepository, processedEvents, eventPublisher, busyLockManager,
-                    transactionManager, Clock.fixed(NOW, ZoneOffset.UTC));
+                    metrics, transactionManager, Clock.fixed(NOW, ZoneOffset.UTC));
 
             // when / then
             assertThatThrownBy(() -> service.reserve(EVENT_ID, 7L, LINES)).isSameAs(busy);
@@ -147,6 +151,7 @@ class StockServiceImplTest {
             assertThat(keyboard.getStock()).isZero();
             verify(productRepository, times(2)).save(any(Product.class));
             verify(eventPublisher).publish(new StockReservedEvent(7L, NOW));
+            verify(metrics).stockReserved();
         }
 
         @Test
@@ -164,6 +169,7 @@ class StockServiceImplTest {
             assertThat(mouse.getStock()).isEqualTo(5);
             verify(productRepository, never()).save(any());
             verify(eventPublisher).publish(new StockReservationFailedEvent(7L, "INSUFFICIENT_STOCK", 11L, NOW));
+            verify(metrics).reservationFailed("INSUFFICIENT_STOCK");
         }
 
         @Test
@@ -232,6 +238,7 @@ class StockServiceImplTest {
             assertThat(mouse.getStock()).isEqualTo(7);
             assertThat(keyboard.getStock()).isEqualTo(2);
             verify(eventPublisher).publish(new StockReleasedEvent(7L, NOW));
+            verify(metrics).stockReleased();
         }
 
         @Test
@@ -248,6 +255,7 @@ class StockServiceImplTest {
             // then
             verify(productRepository).save(keyboard);
             verify(eventPublisher).publish(new StockReleasedEvent(7L, NOW));
+            verify(metrics).stockReleased();
         }
 
         @Test

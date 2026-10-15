@@ -21,7 +21,9 @@ public class WebSecurityConfig {
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/actuator/health/**", "/actuator/info", "/error").permitAll()
+                        // /actuator/prometheus: solo se publica en la red interna de Docker; el gateway no lo enruta.
+                        .requestMatchers("/actuator/health/**", "/actuator/info", "/actuator/prometheus", "/error")
+                        .permitAll()
                         .requestMatchers(OpenApiPaths.PUBLIC).permitAll()
                         .anyRequest().authenticated())
                 .formLogin(Customizer.withDefaults());

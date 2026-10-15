@@ -1,5 +1,6 @@
 package com.showcase.auth.application.service.impl;
 
+import com.showcase.auth.application.metrics.AuthMetrics;
 import com.showcase.auth.application.security.LoginPolicy;
 import com.showcase.auth.application.service.LoginAttemptService;
 import com.showcase.auth.application.service.SecurityAuditService;
@@ -23,14 +24,17 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
     private final SecurityAuditService auditService;
     private final LoginPolicy policy;
     private final UserEventPublisher eventPublisher;
+    private final AuthMetrics metrics;
     private final Clock clock;
 
     public LoginAttemptServiceImpl(UserRepository userRepository, SecurityAuditService auditService,
-                                   LoginPolicy policy, UserEventPublisher eventPublisher, Clock clock) {
+                                   LoginPolicy policy, UserEventPublisher eventPublisher, AuthMetrics metrics,
+                                   Clock clock) {
         this.userRepository = userRepository;
         this.auditService = auditService;
         this.policy = policy;
         this.eventPublisher = eventPublisher;
+        this.metrics = metrics;
         this.clock = clock;
     }
 
@@ -44,6 +48,7 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
             }
         });
         auditService.record(SecurityEventType.LOGIN_SUCCESS, normalize(username), null);
+        metrics.loginSucceeded();
     }
 
     /**
@@ -58,19 +63,23 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
         if (found.isEmpty()) {
             // Usuario inexistente: se audita igual (puede ser un ataque), pero no hay cuenta que bloquear.
             auditService.record(SecurityEventType.LOGIN_FAILURE, normalize(username), "unknown user");
+            metrics.loginFailed();
             return;
         }
         User user = found.get();
         Instant now = Instant.now(clock);
         boolean lockedNow = user.registerFailedLogin(policy.maxFailedAttempts(), policy.lockDuration(), now);
         userRepository.save(user);
+        metrics.loginFailed();
         auditService.record(SecurityEventType.LOGIN_FAILURE, user.getUsername(),
                 lockedNow ? "attempts=" + policy.maxFailedAttempts() : "attempts=" + user.getFailedAttempts());
         if (lockedNow) {
             auditService.record(SecurityEventType.ACCOUNT_LOCKED, user.getUsername(), "until=" + user.getLockedUntil());
-            // Gracias a noRollbackFor, el evento del outbox también se confirma aunque se lance la excepción.
+            // Gracias a noRollbackFor, el evento del outbox (y la métrica) también se confirman aunque se lance la
+            // excepción.
             eventPublisher.publish(new AccountLockedEvent(user.getId(), user.getUsername(), user.getLockedUntil(),
                     now));
+            metrics.accountLocked();
             throw new AccountLockedException(user.getUsername(), user.getLockedUntil());
         }
     }

@@ -2,9 +2,9 @@
 
 Sistema de microservicios en Java 21 y Spring Boot 4 con **arquitectura hexagonal**, pensado como demostración de lo que se puede construir en sistemas distribuidos con Java.
 
-> 🚧 Proyecto en construcción. El desarrollo avanza por fases, cada una en su propio pull request.
+> Desarrollado por fases, cada una en su propio pull request (de la estructura inicial a la observabilidad y las pruebas de extremo a extremo).
 
-## Qué incluirá
+## Qué incluye
 
 - **4 microservicios de negocio:** `auth-service` (usuarios, roles y OAuth2), `product-service`, `customer-service` y `order-service`.
 - **Infraestructura:** API Gateway (Spring Cloud Gateway) y descubrimiento de servicios (Eureka).
@@ -24,7 +24,16 @@ Requisitos: **JDK 21** y **Docker** (para los tests de integración con Testcont
 ./mvnw verify
 ```
 
-En Windows (PowerShell o CMD) se usa `mvnw.cmd verify`. El informe de cobertura queda en `<módulo>/target/site/jacoco/index.html`.
+En Windows (PowerShell o CMD) se usa `mvnw.cmd verify`.
+
+| Qué | Cómo |
+|---|---|
+| Solo los tests unitarios (`*Test`, JUnit 5 + Mockito, sin Spring ni Docker; segundos) | `./mvnw test` |
+| Unitarios y de integración (`*IT`, con PostgreSQL, Redis y RabbitMQ reales en Testcontainers) | `./mvnw verify` |
+| Cobertura | `./mvnw verify` falla si `domain` y `application` bajan del 80 % de líneas o del 70 % de ramas. Informe de cada módulo en `<módulo>/target/site/jacoco/index.html` e informe agregado de todos en `coverage-report/target/site/jacoco-aggregate/index.html` (sin configuración, DTOs, entidades, clases `*Application` ni el código de MapStruct) |
+| De extremo a extremo contra el sistema en Docker | Con el sistema arrancado (`docker compose up -d --build`): `./mvnw -Pe2e -pl e2e-tests verify` |
+
+Las pruebas de extremo a extremo ([e2e-tests](e2e-tests/src/test/java/com/showcase/e2e/ShowcaseE2EIT.java)) hacen lo mismo que un cliente real y todo a través del gateway: login con authorization code + PKCE en el formulario de auth-service, alta de un producto y de un cliente, pedido que la saga confirma descontando el stock, cancelación que lo devuelve y pedido sin stock rechazado con 422.
 
 ## Estructura
 
@@ -38,6 +47,8 @@ En Windows (PowerShell o CMD) se usa `mvnw.cmd verify`. El informe de cobertura 
 | `order-service` | Pedidos y sus líneas; consulta clientes y productos con Feign y Resilience4j (puerto 8083) |
 | `discovery-service` | Registro de servicios con Eureka (puerto 8761) |
 | `api-gateway` | Punto de entrada único: valida el token, enruta, limita la tasa de peticiones y agrega Swagger (puerto 8080) |
+| `coverage-report` | Informe de cobertura de JaCoCo agregado de todos los módulos |
+| `e2e-tests` | Pruebas de extremo a extremo contra el sistema en Docker (perfil `e2e`) |
 
 ## Arrancar todo con Docker
 
@@ -59,7 +70,7 @@ La primera vez tarda unos minutos (descarga las dependencias y compila los 6 ser
 
 Solo el gateway expone la API; los servicios no publican puertos. Hay una base de datos y un usuario de PostgreSQL por servicio, y un usuario de RabbitMQ por servicio con permisos solo sobre sus exchanges y colas ([docker/rabbitmq/setup-users.sh](docker/rabbitmq/setup-users.sh)). El perfil por defecto es `dev` (datos de ejemplo y el 100 % de las trazas); con `SPRING_PROFILES_ACTIVE=prod`, logs en JSON y el 10 % de las trazas.
 
-Los tokens se piden a través del gateway (`http://localhost:8080/oauth2/token`, login en `http://localhost:8080/login`), que es el emisor (`iss`) de los JWT.
+Los tokens se piden a través del gateway (`http://localhost:8080/oauth2/token`, login en `http://localhost:8080/login`), que es el emisor (`iss`) de los JWT. El gateway reenvía a los servicios las cabeceras `X-Forwarded-*` de los clientes que llegan desde la propia máquina o desde redes privadas (`GATEWAY_TRUSTED_PROXIES`); con un balanceador delante, indica su red ahí y `RATE_LIMIT_TRUSTED_PROXY_HOPS=1` para que el rate limiting use la IP real del cliente.
 
 ## Arrancar los servicios uno a uno (desarrollo)
 
@@ -351,6 +362,36 @@ El test [StockConcurrencyIT](product-service/src/test/java/com/showcase/product/
 Todos los servicios, incluidos el gateway y auth-service, envían sus trazas a Zipkin (Micrometer Tracing con Brave). Una misma traza sigue la petición por el gateway, las llamadas Feign, cada consulta SQL (sin los valores de los parámetros) y los casos de uso marcados con `@Observed`. También sigue los mensajes de RabbitMQ: el outbox guarda el `traceparent` de la petición y el envío continúa esa traza, así que un pedido se ve de punta a punta: gateway → order-service → RabbitMQ → product-service → RabbitMQ → order-service.
 
 Cada línea de log lleva `[traceId-spanId]`, y el `traceId` es el mismo que devuelven la cabecera `X-Trace-Id` y el campo `traceId` de los errores. Para buscar una petición: http://localhost:9411 → *Search by trace ID*.
+
+## Observabilidad: Prometheus, Loki y Grafana
+
+Se levanta junto al sistema con un segundo fichero de compose:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d --build
+```
+
+| Consola | URL |
+|---|---|
+| Grafana (dashboards, logs y trazas) | http://localhost:3000 (usuario `admin`, contraseña `admin` o la de `.env`) |
+| Prometheus (métricas y alertas) | http://localhost:9090 |
+
+| Pieza | Detalle |
+|---|---|
+| Métricas | Cada servicio expone `/actuator/prometheus`, solo en la red interna (el gateway, en su puerto interno 8081). Prometheus descubre las réplicas en Eureka, sin listar instancias a mano. Todas las métricas llevan `application`, `instance` (la réplica, igual que `X-Instance-Id`) y `environment` |
+| Técnicas | Peticiones, latencia con histogramas (p50/p95/p99), errores por endpoint, JVM, Hikari, circuit breakers, peticiones del gateway por ruta, colas y DLQ de RabbitMQ, eventos pendientes en el outbox (`outbox_events`) y espera de los locks (`distributed_lock_wait_seconds`) |
+| De negocio | `showcase_orders_total` (creados, confirmados, rechazados con su motivo, cancelados), `showcase_stock_operations_total`, `showcase_auth_registrations_total`, `showcase_auth_logins_total` y `showcase_auth_accounts_locked_total`. Se cuentan después del commit |
+| Logs | En Docker, cada servicio escribe JSON (ECS) con el servicio, la réplica, el nivel, el `traceId` y el `spanId`. Grafana Alloy los recoge de todos los contenedores y los envía a Loki |
+| Correlación | Desde un punto de una gráfica de latencia (exemplar) se salta a su traza en Zipkin; desde un log, a su traza; y desde una traza, a sus logs |
+| Dashboards | Carpeta *Showcase*: visión general, por microservicio, reparto de carga, mensajería, negocio y seguridad ([docker/grafana/dashboards](docker/grafana/dashboards)) |
+| Alertas | Errores 5xx > 5 % durante 5 min, latencia p95 > 1 s, mensajes en una DLQ, circuit breaker abierto, réplica caída y eventos atascados en el outbox ([docker/prometheus/alerts.yml](docker/prometheus/alerts.yml)) |
+
+### Escenario: seguir una petición de punta a punta
+
+1. En Grafana, abre *Showcase → 1. Visión general del sistema* y busca en *Latencia p95* un punto (exemplar) de la petición que te interese; al pasar el ratón aparece su `trace_id` y el enlace a Zipkin.
+2. En Zipkin se ve la petición entera: gateway → servicio → consultas SQL → envío a RabbitMQ → servicio que consume el evento.
+3. Desde la traza, *Logs for this span* abre en Loki las líneas de log de esa petición en todos los servicios (también se puede buscar con `{service="order-service"} | traceId="<traceId>"`).
+4. El mismo `traceId` lo devuelve la API en la cabecera `X-Trace-Id` y en el campo `traceId` de los errores.
 
 ## Documentación de la API (Swagger)
 

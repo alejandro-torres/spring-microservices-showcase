@@ -1,0 +1,62 @@
+# Alertas de ejemplo. Se ven en Prometheus (http://localhost:9090/alerts) y en Grafana (Alerting → Alert rules,
+# datasource Prometheus).
+groups:
+  - name: showcase
+    rules:
+      - alert: TasaDeErrores5xxAlta
+        expr: |
+          sum by (application) (rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+            / sum by (application) (rate(http_server_requests_seconds_count[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Más del 5 % de errores 5xx en {{ $labels.application }}"
+          description: "Durante 5 minutos, {{ $value | humanizePercentage }} de las respuestas son 5xx."
+
+      - alert: LatenciaP95Alta
+        expr: |
+          histogram_quantile(0.95,
+            sum by (application, le) (rate(http_server_requests_seconds_bucket{uri!~"/actuator.*"}[5m]))) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Latencia p95 por encima de 1 s en {{ $labels.application }}"
+          description: "El percentil 95 es {{ $value | humanizeDuration }}."
+
+      - alert: MensajesEnDLQ
+        expr: sum by (queue) (rabbitmq_detailed_queue_messages{queue=~".*[.]dlq"}) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Hay mensajes en la DLQ {{ $labels.queue }}"
+          description: "{{ $value }} mensajes fallidos esperan revisión (GET /api/v1/admin/{servicio}/dead-letters)."
+
+      - alert: CircuitBreakerAbierto
+        expr: max by (application, name) (resilience4j_circuitbreaker_state{state="open"}) == 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Circuit breaker {{ $labels.name }} abierto en {{ $labels.application }}"
+          description: "Las llamadas a {{ $labels.name }} se están cortando con 503."
+
+      - alert: ReplicaCaida
+        expr: up{job="microservices"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "La réplica {{ $labels.instance }} no responde"
+          description: "Prometheus no puede leer sus métricas desde hace 1 minuto."
+
+      - alert: EventosAtascadosEnOutbox
+        expr: max by (application) (outbox_events{status="pending"}) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.application }} no consigue publicar sus eventos"
+          description: "{{ $value }} eventos pendientes en el outbox: revisa la conexión con RabbitMQ."

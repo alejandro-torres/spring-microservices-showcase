@@ -1,0 +1,10 @@
+# Dashboards versionados en el repositorio (docker/grafana/dashboards), cargados en la carpeta "Showcase".
+apiVersion: 1
+
+providers:
+  - name: showcase
+    folder: Showcase
+    type: file
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards

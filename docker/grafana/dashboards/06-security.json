@@ -1,0 +1,19 @@
+{
+  "uid": "showcase-security",
+  "title": "6. Seguridad",
+  "description": "Logins fallidos, cuentas bloqueadas y respuestas 401/403/429.",
+  "tags": ["showcase"],
+  "timezone": "browser",
+  "schemaVersion": 41,
+  "refresh": "10s",
+  "time": {"from": "now-30m", "to": "now"},
+  "templating": {"list": []},
+  "panels": [
+    {"id":1,"type":"stat","title":"Logins fallidos (1 h)","description":"","datasource":{"type":"prometheus","uid":"prometheus"},"gridPos":{"x":0,"y":0,"w":8,"h":5},"fieldConfig":{"defaults":{"unit":"none"},"overrides":[]},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"background"},"targets":[{"refId":"A","datasource":{"type":"prometheus","uid":"prometheus"},"expr":"sum(increase(showcase_auth_logins_total{result=\"failure\"}[1h]))"}]},
+    {"id":2,"type":"stat","title":"Cuentas bloqueadas (1 h)","description":"","datasource":{"type":"prometheus","uid":"prometheus"},"gridPos":{"x":8,"y":0,"w":8,"h":5},"fieldConfig":{"defaults":{"unit":"none"},"overrides":[]},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"background"},"targets":[{"refId":"A","datasource":{"type":"prometheus","uid":"prometheus"},"expr":"sum(increase(showcase_auth_accounts_locked_total[1h]))"}]},
+    {"id":3,"type":"stat","title":"Peticiones limitadas (429, 1 h)","description":"","datasource":{"type":"prometheus","uid":"prometheus"},"gridPos":{"x":16,"y":0,"w":8,"h":5},"fieldConfig":{"defaults":{"unit":"none"},"overrides":[]},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"background"},"targets":[{"refId":"A","datasource":{"type":"prometheus","uid":"prometheus"},"expr":"sum(increase(http_server_requests_seconds_count{application=\"api-gateway\", status=\"429\"}[1h]))"}]},
+    {"id":4,"type":"timeseries","title":"Respuestas 401, 403 y 429 del gateway","description":"Tokens inválidos o revocados, falta de permisos y rate limiting.","datasource":{"type":"prometheus","uid":"prometheus"},"gridPos":{"x":0,"y":5,"w":12,"h":8},"fieldConfig":{"defaults":{"unit":"reqps"},"overrides":[]},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]},"tooltip":{"mode":"multi"}},"targets":[{"refId":"A","datasource":{"type":"prometheus","uid":"prometheus"},"expr":"sum by (status) (rate(http_server_requests_seconds_count{application=\"api-gateway\", status=~\"401|403|429\"}[1m]))","legendFormat":"{{status}}","exemplar":true}]},
+    {"id":5,"type":"timeseries","title":"Logins por minuto","description":"Un pico de fallos puede ser un ataque de fuerza bruta.","datasource":{"type":"prometheus","uid":"prometheus"},"gridPos":{"x":12,"y":5,"w":12,"h":8},"fieldConfig":{"defaults":{"unit":"none"},"overrides":[]},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]},"tooltip":{"mode":"multi"}},"targets":[{"refId":"A","datasource":{"type":"prometheus","uid":"prometheus"},"expr":"sum by (result) (rate(showcase_auth_logins_total[1m])) * 60","legendFormat":"{{result}}","exemplar":true}]},
+    {"id":6,"type":"logs","title":"Logs de seguridad de auth-service","description":"Logins, bloqueos y revocaciones. Cada línea enlaza con su traza en Zipkin.","datasource":{"type":"loki","uid":"loki"},"gridPos":{"x":0,"y":13,"w":24,"h":10},"fieldConfig":{"defaults":{"unit":""},"overrides":[]},"options":{"showTime":true,"wrapLogMessage":true,"enableLogDetails":true},"targets":[{"refId":"A","datasource":{"type":"loki","uid":"loki"},"expr":"{service=\"auth-service\"} |~ \"(?i)login|bloque|revoc|unlock|locked\""}]}
+  ]
+}

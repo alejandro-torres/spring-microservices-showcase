@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 
+import com.showcase.order.application.metrics.OrderMetrics;
 import com.showcase.order.domain.event.OrderCreatedEvent;
 import com.showcase.order.domain.event.OrderEventLine;
 import com.showcase.order.domain.messaging.OrderEventPublisher;
@@ -36,11 +37,14 @@ class OrderWriterImplTest {
     @Mock
     private OrderEventPublisher eventPublisher;
 
+    @Mock
+    private OrderMetrics metrics;
+
     private OrderWriterImpl orderWriter;
 
     @BeforeEach
     void setUp() {
-        orderWriter = new OrderWriterImpl(orderRepository, eventPublisher, Clock.fixed(NOW, ZoneOffset.UTC));
+        orderWriter = new OrderWriterImpl(orderRepository, eventPublisher, metrics, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Nested
@@ -65,6 +69,7 @@ class OrderWriterImplTest {
             ordered.verify(eventPublisher).publish(captor.capture());
             assertThat(captor.getValue()).isEqualTo(new OrderCreatedEvent(1L, 3L,
                     List.of(new OrderEventLine(10L, 2), new OrderEventLine(11L, 1)), NOW));
+            verify(metrics).orderCreated();
         }
 
         @Test

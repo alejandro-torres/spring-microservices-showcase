@@ -32,7 +32,7 @@ public class SecurityConfig {
     static final String[] PUBLIC_PATHS = {
             "/oauth2/**", "/login", "/logout", "/.well-known/**", "/userinfo", "/connect/**", "/error",
             "/swagger-ui.html", "/swagger-ui/**", "/webjars/**", "/v3/api-docs/**", "/*/v3/api-docs",
-            "/actuator/health/**", "/actuator/info", "/fallback/**"};
+            "/actuator/health/**", "/actuator/info", "/actuator/prometheus", "/fallback/**"};
 
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http, ReactiveJwtDecoder jwtDecoder,
