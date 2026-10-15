@@ -76,4 +76,28 @@ class RegisteredClientsInitializerTest {
 
         verify(repository, never()).save(any());
     }
+
+    @Test
+    @DisplayName("sincroniza las redirect URIs de un cliente existente y conserva su id y su configuración")
+    void run_existingWithOtherRedirectUris_shouldUpdateOnlyRedirectUris() {
+        // given: el cliente se registró cuando solo tenía la URI del frontend
+        RegisteredClient existing = initializer(WEB).toRegisteredClient(WEB);
+        given(repository.findByClientId("web-client")).willReturn(existing);
+        var withSwagger = new AuthSecurityProperties.Client("web-client", "Web", null,
+                Set.of("authorization_code", "refresh_token"),
+                Set.of("http://127.0.0.1:3000/callback", "http://localhost:8080/swagger-ui/oauth2-redirect.html"),
+                Set.of("openid", "profile"));
+
+        // when
+        initializer(withSwagger).run(null);
+
+        // then
+        var captor = ArgumentCaptor.forClass(RegisteredClient.class);
+        verify(repository).save(captor.capture());
+        var updated = captor.getValue();
+        assertThat(updated.getId()).isEqualTo(existing.getId());
+        assertThat(updated.getRedirectUris()).isEqualTo(withSwagger.redirectUris());
+        assertThat(updated.getScopes()).isEqualTo(existing.getScopes());
+        assertThat(updated.getClientSettings().isRequireProofKey()).isTrue();
+    }
 }
