@@ -16,7 +16,9 @@ GW=http://localhost:8080
 
 ## 1. Obtener un token
 
-Hay dos formas:
+> Para probar la API desde el navegador no hace falta nada de esto: en http://localhost:8080/swagger-ui.html, *Authorize → oauth2* abre el formulario de login y Swagger recoge el token solo (ver el [README](../README.md#documentación-de-la-api-swagger)).
+
+Desde la terminal hay dos formas:
 - **Token de servicio.** `client_credentials` con el cliente `internal-service`. Identifica a un servicio, no a un usuario, así que no tiene permisos de gestión:
 
   ```bash

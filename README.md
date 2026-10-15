@@ -400,7 +400,16 @@ docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d -
 - Todos los servicios: http://localhost:8080/swagger-ui.html, con un desplegable por servicio.
 - Cada servicio arrancado en local: `http://localhost:<puerto>/swagger-ui.html`.
 
-Cada operación documenta sus posibles errores (400, 401, 403, 404, 409, 422, 500, 503) con el esquema `ErrorResponseDTO`. Para probar los endpoints protegidos, pulsa *Authorize* y pega un token.
+Cada operación documenta sus posibles errores (400, 401, 403, 404, 409, 422, 500, 503) con el esquema `ErrorResponseDTO`.
+
+Para probar los endpoints protegidos, pulsa *Authorize*. Hay dos opciones:
+
+| Esquema | Cómo funciona |
+|---|---|
+| `oauth2` (recomendado) | Con el `client_id` `web-client` ya relleno y sin secreto, *Authorize* abre en una ventana emergente el formulario de login de auth-service (por ejemplo `admin` / `Showcase-Dev-2026!`). Al entrar, Swagger recibe el token y lo envía en todas las peticiones. Es el mismo flujo authorization code + PKCE que una aplicación de navegador: la contraseña solo la ve auth-service, y siguen valiendo el bloqueo por intentos, la auditoría y el rate limiting del login |
+| `bearer-jwt` | Pega un token obtenido por otra vía, por ejemplo con la función `login` de [docs/curl-examples.md](docs/curl-examples.md) |
+
+El Swagger UI del gateway vuelve de la ventana de login a `http://localhost:8080/swagger-ui/oauth2-redirect.html`, que está entre las redirect URIs de `web-client` (`WEB_CLIENT_REDIRECT_URIS`; auth-service las sincroniza al arrancar). Se comparan exactamente, así que abre Swagger en `http://localhost:8080` y no en `127.0.0.1`. En un servicio arrancado sin el gateway, indica dónde está auth-service con `showcase.openapi.auth-server-url` y añade su redirect URI.
 
 ## Documentación
 
