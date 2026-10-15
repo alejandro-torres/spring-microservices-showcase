@@ -4,25 +4,25 @@ import com.showcase.order.application.client.ProductClient;
 import com.showcase.order.application.client.ProductInfo;
 import com.showcase.order.infrastructure.client.dto.ProductClientResponseDTO;
 import com.showcase.order.infrastructure.client.feign.ProductFeignClient;
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class ProductClientImpl implements ProductClient {
 
-    private final ProductFeignClient feignClient;
-    private final CircuitBreaker circuitBreaker;
+    static final String CIRCUIT_BREAKER = "product-service";
 
-    public ProductClientImpl(ProductFeignClient feignClient, CircuitBreakerRegistry registry) {
-        this.feignClient = feignClient;
-        this.circuitBreaker = registry.circuitBreaker("product-service");
-    }
+    private final ProductFeignClient feignClient;
+    /** El circuit breaker se pide al registro en cada llamada (lo guarda en caché por nombre). */
+    private final CircuitBreakerRegistry circuitBreakerRegistry;
 
     @Override
     public Optional<ProductInfo> findById(Long productId) {
-        return ResilientCall.findOptional(circuitBreaker, () -> feignClient.findById(productId))
+        return ResilientCall.findOptional(circuitBreakerRegistry.circuitBreaker(CIRCUIT_BREAKER),
+                        () -> feignClient.findById(productId))
                 .map(ProductClientImpl::toInfo);
     }
 

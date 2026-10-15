@@ -6,6 +6,7 @@ import com.showcase.events.order.OrderCancelledMessageDTO;
 import com.showcase.events.order.OrderCreatedMessageDTO;
 import com.showcase.product.application.service.StockService;
 import com.showcase.product.infrastructure.messaging.mapper.StockMessageMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
@@ -15,15 +16,11 @@ import org.springframework.stereotype.Component;
  * una sola.
  */
 @Component
+@RequiredArgsConstructor
 public class OrderEventsListener {
 
     private final StockService stockService;
     private final StockMessageMapper mapper;
-
-    public OrderEventsListener(StockService stockService, StockMessageMapper mapper) {
-        this.stockService = stockService;
-        this.mapper = mapper;
-    }
 
     @RabbitListener(queues = "${showcase.messaging.consumers.order-created.queue}",
             errorHandler = LoggingRabbitListenerErrorHandler.BEAN_NAME)

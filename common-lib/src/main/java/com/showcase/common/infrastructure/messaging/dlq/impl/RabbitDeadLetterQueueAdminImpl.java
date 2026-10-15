@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
@@ -29,6 +30,7 @@ import org.springframework.amqp.rabbit.support.DefaultMessagePropertiesConverter
  *       confirm, y solo entonces se hace ACK en la DLQ. Si el reenvío falla, el mensaje sigue en la DLQ.</li>
  * </ul>
  */
+@RequiredArgsConstructor
 public class RabbitDeadLetterQueueAdminImpl implements DeadLetterQueueAdmin {
 
     private static final Logger log = LoggerFactory.getLogger(RabbitDeadLetterQueueAdminImpl.class);
@@ -37,11 +39,6 @@ public class RabbitDeadLetterQueueAdminImpl implements DeadLetterQueueAdmin {
     private final RabbitTemplate rabbitTemplate;
     private final MessagingProperties properties;
     private final DefaultMessagePropertiesConverter propertiesConverter = new DefaultMessagePropertiesConverter();
-
-    public RabbitDeadLetterQueueAdminImpl(RabbitTemplate rabbitTemplate, MessagingProperties properties) {
-        this.rabbitTemplate = rabbitTemplate;
-        this.properties = properties;
-    }
 
     @Override
     public List<DeadLetterQueue> queues() {

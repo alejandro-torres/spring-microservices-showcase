@@ -13,10 +13,12 @@ import com.showcase.common.infrastructure.persistence.specification.FilterMappin
 import com.showcase.common.infrastructure.persistence.specification.GenericSpecificationBuilder;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
 
 @Repository
+@RequiredArgsConstructor
 public class SecurityAuditRepositoryImpl implements SecurityAuditRepository {
 
     private static final FilterMapping MAPPING = FilterMapping.of(Map.of("eventType", "type"));
@@ -24,13 +26,6 @@ public class SecurityAuditRepositoryImpl implements SecurityAuditRepository {
     private final SecurityAuditJpaRepository jpaRepository;
     private final SecurityAuditEntityMapper mapper;
     private final GenericSpecificationBuilder specificationBuilder;
-
-    public SecurityAuditRepositoryImpl(SecurityAuditJpaRepository jpaRepository, SecurityAuditEntityMapper mapper,
-                                       GenericSpecificationBuilder specificationBuilder) {
-        this.jpaRepository = jpaRepository;
-        this.mapper = mapper;
-        this.specificationBuilder = specificationBuilder;
-    }
 
     @Override
     public SecurityAuditEvent save(SecurityAuditEvent event) {

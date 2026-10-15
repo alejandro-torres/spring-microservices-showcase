@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
+import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -26,6 +27,7 @@ import tools.jackson.databind.json.JsonMapper;
  * el error.
  */
 @Component
+@RequiredArgsConstructor
 public class GatewayErrorWriter {
 
     static final Locale SPANISH = Locale.forLanguageTag("es");
@@ -33,12 +35,6 @@ public class GatewayErrorWriter {
     private final ErrorMessageResolver messageResolver;
     private final JsonMapper jsonMapper;
     private final Clock clock;
-
-    public GatewayErrorWriter(ErrorMessageResolver messageResolver, JsonMapper jsonMapper, Clock clock) {
-        this.messageResolver = messageResolver;
-        this.jsonMapper = jsonMapper;
-        this.clock = clock;
-    }
 
     public Mono<Void> write(ServerWebExchange exchange, HttpStatus status, ErrorCode errorCode, Object... args) {
         ServerHttpResponse response = exchange.getResponse();

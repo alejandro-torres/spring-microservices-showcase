@@ -21,11 +21,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
@@ -42,6 +42,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * antes que el lock) sino un {@link TransactionTemplate}, que delimita exactamente dónde empieza y acaba.
  */
 @Service
+@RequiredArgsConstructor
 public class StockServiceImpl implements StockService {
 
     private static final Logger log = LoggerFactory.getLogger(StockServiceImpl.class);
@@ -52,25 +53,12 @@ public class StockServiceImpl implements StockService {
     private final StockEventPublisher eventPublisher;
     private final DistributedLockManager lockManager;
     private final StockMetrics metrics;
+    /** REPEATABLE_READ y timeout de 5 s (definida en la infraestructura, {@code StockTransactionConfig}). */
+    @Qualifier("reserveStockTransaction")
     private final TransactionTemplate reserveTransaction;
+    @Qualifier("releaseStockTransaction")
     private final TransactionTemplate releaseTransaction;
     private final Clock clock;
-
-    public StockServiceImpl(ProductRepository productRepository, ProcessedEventRegistry processedEvents,
-                            StockEventPublisher eventPublisher, DistributedLockManager lockManager,
-                            StockMetrics metrics, PlatformTransactionManager transactionManager, Clock clock) {
-        this.productRepository = productRepository;
-        this.processedEvents = processedEvents;
-        this.eventPublisher = eventPublisher;
-        this.lockManager = lockManager;
-        this.metrics = metrics;
-        this.reserveTransaction = new TransactionTemplate(transactionManager);
-        this.reserveTransaction.setIsolationLevel(TransactionDefinition.ISOLATION_REPEATABLE_READ);
-        this.reserveTransaction.setTimeout(5);
-        this.releaseTransaction = new TransactionTemplate(transactionManager);
-        this.releaseTransaction.setTimeout(5);
-        this.clock = clock;
-    }
 
     /**
      * Todas las líneas o ninguna: primero se comprueba que todas tienen stock y solo entonces se descuentan.

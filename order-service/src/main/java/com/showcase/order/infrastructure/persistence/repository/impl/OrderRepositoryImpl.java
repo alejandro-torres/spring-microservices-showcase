@@ -21,10 +21,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
 
 @Repository
+@RequiredArgsConstructor
 public class OrderRepositoryImpl implements OrderRepository {
 
     /** {@code productId} filtra los pedidos que contienen ese producto (join con las líneas). */
@@ -33,13 +35,6 @@ public class OrderRepositoryImpl implements OrderRepository {
     private final OrderJpaRepository jpaRepository;
     private final OrderEntityMapper mapper;
     private final GenericSpecificationBuilder specificationBuilder;
-
-    public OrderRepositoryImpl(OrderJpaRepository jpaRepository, OrderEntityMapper mapper,
-                               GenericSpecificationBuilder specificationBuilder) {
-        this.jpaRepository = jpaRepository;
-        this.mapper = mapper;
-        this.specificationBuilder = specificationBuilder;
-    }
 
     @Override
     public Order save(Order order) {

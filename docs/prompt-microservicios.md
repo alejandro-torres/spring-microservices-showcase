@@ -26,7 +26,7 @@ Infraestructura:
 - PostgreSQL 16 (una base de datos por microservicio: patrón Database per Service)
 - Flyway para las migraciones
 - MapStruct para mapear entre capas
-- Lombok (solo en la infraestructura, nunca en el dominio)
+- Lombok en la infraestructura y la aplicación (constructores con `@RequiredArgsConstructor`), nunca en el dominio
 - Bean Validation (Jakarta Validation)
 - Spring Security 7 con su servidor de autorización OAuth2 integrado (en `auth-service`) + OAuth2 Resource Server (en el resto)
 - Springdoc OpenAPI (Swagger UI con soporte de Bearer/OAuth2)

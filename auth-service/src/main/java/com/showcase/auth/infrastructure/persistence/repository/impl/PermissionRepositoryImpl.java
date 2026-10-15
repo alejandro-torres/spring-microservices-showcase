@@ -16,22 +16,17 @@ import com.showcase.common.infrastructure.persistence.specification.GenericSpeci
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
 
 @Repository
+@RequiredArgsConstructor
 public class PermissionRepositoryImpl implements PermissionRepository {
 
     private final PermissionJpaRepository permissionJpaRepository;
     private final PermissionEntityMapper mapper;
     private final GenericSpecificationBuilder specificationBuilder;
-
-    public PermissionRepositoryImpl(PermissionJpaRepository permissionJpaRepository, PermissionEntityMapper mapper,
-                                    GenericSpecificationBuilder specificationBuilder) {
-        this.permissionJpaRepository = permissionJpaRepository;
-        this.mapper = mapper;
-        this.specificationBuilder = specificationBuilder;
-    }
 
     @Override
     public Permission save(Permission permission) {

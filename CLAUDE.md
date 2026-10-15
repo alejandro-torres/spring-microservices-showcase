@@ -27,6 +27,7 @@ infrastructure/    rest (controller, dto/request, dto/response, mapper),
 - Interfaces e implementaciones en carpetas separadas; las implementaciones llevan el sufijo `Impl` y viven en una carpeta `impl`.
 - Los controllers y los listeners solo usan las interfaces de servicio. Los `*ServiceImpl` solo usan interfaces (repositorios, publishers, clientes, locks), nunca Spring Data, RabbitMQ, Feign ni Redisson directamente.
 - Entidades JPA (`*Entity`), modelos de dominio y DTOs son clases distintas, convertidas con MapStruct.
+- Lombok solo en la infraestructura y la aplicación, nunca en el dominio: constructores de inyección con `@RequiredArgsConstructor` y clases de utilidades con `@NoArgsConstructor(access = AccessLevel.PRIVATE)`; solo se escribe un constructor a mano cuando tiene lógica.
 
 ## Convenciones de nombres
 - Todos los DTOs terminan en `DTO` y son `record`: `CreateProductRequestDTO`, `ProductResponseDTO`, `PageResponseDTO`, `ErrorResponseDTO`, `OrderCreatedMessageDTO`.

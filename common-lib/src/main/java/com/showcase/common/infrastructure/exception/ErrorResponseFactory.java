@@ -9,6 +9,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -20,6 +21,7 @@ import org.springframework.http.ResponseEntity;
  * Construye las respuestas {@link ErrorResponseDTO} con el mensaje traducido, la ruta y el traceId.
  * La comparten el {@link GlobalExceptionHandler} y los handlers de seguridad.
  */
+@RequiredArgsConstructor
 public class ErrorResponseFactory {
 
     /** Clave del MDC donde Micrometer Tracing deja el identificador de la traza. */
@@ -27,11 +29,6 @@ public class ErrorResponseFactory {
 
     private final ErrorMessageResolver messageResolver;
     private final Clock clock;
-
-    public ErrorResponseFactory(ErrorMessageResolver messageResolver, Clock clock) {
-        this.messageResolver = messageResolver;
-        this.clock = clock;
-    }
 
     public ResponseEntity<ErrorResponseDTO> create(HttpStatus status, ErrorCode errorCode, List<Object> args,
                                                    HttpServletRequest request) {

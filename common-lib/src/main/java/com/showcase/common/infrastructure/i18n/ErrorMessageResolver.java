@@ -3,7 +3,8 @@ package com.showcase.common.infrastructure.i18n;
 import com.showcase.common.domain.exception.ErrorCode;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.context.NoSuchMessageException;
@@ -16,18 +17,17 @@ import org.springframework.context.support.ResourceBundleMessageSource;
  * en los comunes de {@code common-lib} ({@code i18n/common-messages_*.properties}), de modo que un
  * servicio puede sobrescribir cualquier mensaje común. El español es el idioma por defecto.
  */
+@RequiredArgsConstructor
 public class ErrorMessageResolver {
 
     public static final String COMMON_BASENAME = "i18n/common-messages";
     static final String DEFAULT_KEY = "error.default";
 
-    private final MessageSource serviceMessages;
-    private final MessageSource commonMessages;
+    /** Mensajes comunes de common-lib, iguales en todos los servicios: se cargan una sola vez. */
+    private static final MessageSource COMMON_MESSAGES = createCommonMessageSource();
 
-    public ErrorMessageResolver(MessageSource serviceMessages) {
-        this.serviceMessages = Objects.requireNonNull(serviceMessages, "serviceMessages");
-        this.commonMessages = createCommonMessageSource();
-    }
+    @NonNull
+    private final MessageSource serviceMessages;
 
     /** Mensaje de un código de error con sus parámetros. */
     public String resolve(ErrorCode errorCode, List<Object> args, Locale locale) {
@@ -44,7 +44,7 @@ public class ErrorMessageResolver {
             // Se prueba con los mensajes comunes.
         }
         try {
-            return commonMessages.getMessage(resolvable, locale);
+            return COMMON_MESSAGES.getMessage(resolvable, locale);
         } catch (NoSuchMessageException e) {
             return find(DEFAULT_KEY, null, locale);
         }
@@ -52,7 +52,7 @@ public class ErrorMessageResolver {
 
     private String find(String key, Object[] args, Locale locale) {
         String message = serviceMessages.getMessage(key, args, null, locale);
-        return message != null ? message : commonMessages.getMessage(key, args, null, locale);
+        return message != null ? message : COMMON_MESSAGES.getMessage(key, args, null, locale);
     }
 
     // Los parámetros se pasan como texto para que MessageFormat no formatee los ids (25000 → "25.000").

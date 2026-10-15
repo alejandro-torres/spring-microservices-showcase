@@ -16,6 +16,7 @@ import com.showcase.common.infrastructure.rest.page.PageQueryParser;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import java.net.URI;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -31,17 +32,12 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
 @RequestMapping("/api/v1/roles")
+@RequiredArgsConstructor
 public class RoleController {
 
     private final RoleService roleService;
     private final AuthRestMapper mapper;
     private final FilterCriteriaParser filterParser;
-
-    public RoleController(RoleService roleService, AuthRestMapper mapper, FilterCriteriaParser filterParser) {
-        this.roleService = roleService;
-        this.mapper = mapper;
-        this.filterParser = filterParser;
-    }
 
     @PreAuthorize("hasAuthority('role:write')")
     @PostMapping

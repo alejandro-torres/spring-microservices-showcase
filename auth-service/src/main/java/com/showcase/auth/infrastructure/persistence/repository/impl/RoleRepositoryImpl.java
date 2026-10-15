@@ -22,24 +22,18 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
 
 @Repository
+@RequiredArgsConstructor
 public class RoleRepositoryImpl implements RoleRepository {
 
     private final RoleJpaRepository roleJpaRepository;
     private final PermissionJpaRepository permissionJpaRepository;
     private final RoleEntityMapper mapper;
     private final GenericSpecificationBuilder specificationBuilder;
-
-    public RoleRepositoryImpl(RoleJpaRepository roleJpaRepository, PermissionJpaRepository permissionJpaRepository,
-                              RoleEntityMapper mapper, GenericSpecificationBuilder specificationBuilder) {
-        this.roleJpaRepository = roleJpaRepository;
-        this.permissionJpaRepository = permissionJpaRepository;
-        this.mapper = mapper;
-        this.specificationBuilder = specificationBuilder;
-    }
 
     @Override
     public Role save(Role role) {

@@ -17,6 +17,7 @@ import com.showcase.common.infrastructure.rest.page.PageQueryParser;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import java.net.URI;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -37,17 +38,12 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
  */
 @RestController
 @RequestMapping("/api/v1/users")
+@RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
     private final AuthRestMapper mapper;
     private final FilterCriteriaParser filterParser;
-
-    public UserController(UserService userService, AuthRestMapper mapper, FilterCriteriaParser filterParser) {
-        this.userService = userService;
-        this.mapper = mapper;
-        this.filterParser = filterParser;
-    }
 
     @PreAuthorize("hasAuthority('user:write')")
     @PostMapping

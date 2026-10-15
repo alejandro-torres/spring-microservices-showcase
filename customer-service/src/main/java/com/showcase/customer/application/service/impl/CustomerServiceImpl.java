@@ -12,18 +12,16 @@ import com.showcase.customer.domain.model.Customer;
 import com.showcase.customer.domain.repository.CustomerRepository;
 import io.micrometer.observation.annotation.Observed;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class CustomerServiceImpl implements CustomerService {
 
     private final CustomerRepository customerRepository;
-
-    public CustomerServiceImpl(CustomerRepository customerRepository) {
-        this.customerRepository = customerRepository;
-    }
 
     /** El cliente y sus direcciones se guardan juntos (cascada): o todo o nada. */
     @Override

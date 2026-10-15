@@ -25,6 +25,7 @@ import jakarta.validation.constraints.Positive;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -40,6 +41,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
 @RequestMapping("/api/v1/customers")
+@RequiredArgsConstructor
 public class CustomerController {
 
     static final FilterFields FILTERS = FilterFields.of(
@@ -55,13 +57,6 @@ public class CustomerController {
     private final CustomerService customerService;
     private final CustomerRestMapper mapper;
     private final FilterCriteriaParser filterParser;
-
-    public CustomerController(CustomerService customerService, CustomerRestMapper mapper,
-                              FilterCriteriaParser filterParser) {
-        this.customerService = customerService;
-        this.mapper = mapper;
-        this.filterParser = filterParser;
-    }
 
     @PreAuthorize("hasAuthority('customer:write')")
     @PostMapping

@@ -7,6 +7,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,15 +21,11 @@ import org.springframework.transaction.annotation.Transactional;
  * ({@code ROLE_*}) y los permisos de esos roles como autoridades.
  */
 @Service
+@RequiredArgsConstructor
 public class JpaUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final Clock clock;
-
-    public JpaUserDetailsService(UserRepository userRepository, Clock clock) {
-        this.userRepository = userRepository;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional(readOnly = true)

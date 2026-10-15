@@ -3,6 +3,8 @@ package com.showcase.gateway.infrastructure.trace;
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.handler.TracingObservationHandler;
 import java.util.Optional;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.springframework.http.server.reactive.observation.ServerRequestObservationContext;
 import org.springframework.web.server.ServerWebExchange;
 
@@ -11,10 +13,8 @@ import org.springframework.web.server.ServerWebExchange;
  * así que se lee del contexto de la observación HTTP, que Spring guarda en los atributos del exchange. Es el mismo
  * traceId que llega a los servicios en la cabecera {@code traceparent} y el que se busca en Zipkin.
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ExchangeTraceIds {
-
-    private ExchangeTraceIds() {
-    }
 
     public static Optional<String> of(ServerWebExchange exchange) {
         return ServerRequestObservationContext.findCurrent(exchange.getAttributes())

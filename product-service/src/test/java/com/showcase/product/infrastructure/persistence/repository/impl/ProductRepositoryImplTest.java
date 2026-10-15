@@ -56,7 +56,7 @@ class ProductRepositoryImplTest {
         var mapper = new ProductEntityMapperImpl();
         ReflectionTestUtils.setField(mapper, "categoryEntityMapper", new CategoryEntityMapperImpl());
         repository = new ProductRepositoryImpl(productJpaRepository, categoryJpaRepository, mapper,
-                new GenericSpecificationBuilder());
+                new GenericSpecificationBuilder(true));
     }
 
     private static ProductEntity entity(long id, String name) {

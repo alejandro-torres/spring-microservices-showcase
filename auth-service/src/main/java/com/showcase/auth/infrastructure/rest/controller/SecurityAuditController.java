@@ -10,6 +10,7 @@ import com.showcase.common.infrastructure.rest.dto.response.PageResponseDTO;
 import com.showcase.common.infrastructure.rest.filter.FilterCriteriaParser;
 import com.showcase.common.infrastructure.rest.filter.FilterParameters;
 import com.showcase.common.infrastructure.rest.page.PageQueryParser;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,18 +22,12 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/v1/security-audit")
+@RequiredArgsConstructor
 public class SecurityAuditController {
 
     private final SecurityAuditService auditService;
     private final AuthRestMapper mapper;
     private final FilterCriteriaParser filterParser;
-
-    public SecurityAuditController(SecurityAuditService auditService, AuthRestMapper mapper,
-                                   FilterCriteriaParser filterParser) {
-        this.auditService = auditService;
-        this.mapper = mapper;
-        this.filterParser = filterParser;
-    }
 
     /**
      * P. ej. {@code ?filter=eventType:in:LOGIN_FAILURE,ACCOUNT_LOCKED&filter=username:eq:ana&sort=occurredAt&direction=DESC}.

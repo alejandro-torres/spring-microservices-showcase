@@ -40,6 +40,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @ExtendWith(MockitoExtension.class)
 class StockServiceImplTest {
@@ -81,7 +82,8 @@ class StockServiceImplTest {
     @BeforeEach
     void setUp() {
         stockService = new StockServiceImpl(productRepository, processedEvents, eventPublisher, lockManager, metrics,
-                transactionManager, Clock.fixed(NOW, ZoneOffset.UTC));
+                new TransactionTemplate(transactionManager), new TransactionTemplate(transactionManager),
+                Clock.fixed(NOW, ZoneOffset.UTC));
         mouse = product(10L, "Ratón", "5.00", 5);
         keyboard = product(11L, "Teclado", "20.00", 1);
     }
@@ -116,7 +118,8 @@ class StockServiceImplTest {
                 }
             };
             var service = new StockServiceImpl(productRepository, processedEvents, eventPublisher, busyLockManager,
-                    metrics, transactionManager, Clock.fixed(NOW, ZoneOffset.UTC));
+                    metrics, new TransactionTemplate(transactionManager),
+                    new TransactionTemplate(transactionManager), Clock.fixed(NOW, ZoneOffset.UTC));
 
             // when / then
             assertThatThrownBy(() -> service.reserve(EVENT_ID, 7L, LINES)).isSameAs(busy);

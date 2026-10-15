@@ -9,6 +9,7 @@ import com.showcase.auth.domain.repository.UserRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
  * tener una transacción larga si se acumulan muchas cuentas.
  */
 @Service
+@RequiredArgsConstructor
 public class AccountMaintenanceServiceImpl implements AccountMaintenanceService {
 
     static final int BATCH_SIZE = 100;
@@ -26,14 +28,6 @@ public class AccountMaintenanceServiceImpl implements AccountMaintenanceService 
     private final AuthorizationRepository authorizationRepository;
     private final SecurityAuditService auditService;
     private final Clock clock;
-
-    public AccountMaintenanceServiceImpl(UserRepository userRepository, AuthorizationRepository authorizationRepository,
-                                         SecurityAuditService auditService, Clock clock) {
-        this.userRepository = userRepository;
-        this.authorizationRepository = authorizationRepository;
-        this.auditService = auditService;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional

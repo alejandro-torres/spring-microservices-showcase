@@ -4,6 +4,7 @@ import com.showcase.common.domain.exception.CommonErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -14,16 +15,13 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 /**
  * Respuesta 401 en el formato común cuando la petición no trae credenciales o el token no es válido.
  */
+@RequiredArgsConstructor
 public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private static final Logger log = LoggerFactory.getLogger(RestAuthenticationEntryPoint.class);
     private static final String OAUTH2_EXCEPTION = "org.springframework.security.oauth2.core.OAuth2AuthenticationException";
 
     private final SecurityErrorResponseWriter writer;
-
-    public RestAuthenticationEntryPoint(SecurityErrorResponseWriter writer) {
-        this.writer = writer;
-    }
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,

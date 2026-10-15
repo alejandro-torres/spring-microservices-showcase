@@ -1,5 +1,6 @@
 package com.showcase.common.infrastructure.security;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -11,19 +12,12 @@ import org.springframework.security.config.http.SessionCreationPolicy;
  * <p>Cada servicio define qué rutas protege y cuáles son públicas, y aplica el resto con
  * {@link #customize(HttpSecurity)}.
  */
+@RequiredArgsConstructor
 public class ResourceServerSecurityCustomizer {
 
     private final JwtAuthoritiesConverter jwtAuthoritiesConverter;
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final RestAccessDeniedHandler accessDeniedHandler;
-
-    public ResourceServerSecurityCustomizer(JwtAuthoritiesConverter jwtAuthoritiesConverter,
-                                            RestAuthenticationEntryPoint authenticationEntryPoint,
-                                            RestAccessDeniedHandler accessDeniedHandler) {
-        this.jwtAuthoritiesConverter = jwtAuthoritiesConverter;
-        this.authenticationEntryPoint = authenticationEntryPoint;
-        this.accessDeniedHandler = accessDeniedHandler;
-    }
 
     public HttpSecurity customize(HttpSecurity http) throws Exception {
         return http

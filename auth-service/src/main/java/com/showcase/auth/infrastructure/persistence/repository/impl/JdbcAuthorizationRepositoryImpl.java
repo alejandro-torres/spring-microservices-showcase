@@ -3,6 +3,7 @@ package com.showcase.auth.infrastructure.persistence.repository.impl;
 import com.showcase.auth.domain.repository.AuthorizationRepository;
 import java.sql.Timestamp;
 import java.time.Instant;
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Repository;
  * contenga cada fila, y solo se borra si ya ha pasado.
  */
 @Repository
+@RequiredArgsConstructor
 public class JdbcAuthorizationRepositoryImpl implements AuthorizationRepository {
 
     private static final String DELETE_EXPIRED = """
@@ -21,10 +23,6 @@ public class JdbcAuthorizationRepositoryImpl implements AuthorizationRepository 
             """;
 
     private final JdbcClient jdbcClient;
-
-    public JdbcAuthorizationRepositoryImpl(JdbcClient jdbcClient) {
-        this.jdbcClient = jdbcClient;
-    }
 
     @Override
     public int deleteFullyExpiredBefore(Instant now) {

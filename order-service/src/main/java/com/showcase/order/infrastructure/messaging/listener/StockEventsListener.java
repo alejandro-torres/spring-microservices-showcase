@@ -5,6 +5,7 @@ import com.showcase.events.EventEnvelopeDTO;
 import com.showcase.events.product.StockReservationFailedMessageDTO;
 import com.showcase.events.product.StockReservedMessageDTO;
 import com.showcase.order.application.service.OrderSagaService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
@@ -14,13 +15,10 @@ import org.springframework.stereotype.Component;
  * una excepción, Spring AMQP reintenta o manda el mensaje a la DLQ; el ACK solo se hace si todo ha ido bien.
  */
 @Component
+@RequiredArgsConstructor
 public class StockEventsListener {
 
     private final OrderSagaService sagaService;
-
-    public StockEventsListener(OrderSagaService sagaService) {
-        this.sagaService = sagaService;
-    }
 
     @RabbitListener(queues = "${showcase.messaging.consumers.stock-reserved.queue}",
             errorHandler = LoggingRabbitListenerErrorHandler.BEAN_NAME)

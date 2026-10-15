@@ -10,6 +10,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageBuilder;
@@ -34,6 +35,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * por no tener cola de destino (publisher return). Si RabbitMQ no responde se corta el lote para no desordenar
  * los eventos y se reintenta en la siguiente ejecución: no se pierde nada.
  */
+@RequiredArgsConstructor
 public class OutboxPublisher {
 
     private static final Logger log = LoggerFactory.getLogger(OutboxPublisher.class);
@@ -50,20 +52,9 @@ public class OutboxPublisher {
     private final JdbcClient jdbcClient;
     private final RabbitTemplate rabbitTemplate;
     private final TransactionTemplate transactionTemplate;
-    private final MessagingProperties.Outbox settings;
+    private final MessagingProperties properties;
     private final Clock clock;
     private final OutboxTracing tracing;
-
-    public OutboxPublisher(JdbcClient jdbcClient, RabbitTemplate rabbitTemplate,
-                           TransactionTemplate transactionTemplate, MessagingProperties properties, Clock clock,
-                           OutboxTracing tracing) {
-        this.jdbcClient = jdbcClient;
-        this.rabbitTemplate = rabbitTemplate;
-        this.transactionTemplate = transactionTemplate;
-        this.settings = properties.outbox();
-        this.clock = clock;
-        this.tracing = tracing;
-    }
 
     @Scheduled(fixedDelayString = "${showcase.messaging.outbox.fixed-delay:5s}",
             initialDelayString = "${showcase.messaging.outbox.initial-delay:5s}")
@@ -71,7 +62,7 @@ public class OutboxPublisher {
             lockAtMostFor = "${showcase.messaging.outbox.lock-at-most-for:PT30S}",
             lockAtLeastFor = "${showcase.messaging.outbox.lock-at-least-for:PT1S}")
     public void publishPending() {
-        if (!settings.enabled()) {
+        if (!settings().enabled()) {
             return;
         }
         Integer sent = transactionTemplate.execute(status -> publishBatch());
@@ -80,10 +71,14 @@ public class OutboxPublisher {
         }
     }
 
+    private MessagingProperties.Outbox settings() {
+        return properties.outbox();
+    }
+
     /** Envía un lote dentro de la transacción en curso y devuelve cuántos eventos se han confirmado. */
     int publishBatch() {
         List<PendingEvent> batch = jdbcClient.sql(SELECT_PENDING)
-                .param("limit", settings.batchSize())
+                .param("limit", settings().batchSize())
                 .query(PendingEvent.class)
                 .list();
         int sent = 0;
@@ -120,7 +115,7 @@ public class OutboxPublisher {
         try {
             rabbitTemplate.send(event.exchange(), event.routingKey(), message, correlation);
             CorrelationData.Confirm confirm = correlation.getFuture()
-                    .get(settings.confirmTimeout().toMillis(), TimeUnit.MILLISECONDS);
+                    .get(settings().confirmTimeout().toMillis(), TimeUnit.MILLISECONDS);
             if (correlation.getReturned() != null) {
                 return new SendResult(Outcome.UNROUTED, correlation.getReturned().getReplyText());
             }
@@ -147,7 +142,7 @@ public class OutboxPublisher {
      */
     private void markUnrouted(PendingEvent event, String detail) {
         int attempts = event.attempts() + 1;
-        OutboxStatus status = attempts >= settings.maxUnroutedAttempts() ? OutboxStatus.UNROUTED
+        OutboxStatus status = attempts >= settings().maxUnroutedAttempts() ? OutboxStatus.UNROUTED
                 : OutboxStatus.PENDING;
         jdbcClient.sql("UPDATE outbox_event SET status = :status, attempts = :attempts, last_error = :error "
                         + "WHERE id = :id")
@@ -157,7 +152,7 @@ public class OutboxPublisher {
                 .param("id", event.id())
                 .update();
         log.warn("Outbox: el evento {} ({}) no ha llegado a ninguna cola; intento {} de {}", event.id(),
-                event.eventType(), attempts, settings.maxUnroutedAttempts());
+                event.eventType(), attempts, settings().maxUnroutedAttempts());
     }
 
     /** Si RabbitMQ está caído no se cuentan los intentos: el evento espera lo que haga falta. */
