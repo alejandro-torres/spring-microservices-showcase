@@ -7,7 +7,8 @@
 # lee (configure) para no depender del orden de arranque, y reenvía mensajes de sus DLQ por amq.default (write).
 set -eu
 
-API="http://rabbitmq:15672/api"
+# En Kubernetes se llama al pod por un Service que también publica los pods aún no listos.
+API="${RABBITMQ_API:-http://rabbitmq:15672/api}"
 ADMIN="$RABBITMQ_ADMIN_USER:$RABBITMQ_ADMIN_PASSWORD"
 
 create_user() {

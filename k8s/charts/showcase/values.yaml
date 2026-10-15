@@ -1,0 +1,116 @@
+# Valores de desarrollo para el clúster local de kind. Las contraseñas son las mismas que usa docker-compose.yml
+# sin .env: no deben usarse fuera de tu máquina.
+
+image:
+  # Las imágenes se construyen con `docker compose build` y se cargan en kind con `kind load docker-image`.
+  repository: showcase
+  tag: latest
+  # Nunca se descargan de un registro: ya están en los nodos.
+  pullPolicy: IfNotPresent
+
+# Perfil de Spring: dev carga datos de ejemplo (usuario admin) y guarda el 100 % de las trazas.
+springProfile: dev
+# URL pública del gateway: emisor de los tokens y origen del login de Swagger (port-forward a localhost:8080).
+publicUrl: http://localhost:8080
+corsAllowedOrigins: http://localhost:3000
+
+# Contraseñas: se guardan en Secrets de Kubernetes.
+secrets:
+  postgresPassword: postgres
+  rabbitmqAdminUser: admin
+  rabbitmqAdminPassword: admin-dev
+  internalClientSecret: internal-dev-secret
+  db:
+    auth: auth-dev
+    product: product-dev
+    customer: customer-dev
+    order: order-dev
+  rabbitmq:
+    auth: auth-dev
+    product: product-dev
+    customer: customer-dev
+    order: order-dev
+  # Claves RSA del JWT en PEM (PKCS#8 y X.509). Las genera k8s/deploy.sh y se pasan con --set-file.
+  jwtPrivateKey: ""
+  jwtPublicKey: ""
+
+# Scripts de docker/ que se reutilizan tal cual (k8s/deploy.sh los pasa con --set-file).
+scripts:
+  postgresInit: ""
+  rabbitmqSetupUsers: ""
+
+# Recursos por defecto de los microservicios (JVM con MaxRAMPercentage=75 sobre el límite de memoria).
+defaultResources:
+  requests:
+    cpu: 100m
+    memory: 384Mi
+  limits:
+    cpu: "1"
+    memory: 768Mi
+
+# Microservicios. port: puerto de la API; managementPort: Actuator (health y métricas).
+# database/rabbitmq/redis: de qué depende cada uno (variables de entorno e initContainers de espera).
+services:
+  discovery-service:
+    port: 8761
+    replicas: 1
+    env:
+      EUREKA_HOSTNAME: discovery-service
+  auth-service:
+    port: 9000
+    replicas: 1
+    database: auth
+    rabbitmq: auth
+    redis: true
+  product-service:
+    port: 8081
+    replicas: 3
+    database: product
+    rabbitmq: product
+    redis: true
+  customer-service:
+    port: 8082
+    replicas: 1
+    database: customer
+    rabbitmq: customer
+  order-service:
+    port: 8083
+    replicas: 2
+    database: order
+    rabbitmq: order
+  api-gateway:
+    port: 8080
+    managementPort: 8081
+    replicas: 1
+    redis: true
+
+postgres:
+  image: postgres:16-alpine
+  storage: 2Gi
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: "1", memory: 512Mi }
+
+redis:
+  image: redis:7-alpine
+  storage: 1Gi
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { cpu: 500m, memory: 256Mi }
+
+rabbitmq:
+  image: rabbitmq:3-management
+  setupImage: curlimages/curl:8.10.1
+  storage: 1Gi
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: "1", memory: 512Mi }
+
+zipkin:
+  image: openzipkin/zipkin:3
+  resources:
+    requests: { cpu: 50m, memory: 256Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+
+# Imagen de los initContainers que esperan a PostgreSQL y RabbitMQ.
+waitImage: busybox:1.37

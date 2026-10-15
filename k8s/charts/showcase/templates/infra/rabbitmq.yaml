@@ -1,0 +1,153 @@
+# RabbitMQ con un usuario por servicio (docker/rabbitmq/setup-users.sh, lanzado por un Job).
+# El pod no está listo hasta que existen los usuarios: así ningún servicio arranca sin poder autenticarse.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-setup
+  labels:
+    {{- include "showcase.labels" . | nindent 4 }}
+data:
+  setup-users.sh: |
+    {{- required "Falta scripts.rabbitmqSetupUsers (usa k8s/deploy.sh o --set-file)" .Values.scripts.rabbitmqSetupUsers | nindent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  labels:
+    {{- include "showcase.labels" . | nindent 4 }}
+    {{- include "showcase.selector" "rabbitmq" | nindent 4 }}
+spec:
+  selector:
+    {{- include "showcase.selector" "rabbitmq" | nindent 4 }}
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: amqp
+    - name: management
+      port: 15672
+      targetPort: management
+---
+# Headless y con los pods aún no listos: lo usa el Job para crear los usuarios antes de que el pod esté listo.
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-headless
+  labels:
+    {{- include "showcase.labels" . | nindent 4 }}
+    {{- include "showcase.selector" "rabbitmq" | nindent 4 }}
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    {{- include "showcase.selector" "rabbitmq" | nindent 4 }}
+  ports:
+    - name: management
+      port: 15672
+      targetPort: management
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+  labels:
+    {{- include "showcase.labels" . | nindent 4 }}
+    {{- include "showcase.selector" "rabbitmq" | nindent 4 }}
+spec:
+  serviceName: rabbitmq-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "showcase.selector" "rabbitmq" | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "showcase.labels" . | nindent 8 }}
+        {{- include "showcase.selector" "rabbitmq" | nindent 8 }}
+    spec:
+      containers:
+        - name: rabbitmq
+          image: {{ .Values.rabbitmq.image }}
+          ports:
+            - name: amqp
+              containerPort: 5672
+            - name: management
+              containerPort: 15672
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: infra-credentials
+                  key: RABBITMQ_ADMIN_USER
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: infra-credentials
+                  key: RABBITMQ_ADMIN_PASSWORD
+          # Listo cuando acepta conexiones y ya existe el último usuario que crea setup-users.sh.
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - rabbitmq-diagnostics -q check_port_connectivity && rabbitmqctl -q list_users | grep -q "^customer-service"
+            periodSeconds: 10
+            timeoutSeconds: 15
+          livenessProbe:
+            exec:
+              command: ["rabbitmq-diagnostics", "-q", "ping"]
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 15
+          resources:
+            {{- toYaml .Values.rabbitmq.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/rabbitmq
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.rabbitmq.storage }}
+---
+# Un Job por revisión del release: un Job no se puede modificar, así que cada helm upgrade crea uno nuevo.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rabbitmq-setup-{{ .Release.Revision }}
+  labels:
+    {{- include "showcase.labels" . | nindent 4 }}
+    {{- include "showcase.selector" "rabbitmq-setup" | nindent 4 }}
+spec:
+  backoffLimit: 20
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        {{- include "showcase.labels" . | nindent 8 }}
+        {{- include "showcase.selector" "rabbitmq-setup" | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        {{- include "showcase.waitFor" (dict "root" . "args" (list "rabbitmq-0.rabbitmq-headless" 15672)) | nindent 8 }}
+      containers:
+        - name: setup-users
+          image: {{ .Values.rabbitmq.setupImage }}
+          command: ["sh", "/scripts/setup-users.sh"]
+          env:
+            - name: RABBITMQ_API
+              value: http://rabbitmq-0.rabbitmq-headless:15672/api
+          envFrom:
+            - secretRef:
+                name: infra-credentials
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: rabbitmq-setup
