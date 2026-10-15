@@ -3,12 +3,15 @@ package com.showcase.common.infrastructure.openapi;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 /**
  * Respuestas de error que puede dar cada tipo de operación, según la tabla del CRUD de la especificación. Todas
  * usan el cuerpo común {@code ErrorResponseDTO}.
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class StandardErrorResponses {
 
     private static final Map<Integer, String> DESCRIPTIONS = Map.of(
@@ -20,9 +23,6 @@ public final class StandardErrorResponses {
             422, "La operación incumple una regla de negocio",
             500, "Error inesperado (sin detalles internos)",
             503, "Un servicio del que depende no está disponible");
-
-    private StandardErrorResponses() {
-    }
 
     /**
      * @param targetsOneResource si la ruta lleva una variable como {@code {id}} (operación sobre un recurso)

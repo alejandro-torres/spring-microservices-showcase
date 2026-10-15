@@ -10,9 +10,12 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "order_items")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class OrderItemEntity {
 
     @Id
@@ -34,9 +37,6 @@ public class OrderItemEntity {
 
     @Column(nullable = false)
     private int quantity;
-
-    protected OrderItemEntity() {
-    }
 
     public OrderItemEntity(OrderEntity order, Long productId, String productName, BigDecimal unitPrice, int quantity) {
         this.order = order;

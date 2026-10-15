@@ -9,6 +9,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import lombok.RequiredArgsConstructor;
 import org.redisson.RedissonMultiLock;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
@@ -22,6 +23,7 @@ import org.redisson.api.RedissonClient;
  *   <li>Se suelta en un {@code finally}, solo si lo tiene este hilo.</li>
  * </ul>
  */
+@RequiredArgsConstructor
 public class RedissonDistributedLockManagerImpl implements DistributedLockManager {
 
     static final String WAIT_METRIC = "distributed.lock.wait";
@@ -29,28 +31,19 @@ public class RedissonDistributedLockManagerImpl implements DistributedLockManage
     private final RedissonClient redisson;
     private final Duration waitTime;
     private final Duration leaseTime;
-    private final Timer acquiredTimer;
-    private final Timer busyTimer;
-
     /**
-     * @param meterRegistry métrica {@code distributed.lock.wait}: cuánto se espera por los locks, separando los que
-     *                      se consiguen ({@code outcome=acquired}) de los que se rinden ({@code outcome=busy})
+     * Métrica {@code distributed.lock.wait}: cuánto se espera por los locks, separando los que se consiguen
+     * ({@code outcome=acquired}) de los que se rinden ({@code outcome=busy}).
      */
-    public RedissonDistributedLockManagerImpl(RedissonClient redisson, Duration waitTime, Duration leaseTime,
-                                              MeterRegistry meterRegistry) {
-        this.redisson = redisson;
-        this.waitTime = waitTime;
-        this.leaseTime = leaseTime;
-        this.acquiredTimer = waitTimer(meterRegistry, "acquired");
-        this.busyTimer = waitTimer(meterRegistry, "busy");
-    }
+    private final MeterRegistry meterRegistry;
 
-    private static Timer waitTimer(MeterRegistry registry, String outcome) {
+    /** Micrometer devuelve el mismo timer si ya está registrado con ese nombre y etiquetas. */
+    private Timer waitTimer(String outcome) {
         return Timer.builder(WAIT_METRIC)
                 .description("Tiempo de espera por los locks distribuidos")
                 .tag("outcome", outcome)
                 .publishPercentileHistogram()
-                .register(registry);
+                .register(meterRegistry);
     }
 
     @Override
@@ -66,10 +59,10 @@ public class RedissonDistributedLockManagerImpl implements DistributedLockManage
             acquired = lock.tryLock(waitTime.toMillis(), leaseTime.toMillis(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            busyTimer.record(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+            waitTimer("busy").record(System.nanoTime() - start, TimeUnit.NANOSECONDS);
             throw new ResourceBusyException(String.join(",", keys), e);
         }
-        (acquired ? acquiredTimer : busyTimer).record(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+        waitTimer(acquired ? "acquired" : "busy").record(System.nanoTime() - start, TimeUnit.NANOSECONDS);
         if (!acquired) {
             throw new ResourceBusyException(String.join(",", keys), null);
         }

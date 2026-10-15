@@ -1,5 +1,7 @@
 package com.showcase.gateway.infrastructure.error;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter;
 import org.springframework.http.HttpHeaders;
 
@@ -8,12 +10,10 @@ import org.springframework.http.HttpHeaders;
  * {@code requestedTokens} fichas y el cubo recupera {@code replenishRate} por segundo, así que la siguiente
  * petición cabe como mucho en {@code ceil(requestedTokens / replenishRate)} segundos.
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class RetryAfter {
 
     static final long DEFAULT_SECONDS = 1;
-
-    private RetryAfter() {
-    }
 
     public static long seconds(HttpHeaders rateLimitHeaders) {
         try {

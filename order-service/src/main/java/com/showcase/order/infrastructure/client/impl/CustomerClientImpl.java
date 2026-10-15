@@ -6,26 +6,26 @@ import com.showcase.order.domain.model.ShippingAddress;
 import com.showcase.order.infrastructure.client.dto.CustomerClientResponseDTO;
 import com.showcase.order.infrastructure.client.dto.CustomerClientResponseDTO.AddressClientResponseDTO;
 import com.showcase.order.infrastructure.client.feign.CustomerFeignClient;
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import java.util.List;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class CustomerClientImpl implements CustomerClient {
 
-    private final CustomerFeignClient feignClient;
-    private final CircuitBreaker circuitBreaker;
+    static final String CIRCUIT_BREAKER = "customer-service";
 
-    public CustomerClientImpl(CustomerFeignClient feignClient, CircuitBreakerRegistry registry) {
-        this.feignClient = feignClient;
-        this.circuitBreaker = registry.circuitBreaker("customer-service");
-    }
+    private final CustomerFeignClient feignClient;
+    /** El circuit breaker se pide al registro en cada llamada (lo guarda en caché por nombre). */
+    private final CircuitBreakerRegistry circuitBreakerRegistry;
 
     @Override
     public Optional<CustomerInfo> findById(Long customerId) {
-        return ResilientCall.findOptional(circuitBreaker, () -> feignClient.findById(customerId))
+        return ResilientCall.findOptional(circuitBreakerRegistry.circuitBreaker(CIRCUIT_BREAKER),
+                        () -> feignClient.findById(customerId))
                 .map(CustomerClientImpl::toInfo);
     }
 
