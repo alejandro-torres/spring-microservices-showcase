@@ -15,6 +15,7 @@ import org.springframework.security.oauth2.server.resource.InvalidBearerTokenExc
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.ServerAuthenticationEntryPoint;
 import org.springframework.security.web.server.authorization.ServerAccessDeniedHandler;
+import org.springframework.security.web.server.header.ReferrerPolicyServerHttpHeadersWriter.ReferrerPolicy;
 import org.springframework.security.web.server.savedrequest.NoOpServerRequestCache;
 
 /**
@@ -57,6 +58,12 @@ public class SecurityConfig {
                         .authenticationEntryPoint(entryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
                 .requestCache(cache -> cache.requestCache(NoOpServerRequestCache.getInstance()))
+                // Por defecto WebFlux pone no-referrer, y con esa política el navegador envía "Origin: null" en los
+                // POST de formulario (el login): el filtro CORS los trata como de otro origen y responde 403.
+                // strict-origin-when-cross-origin (el valor por defecto de los navegadores) envía el origen real y
+                // a otros sitios solo el origen, nunca la ruta.
+                .headers(headers -> headers.referrerPolicy(referrer -> referrer
+                        .policy(ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)))
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
