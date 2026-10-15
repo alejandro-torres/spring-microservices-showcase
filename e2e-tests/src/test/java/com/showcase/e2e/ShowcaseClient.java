@@ -62,6 +62,8 @@ final class ShowcaseClient {
         }
         HttpResponse<String> loggedIn = send(HttpRequest.newBuilder(URI.create(baseUrl + "/login"))
                 .header("Content-Type", "application/x-www-form-urlencoded")
+                // Como un navegador: el POST del formulario lleva el origen, que el filtro CORS del gateway comprueba.
+                .header("Origin", baseUrl)
                 .POST(HttpRequest.BodyPublishers.ofString(form(Map.of(
                         "username", username, "password", password, "_csrf", csrf.group(1)))))
                 .build());

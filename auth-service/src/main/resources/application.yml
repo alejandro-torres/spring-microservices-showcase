@@ -71,7 +71,8 @@ showcase:
       - client-id: web-client
         client-name: Frontend web
         grant-types: authorization_code,refresh_token
-        redirect-uris: ${WEB_CLIENT_REDIRECT_URIS:http://127.0.0.1:3000/callback}
+        # La segunda es el login del Swagger UI del gateway. Se comparan exactamente: con otro host o puerto, cámbialas.
+        redirect-uris: ${WEB_CLIENT_REDIRECT_URIS:http://127.0.0.1:3000/callback,http://localhost:8080/swagger-ui/oauth2-redirect.html}
         scopes: openid,profile
       # Llamadas entre microservicios: client_credentials. Si no hay secreto, no se registra.
       - client-id: internal-service

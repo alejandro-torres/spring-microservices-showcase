@@ -188,6 +188,12 @@ showcase:
 # Un único Swagger UI con un desplegable para la API de cada servicio.
 springdoc:
   swagger-ui:
+    # Authorize → oauth2 abre el login de auth-service (authorization code + PKCE, cliente público sin secreto)
+    # y vuelve a /swagger-ui/oauth2-redirect.html, que tiene que estar en las redirect URIs de web-client.
+    oauth:
+      client-id: web-client
+      use-pkce-with-authorization-code-grant: true
+      scopes: openid,profile
     urls:
       - name: auth-service
         url: /auth-service/v3/api-docs

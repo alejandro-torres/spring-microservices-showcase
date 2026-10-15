@@ -118,6 +118,15 @@ class GatewayIT {
         }
 
         @Test
+        @DisplayName("usa la política Referrer strict-origin-when-cross-origin: con no-referrer el navegador enviaría "
+                + "Origin: null en el POST del login y el filtro CORS lo rechazaría")
+        void responses_shouldUseReferrerPolicyThatKeepsTheOrigin() {
+            // when / then
+            client.post().uri("/api/v1/auth/register").exchange()
+                    .expectHeader().valueEquals("Referrer-Policy", "strict-origin-when-cross-origin");
+        }
+
+        @Test
         @DisplayName("sin token responde 401 en el formato común, con el traceId en el cuerpo y en X-Trace-Id")
         void protectedRoute_withoutToken_shouldReturn401() {
             // when

@@ -17,7 +17,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Registra al arrancar los clientes OAuth2 de {@code showcase.security.clients} que aún no existen.
- * Los existentes no se tocan, para no pisar cambios hechos en la base de datos.
+ * De los existentes solo se sincronizan las redirect URIs con la configuración (es la que decide a dónde se puede
+ * enviar un código de autorización); el resto no se toca, para no pisar cambios hechos en la base de datos.
  */
 @Component
 @RequiredArgsConstructor
@@ -32,7 +33,9 @@ public class RegisteredClientsInitializer implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         for (AuthSecurityProperties.Client client : properties.clients()) {
-            if (repository.findByClientId(client.clientId()) != null) {
+            RegisteredClient existing = repository.findByClientId(client.clientId());
+            if (existing != null) {
+                syncRedirectUris(existing, client);
                 continue;
             }
             boolean confidential = client.grantTypes().contains(AuthorizationGrantType.CLIENT_CREDENTIALS.getValue());
@@ -44,6 +47,19 @@ public class RegisteredClientsInitializer implements ApplicationRunner {
             repository.save(toRegisteredClient(client));
             log.info("Cliente OAuth2 registrado: {}", client.clientId());
         }
+    }
+
+    private void syncRedirectUris(RegisteredClient existing, AuthSecurityProperties.Client client) {
+        if (existing.getRedirectUris().equals(client.redirectUris())) {
+            return;
+        }
+        repository.save(RegisteredClient.from(existing)
+                .redirectUris(uris -> {
+                    uris.clear();
+                    uris.addAll(client.redirectUris());
+                })
+                .build());
+        log.info("Redirect URIs del cliente OAuth2 {} actualizadas: {}", client.clientId(), client.redirectUris());
     }
 
     RegisteredClient toRegisteredClient(AuthSecurityProperties.Client client) {
