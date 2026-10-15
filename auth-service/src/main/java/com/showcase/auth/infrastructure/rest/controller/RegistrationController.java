@@ -7,6 +7,7 @@ import com.showcase.auth.infrastructure.rest.dto.response.UserResponseDTO;
 import com.showcase.auth.infrastructure.rest.mapper.AuthRestMapper;
 import jakarta.validation.Valid;
 import java.net.URI;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,15 +20,11 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
  */
 @RestController
 @RequestMapping("/api/v1/auth")
+@RequiredArgsConstructor
 public class RegistrationController {
 
     private final UserService userService;
     private final AuthRestMapper mapper;
-
-    public RegistrationController(UserService userService, AuthRestMapper mapper) {
-        this.userService = userService;
-        this.mapper = mapper;
-    }
 
     @PostMapping("/register")
     public ResponseEntity<UserResponseDTO> register(@Valid @RequestBody RegisterUserRequestDTO request) {

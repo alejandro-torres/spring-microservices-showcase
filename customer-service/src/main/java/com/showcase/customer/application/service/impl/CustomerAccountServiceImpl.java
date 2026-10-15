@@ -10,6 +10,7 @@ import com.showcase.events.EventTypes;
 import io.micrometer.observation.annotation.Observed;
 import java.time.Instant;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -20,17 +21,13 @@ import org.springframework.transaction.annotation.Transactional;
  * falla, el rollback deshace también el registro y el reintento lo procesa de nuevo.
  */
 @Service
+@RequiredArgsConstructor
 public class CustomerAccountServiceImpl implements CustomerAccountService {
 
     private static final Logger log = LoggerFactory.getLogger(CustomerAccountServiceImpl.class);
 
     private final CustomerRepository customerRepository;
     private final ProcessedEventRegistry processedEvents;
-
-    public CustomerAccountServiceImpl(CustomerRepository customerRepository, ProcessedEventRegistry processedEvents) {
-        this.customerRepository = customerRepository;
-        this.processedEvents = processedEvents;
-    }
 
     /**
      * Si el usuario ya tiene cliente (p. ej. lo creó un gestor antes de que llegara el evento) no se hace nada.

@@ -3,6 +3,7 @@ package com.showcase.gateway.infrastructure.error;
 import com.showcase.common.domain.exception.CommonErrorCode;
 import java.net.ConnectException;
 import java.util.concurrent.TimeoutException;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.webflux.error.ErrorWebExceptionHandler;
@@ -28,15 +29,12 @@ import reactor.core.publisher.Mono;
  */
 @Component
 @Order(-2)
+@RequiredArgsConstructor
 public class GatewayErrorWebExceptionHandler implements ErrorWebExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GatewayErrorWebExceptionHandler.class);
 
     private final GatewayErrorWriter errorWriter;
-
-    public GatewayErrorWebExceptionHandler(GatewayErrorWriter errorWriter) {
-        this.errorWriter = errorWriter;
-    }
 
     @Override
     public Mono<Void> handle(ServerWebExchange exchange, Throwable error) {

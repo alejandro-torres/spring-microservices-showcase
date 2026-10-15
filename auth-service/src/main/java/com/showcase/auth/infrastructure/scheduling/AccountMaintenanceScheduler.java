@@ -1,6 +1,7 @@
 package com.showcase.auth.infrastructure.scheduling;
 
 import com.showcase.auth.application.service.AccountMaintenanceService;
+import lombok.RequiredArgsConstructor;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,15 +13,12 @@ import org.springframework.stereotype.Component;
  * Con varias réplicas, ShedLock garantiza que cada tarea la ejecuta una sola a la vez.
  */
 @Component
+@RequiredArgsConstructor
 public class AccountMaintenanceScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(AccountMaintenanceScheduler.class);
 
     private final AccountMaintenanceService maintenanceService;
-
-    public AccountMaintenanceScheduler(AccountMaintenanceService maintenanceService) {
-        this.maintenanceService = maintenanceService;
-    }
 
     @Scheduled(fixedDelayString = "${showcase.scheduling.account-unlock.fixed-delay:1m}",
             initialDelayString = "${showcase.scheduling.account-unlock.initial-delay:30s}")

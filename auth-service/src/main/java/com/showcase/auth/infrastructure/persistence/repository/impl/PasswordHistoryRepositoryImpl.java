@@ -5,17 +5,15 @@ import com.showcase.auth.infrastructure.persistence.entity.PasswordHistoryEntity
 import com.showcase.auth.infrastructure.persistence.repository.PasswordHistoryJpaRepository;
 import java.time.Instant;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 @Repository
+@RequiredArgsConstructor
 public class PasswordHistoryRepositoryImpl implements PasswordHistoryRepository {
 
     private final PasswordHistoryJpaRepository jpaRepository;
-
-    public PasswordHistoryRepositoryImpl(PasswordHistoryJpaRepository jpaRepository) {
-        this.jpaRepository = jpaRepository;
-    }
 
     @Override
     public void save(Long userId, String passwordHash, Instant createdAt) {

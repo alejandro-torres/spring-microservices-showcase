@@ -23,6 +23,7 @@ import io.micrometer.observation.annotation.Observed;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
@@ -48,18 +50,6 @@ public class OrderServiceImpl implements OrderService {
     private final OrderEventPublisher eventPublisher;
     private final OrderMetrics metrics;
     private final Clock clock;
-
-    public OrderServiceImpl(OrderRepository orderRepository, OrderWriter orderWriter, CustomerClient customerClient,
-                            ProductClient productClient, OrderEventPublisher eventPublisher, OrderMetrics metrics,
-                            Clock clock) {
-        this.orderRepository = orderRepository;
-        this.orderWriter = orderWriter;
-        this.customerClient = customerClient;
-        this.productClient = productClient;
-        this.eventPublisher = eventPublisher;
-        this.metrics = metrics;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)

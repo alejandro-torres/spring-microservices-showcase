@@ -4,6 +4,7 @@ import com.showcase.common.domain.exception.CommonErrorCode;
 import com.showcase.common.infrastructure.rest.dto.response.ErrorResponseDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
@@ -21,15 +22,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  */
 @RestControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
+@RequiredArgsConstructor
 public class DataAccessExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(DataAccessExceptionHandler.class);
 
     private final ErrorResponseFactory responses;
-
-    public DataAccessExceptionHandler(ErrorResponseFactory responses) {
-        this.responses = responses;
-    }
 
     /** Bloqueo optimista: otro usuario modificó el registro (@Version distinta). */
     @ExceptionHandler(OptimisticLockingFailureException.class)

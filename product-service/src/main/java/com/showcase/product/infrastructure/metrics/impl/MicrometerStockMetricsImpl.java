@@ -4,6 +4,7 @@ import com.showcase.common.infrastructure.metrics.AfterCommit;
 import com.showcase.product.application.metrics.StockMetrics;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
@@ -11,15 +12,12 @@ import org.springframework.stereotype.Component;
  * product_not_found o released. Se incrementa después del commit de la operación.
  */
 @Component
+@RequiredArgsConstructor
 public class MicrometerStockMetricsImpl implements StockMetrics {
 
     static final String NAME = "showcase.stock.operations";
 
     private final MeterRegistry registry;
-
-    public MicrometerStockMetricsImpl(MeterRegistry registry) {
-        this.registry = registry;
-    }
 
     @Override
     public void stockReserved() {

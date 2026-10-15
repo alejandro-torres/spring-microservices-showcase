@@ -1,6 +1,7 @@
 package com.showcase.auth.infrastructure.rest.controller;
 
 import com.showcase.auth.application.service.TokenRevocationService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -15,13 +16,10 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/v1/auth")
+@RequiredArgsConstructor
 public class LogoutController {
 
     private final TokenRevocationService tokenRevocationService;
-
-    public LogoutController(TokenRevocationService tokenRevocationService) {
-        this.tokenRevocationService = tokenRevocationService;
-    }
 
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/logout")

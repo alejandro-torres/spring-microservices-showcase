@@ -1,6 +1,7 @@
 package com.showcase.auth.infrastructure.security.config;
 
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Component;
  * Los existentes no se tocan, para no pisar cambios hechos en la base de datos.
  */
 @Component
+@RequiredArgsConstructor
 public class RegisteredClientsInitializer implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(RegisteredClientsInitializer.class);
@@ -26,13 +28,6 @@ public class RegisteredClientsInitializer implements ApplicationRunner {
     private final RegisteredClientRepository repository;
     private final AuthSecurityProperties properties;
     private final PasswordEncoder passwordEncoder;
-
-    public RegisteredClientsInitializer(RegisteredClientRepository repository, AuthSecurityProperties properties,
-                                        PasswordEncoder passwordEncoder) {
-        this.repository = repository;
-        this.properties = properties;
-        this.passwordEncoder = passwordEncoder;
-    }
 
     @Override
     public void run(ApplicationArguments args) {

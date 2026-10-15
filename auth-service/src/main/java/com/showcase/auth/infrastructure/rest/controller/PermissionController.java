@@ -16,6 +16,7 @@ import com.showcase.common.infrastructure.rest.page.PageQueryParser;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import java.net.URI;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -31,18 +32,12 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
 @RequestMapping("/api/v1/permissions")
+@RequiredArgsConstructor
 public class PermissionController {
 
     private final PermissionService permissionService;
     private final AuthRestMapper mapper;
     private final FilterCriteriaParser filterParser;
-
-    public PermissionController(PermissionService permissionService, AuthRestMapper mapper,
-                                FilterCriteriaParser filterParser) {
-        this.permissionService = permissionService;
-        this.mapper = mapper;
-        this.filterParser = filterParser;
-    }
 
     @PreAuthorize("hasAuthority('permission:write')")
     @PostMapping

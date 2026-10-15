@@ -4,6 +4,7 @@ import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import lombok.RequiredArgsConstructor;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +16,7 @@ import org.springframework.scheduling.annotation.Scheduled;
  * mensaje mientras no se confirma (minutos como mucho, con los reintentos), así que pasados unos días la tabla
  * solo crece. Con ShedLock solo la ejecuta una réplica.
  */
+@RequiredArgsConstructor
 public class ProcessedEventCleanup {
 
     private static final Logger log = LoggerFactory.getLogger(ProcessedEventCleanup.class);
@@ -22,12 +24,6 @@ public class ProcessedEventCleanup {
     private final JdbcClient jdbcClient;
     private final Duration retention;
     private final Clock clock;
-
-    public ProcessedEventCleanup(JdbcClient jdbcClient, Duration retention, Clock clock) {
-        this.jdbcClient = jdbcClient;
-        this.retention = retention;
-        this.clock = clock;
-    }
 
     @Scheduled(cron = "${showcase.messaging.processed-event-cleanup-cron:0 30 3 * * *}")
     @SchedulerLock(name = "processedEventCleanup", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
