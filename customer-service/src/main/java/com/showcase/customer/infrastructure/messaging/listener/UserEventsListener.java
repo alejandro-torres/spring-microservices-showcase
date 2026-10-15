@@ -6,6 +6,7 @@ import com.showcase.events.EventEnvelopeDTO;
 import com.showcase.events.auth.AccountLockedMessageDTO;
 import com.showcase.events.auth.UserDisabledMessageDTO;
 import com.showcase.events.auth.UserRegisteredMessageDTO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
@@ -14,13 +15,10 @@ import org.springframework.stereotype.Component;
  * {@link CustomerAccountService}, sin lógica de negocio ni transacción propia.
  */
 @Component
+@RequiredArgsConstructor
 public class UserEventsListener {
 
     private final CustomerAccountService accountService;
-
-    public UserEventsListener(CustomerAccountService accountService) {
-        this.accountService = accountService;
-    }
 
     @RabbitListener(queues = "${showcase.messaging.consumers.user-registered.queue}",
             errorHandler = LoggingRabbitListenerErrorHandler.BEAN_NAME)

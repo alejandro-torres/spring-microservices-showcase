@@ -2,6 +2,7 @@ package com.showcase.gateway.infrastructure.fallback;
 
 import com.showcase.common.domain.exception.CommonErrorCode;
 import com.showcase.gateway.infrastructure.error.GatewayErrorWriter;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
@@ -17,15 +18,12 @@ import reactor.core.publisher.Mono;
  * abierto: 503 en el formato común, sin esperar al timeout mientras el circuito siga abierto.
  */
 @RestController
+@RequiredArgsConstructor
 public class FallbackController {
 
     private static final Logger log = LoggerFactory.getLogger(FallbackController.class);
 
     private final GatewayErrorWriter errorWriter;
-
-    public FallbackController(GatewayErrorWriter errorWriter) {
-        this.errorWriter = errorWriter;
-    }
 
     @RequestMapping("/fallback/{service}")
     public Mono<Void> fallback(@PathVariable String service, ServerWebExchange exchange) {

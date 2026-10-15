@@ -6,6 +6,7 @@ import com.showcase.order.domain.event.OrderCancelledEvent;
 import com.showcase.order.domain.event.OrderCreatedEvent;
 import com.showcase.order.domain.messaging.OrderEventPublisher;
 import com.showcase.order.infrastructure.messaging.mapper.OrderMessageMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
@@ -14,17 +15,13 @@ import org.springframework.stereotype.Component;
  * ha confirmado.
  */
 @Component
+@RequiredArgsConstructor
 public class OrderEventPublisherImpl implements OrderEventPublisher {
 
     static final String AGGREGATE_TYPE = "Order";
 
     private final OutboxEventWriter outbox;
     private final OrderMessageMapper mapper;
-
-    public OrderEventPublisherImpl(OutboxEventWriter outbox, OrderMessageMapper mapper) {
-        this.outbox = outbox;
-        this.mapper = mapper;
-    }
 
     @Override
     public void publish(OrderCreatedEvent event) {

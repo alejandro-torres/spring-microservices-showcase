@@ -4,6 +4,7 @@ import com.showcase.common.infrastructure.metrics.AfterCommit;
 import com.showcase.order.application.metrics.OrderMetrics;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
@@ -11,15 +12,12 @@ import org.springframework.stereotype.Component;
  * los rechazados, {@code reason}. Se incrementa después del commit: un pedido cuya transacción falla no cuenta.
  */
 @Component
+@RequiredArgsConstructor
 public class MicrometerOrderMetricsImpl implements OrderMetrics {
 
     static final String NAME = "showcase.orders";
 
     private final MeterRegistry registry;
-
-    public MicrometerOrderMetricsImpl(MeterRegistry registry) {
-        this.registry = registry;
-    }
 
     @Override
     public void orderCreated() {

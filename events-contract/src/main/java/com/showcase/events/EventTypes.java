@@ -1,9 +1,13 @@
 package com.showcase.events;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
 /**
  * Tipos de evento con el formato {@code <entidad>.<acción>}. Son parte del contrato y se usan también como
  * routing key al publicar en el exchange del servicio.
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class EventTypes {
 
     public static final String USER_REGISTERED = "user.registered";
@@ -17,7 +21,4 @@ public final class EventTypes {
 
     /** Versión actual de todos los contratos; cada evento tendrá la suya cuando alguno cambie. */
     public static final int CURRENT_VERSION = 1;
-
-    private EventTypes() {
-    }
 }

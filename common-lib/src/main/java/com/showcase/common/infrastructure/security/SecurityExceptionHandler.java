@@ -5,6 +5,7 @@ import com.showcase.common.infrastructure.exception.ErrorResponseFactory;
 import com.showcase.common.infrastructure.rest.dto.response.ErrorResponseDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
@@ -23,13 +24,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  */
 @RestControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
+@RequiredArgsConstructor
 public class SecurityExceptionHandler {
 
     private final ErrorResponseFactory responses;
-
-    public SecurityExceptionHandler(ErrorResponseFactory responses) {
-        this.responses = responses;
-    }
 
     /** 403 si el usuario está autenticado; 401 si es anónimo (todavía puede identificarse). */
     @ExceptionHandler(AccessDeniedException.class)

@@ -5,6 +5,7 @@ import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
  * nada: solo una procesa el evento. Si el cambio de negocio falla, el rollback se lleva también el registro y el
  * reintento lo procesa como nuevo.
  */
+@RequiredArgsConstructor
 public class JdbcProcessedEventRegistryImpl implements ProcessedEventRegistry {
 
     private static final String INSERT = """
@@ -25,11 +27,6 @@ public class JdbcProcessedEventRegistryImpl implements ProcessedEventRegistry {
 
     private final JdbcClient jdbcClient;
     private final Clock clock;
-
-    public JdbcProcessedEventRegistryImpl(JdbcClient jdbcClient, Clock clock) {
-        this.jdbcClient = jdbcClient;
-        this.clock = clock;
-    }
 
     /** {@code MANDATORY}: fuera de la transacción del caso de uso no protegería de nada. */
     @Override

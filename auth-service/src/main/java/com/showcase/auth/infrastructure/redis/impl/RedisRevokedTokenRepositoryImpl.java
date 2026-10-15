@@ -4,6 +4,7 @@ import com.showcase.auth.domain.repository.RevokedTokenRepository;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -13,16 +14,13 @@ import org.springframework.stereotype.Repository;
  * las réplicas a la vez.
  */
 @Repository
+@RequiredArgsConstructor
 public class RedisRevokedTokenRepositoryImpl implements RevokedTokenRepository {
 
     static final String TOKEN_KEY = "auth:revoked:token:";
     static final String USER_KEY = "auth:revoked:user:";
 
     private final StringRedisTemplate redis;
-
-    public RedisRevokedTokenRepositoryImpl(StringRedisTemplate redis) {
-        this.redis = redis;
-    }
 
     @Override
     public void revoke(String tokenId, Duration ttl) {

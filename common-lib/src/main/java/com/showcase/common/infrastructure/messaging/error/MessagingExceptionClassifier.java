@@ -4,6 +4,8 @@ import com.showcase.common.domain.exception.DomainException;
 import com.showcase.common.domain.exception.ErrorCategory;
 import java.util.EnumSet;
 import java.util.Set;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.springframework.amqp.support.converter.MessageConversionException;
 
 /**
@@ -15,13 +17,11 @@ import org.springframework.amqp.support.converter.MessageConversionException;
  *       otro servicio no disponible y cualquier error inesperado.</li>
  * </ul>
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class MessagingExceptionClassifier {
 
     private static final Set<ErrorCategory> TRANSIENT = EnumSet.of(ErrorCategory.LOCKED,
             ErrorCategory.EXTERNAL_SERVICE, ErrorCategory.RATE_LIMITED, ErrorCategory.INTERNAL);
-
-    private MessagingExceptionClassifier() {
-    }
 
     public static boolean isRetryable(Throwable error) {
         for (Throwable current = error; current != null; current = current.getCause()) {

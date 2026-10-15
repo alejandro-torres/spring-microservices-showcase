@@ -7,21 +7,18 @@ import com.showcase.auth.domain.messaging.UserEventPublisher;
 import com.showcase.auth.infrastructure.messaging.mapper.UserMessageMapper;
 import com.showcase.common.infrastructure.messaging.outbox.OutboxEventWriter;
 import com.showcase.events.EventTypes;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /** Guarda los eventos de usuarios en el outbox; el {@code OutboxPublisher} los envía a {@code auth.events}. */
 @Component
+@RequiredArgsConstructor
 public class UserEventPublisherImpl implements UserEventPublisher {
 
     static final String AGGREGATE_TYPE = "User";
 
     private final OutboxEventWriter outbox;
     private final UserMessageMapper mapper;
-
-    public UserEventPublisherImpl(OutboxEventWriter outbox, UserMessageMapper mapper) {
-        this.outbox = outbox;
-        this.mapper = mapper;
-    }
 
     @Override
     public void publish(UserRegisteredEvent event) {

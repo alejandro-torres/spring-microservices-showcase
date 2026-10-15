@@ -9,9 +9,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "addresses")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AddressEntity {
 
     @Id
@@ -36,9 +39,6 @@ public class AddressEntity {
 
     @Column(nullable = false)
     private boolean main;
-
-    protected AddressEntity() {
-    }
 
     public AddressEntity(CustomerEntity customer, String street, String city, String postalCode, String country,
                          boolean main) {

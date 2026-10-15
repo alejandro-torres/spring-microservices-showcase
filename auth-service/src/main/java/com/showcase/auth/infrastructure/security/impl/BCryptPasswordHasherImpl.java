@@ -1,6 +1,7 @@
 package com.showcase.auth.infrastructure.security.impl;
 
 import com.showcase.auth.application.security.PasswordHasher;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -9,13 +10,10 @@ import org.springframework.stereotype.Component;
  * al crear usuarios sean los que Spring Security comprueba al iniciar sesión.
  */
 @Component
+@RequiredArgsConstructor
 public class BCryptPasswordHasherImpl implements PasswordHasher {
 
     private final PasswordEncoder passwordEncoder;
-
-    public BCryptPasswordHasherImpl(PasswordEncoder passwordEncoder) {
-        this.passwordEncoder = passwordEncoder;
-    }
 
     @Override
     public String hash(String rawPassword) {

@@ -11,6 +11,7 @@ import com.showcase.order.domain.repository.OrderRepository;
 import io.micrometer.observation.annotation.Observed;
 import java.util.UUID;
 import java.util.function.Consumer;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
  * excepción de dominio hace que el mensaje vaya directo a la DLQ para revisarlo.
  */
 @Service
+@RequiredArgsConstructor
 public class OrderSagaServiceImpl implements OrderSagaService {
 
     private static final Logger log = LoggerFactory.getLogger(OrderSagaServiceImpl.class);
@@ -31,13 +33,6 @@ public class OrderSagaServiceImpl implements OrderSagaService {
     private final OrderRepository orderRepository;
     private final ProcessedEventRegistry processedEvents;
     private final OrderMetrics metrics;
-
-    public OrderSagaServiceImpl(OrderRepository orderRepository, ProcessedEventRegistry processedEvents,
-                                OrderMetrics metrics) {
-        this.orderRepository = orderRepository;
-        this.processedEvents = processedEvents;
-        this.metrics = metrics;
-    }
 
     @Override
     @Transactional

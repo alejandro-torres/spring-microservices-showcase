@@ -7,6 +7,7 @@ import io.micrometer.tracing.Tracer;
 import io.micrometer.tracing.propagation.Propagator;
 import java.util.Map;
 import java.util.function.Supplier;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Guarda el contexto de la traza con el evento (W3C {@code traceparent}) y, al enviarlo, abre un span hijo de esa
@@ -14,17 +15,13 @@ import java.util.function.Supplier;
  * preferencia al span abierto a mano frente al de la tarea programada) y propaga la cabecera {@code traceparent}
  * al mensaje, así que el consumidor continúa la misma traza.
  */
+@RequiredArgsConstructor
 public class MicrometerOutboxTracingImpl implements OutboxTracing {
 
     static final String TRACEPARENT = "traceparent";
 
     private final Tracer tracer;
     private final Propagator propagator;
-
-    public MicrometerOutboxTracingImpl(Tracer tracer, Propagator propagator) {
-        this.tracer = tracer;
-        this.propagator = propagator;
-    }
 
     @Override
     public String currentTraceParent() {
