@@ -74,6 +74,10 @@ Los tokens se piden a través del gateway (`http://localhost:8080/oauth2/token`,
 
 En [docs/curl-examples.md](docs/curl-examples.md) hay un recorrido completo con `curl`: cómo obtener un token de usuario, listados con filtros, cada código de error, cierre de sesión y cómo seguir un pedido en Zipkin y RabbitMQ.
 
+## Arrancar todo en Kubernetes
+
+El mismo sistema se puede desplegar en un clúster local de kind con un chart de Helm (`k8s/kind/cluster.sh create`, `k8s/deploy.sh` y un port-forward al gateway en el 8080). Los pasos y los requisitos están en [k8s/README.md](k8s/README.md).
+
 ## Arrancar los servicios uno a uno (desarrollo)
 
 Para depurar un servicio desde el IDE, cada uno se arranca con `spring-boot:test-run`: levanta su PostgreSQL (y Redis en auth-service) en Docker con Testcontainers. Lo que comparten se arranca una vez:
