@@ -1,0 +1,58 @@
+{{- /*
+PodMonitors: Prometheus (kube-prometheus-stack) lee las métricas de cada réplica directamente de su pod.
+Se mantienen las etiquetas de Docker Compose (job="microservices" y eureka_app) para reutilizar los dashboards
+y las alertas de docker/.
+*/ -}}
+{{- if and .Values.monitoring.enabled (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1/PodMonitor") }}
+{{- $root := . -}}
+{{- range $name, $svc := .Values.services }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "showcase.labels" $root | nindent 4 }}
+    {{- include "showcase.selector" $name | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "showcase.selector" $name | nindent 6 }}
+  podMetricsEndpoints:
+    # El puerto del Actuator: el gateway usa uno interno distinto del público.
+    - port: {{ if and $svc.managementPort (ne $svc.managementPort $svc.port) }}management{{ else }}http{{ end }}
+      path: /actuator/prometheus
+      interval: 10s
+      # Las métricas ya traen las etiquetas application, instance (la de X-Instance-Id) y environment.
+      honorLabels: true
+      relabelings:
+        # Eureka no se registra en sí mismo: en Docker Compose tiene su propio job.
+        - targetLabel: job
+          replacement: {{ if eq $name "discovery-service" }}discovery-service{{ else }}microservices{{ end }}
+        - sourceLabels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+          targetLabel: eureka_app
+          action: uppercase
+{{- end }}
+---
+# RabbitMQ: mensajes por cola (también las DLQ) y consumidores, con el plugin de Prometheus de RabbitMQ.
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: rabbitmq
+  labels:
+    {{- include "showcase.labels" . | nindent 4 }}
+    {{- include "showcase.selector" "rabbitmq" | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "showcase.selector" "rabbitmq" | nindent 6 }}
+  podMetricsEndpoints:
+    - port: prometheus
+      path: /metrics/detailed
+      params:
+        family: [queue_coarse_metrics, queue_consumer_count]
+      interval: 10s
+      relabelings:
+        - targetLabel: job
+          replacement: rabbitmq
+{{- end }}

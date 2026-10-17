@@ -1,0 +1,36 @@
+# Alertas de Kubernetes para los pods de la aplicación (namespace showcase). Se suman a las de
+# docker/prometheus/alerts.yml; install.sh las carga como PrometheusRule.
+groups:
+  - name: showcase-kubernetes
+    rules:
+      - alert: PodEnCrashLoop
+        expr: max by (pod, container) (kube_pod_container_status_waiting_reason{namespace="showcase", reason="CrashLoopBackOff"}) == 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "El contenedor {{ $labels.container }} del pod {{ $labels.pod }} se reinicia una y otra vez"
+          description: "Está en CrashLoopBackOff: revisa kubectl -n showcase logs {{ $labels.pod }} --previous."
+
+      - alert: PodNoListo
+        expr: |
+          max by (pod) (kube_pod_status_ready{namespace="showcase", condition="false"})
+            * on (pod) group_left max by (pod) (kube_pod_status_phase{namespace="showcase", phase=~"Running|Pending|Unknown"})
+            > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "El pod {{ $labels.pod }} no está listo"
+          description: "Lleva 5 minutos sin pasar la sonda de readiness: no recibe tráfico. Revisa kubectl -n showcase describe pod {{ $labels.pod }}."
+
+      - alert: DeploymentSinTodasLasReplicas
+        expr: |
+          kube_deployment_spec_replicas{namespace="showcase"}
+            > kube_deployment_status_replicas_available{namespace="showcase"}
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.deployment }} no tiene todas sus réplicas disponibles"
+          description: "Faltan réplicas desde hace 10 minutos (pods sin programar, sin arrancar o sin estar listos)."

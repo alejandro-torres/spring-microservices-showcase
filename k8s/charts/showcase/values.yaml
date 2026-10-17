@@ -106,7 +106,12 @@ rabbitmq:
     requests: { cpu: 100m, memory: 256Mi }
     limits: { cpu: "1", memory: 512Mi }
 
+# Trazas en formato Zipkin: al Zipkin del chart o, con la observabilidad del clúster (k8s/observability), a Tempo.
+tracing:
+  endpoint: http://zipkin:9411/api/v2/spans
+
 zipkin:
+  enabled: true
   image: openzipkin/zipkin:3
   resources:
     requests: { cpu: 50m, memory: 256Mi }
@@ -114,3 +119,7 @@ zipkin:
 
 # Imagen de los initContainers que esperan a PostgreSQL y RabbitMQ.
 waitImage: busybox:1.37
+
+# PodMonitors para el Prometheus de kube-prometheus-stack (solo si el clúster tiene sus CRDs).
+monitoring:
+  enabled: true
