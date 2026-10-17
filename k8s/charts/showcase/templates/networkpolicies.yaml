@@ -1,0 +1,207 @@
+{{- /*
+NetworkPolicies: en el namespace todo está denegado por defecto (entrada y salida) y cada pod solo abre lo que usa.
+  - Entrada: el gateway, desde el controlador de Ingress; cada servicio, desde los que lo llaman (clients en
+    values.yaml); el Actuator, desde Prometheus (namespace de monitorización).
+  - Salida: DNS, su base de datos, RabbitMQ, Redis, los servicios a los que llama, las trazas y, para el
+    descubrimiento de servicios, la API de Kubernetes.
+*/ -}}
+{{- if .Values.networkPolicy.enabled }}
+{{- $root := . -}}
+{{- $np := .Values.networkPolicy -}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  labels:
+    {{- include "showcase.labels" . | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+{{- range $name, $svc := .Values.services }}
+{{- $managementPort := $svc.managementPort | default $svc.port }}
+{{- $calls := list }}
+{{- range $other, $otherSvc := $root.Values.services }}
+{{- if has $name ($otherSvc.clients | default list) }}
+{{- $calls = append $calls (dict "name" $other "port" $otherSvc.port) }}
+{{- end }}
+{{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "showcase.labels" $root | nindent 4 }}
+    {{- include "showcase.selector" $name | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "showcase.selector" $name | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    {{- if eq $name "api-gateway" }}
+    # Tráfico externo: solo a través del controlador de Ingress.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $np.ingressNamespace }}
+      ports:
+        - port: {{ $svc.port }}
+    {{- end }}
+    {{- with $svc.clients }}
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: {{ toJson . }}
+      ports:
+        - port: {{ $svc.port }}
+    {{- end }}
+    # Métricas para Prometheus.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $np.monitoringNamespace }}
+      ports:
+        - port: {{ $managementPort }}
+  egress:
+    {{- include "showcase.egressDns" $root | nindent 4 }}
+    {{- if $svc.database }}
+    {{- include "showcase.egressPod" (dict "name" "postgres" "port" 5432) | nindent 4 }}
+    {{- end }}
+    {{- if $svc.rabbitmq }}
+    {{- include "showcase.egressPod" (dict "name" "rabbitmq" "port" 5672) | nindent 4 }}
+    {{- end }}
+    {{- if $svc.redis }}
+    {{- include "showcase.egressPod" (dict "name" "redis" "port" 6379) | nindent 4 }}
+    {{- end }}
+    {{- range $calls }}
+    {{- include "showcase.egressPod" . | nindent 4 }}
+    {{- end }}
+    {{- if $root.Values.zipkin.enabled }}
+    {{- include "showcase.egressPod" (dict "name" "zipkin" "port" 9411) | nindent 4 }}
+    {{- else }}
+    # Trazas a Tempo (formato Zipkin).
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $np.monitoringNamespace }}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: tempo
+      ports:
+        - port: 9411
+    {{- end }}
+    {{- if $svc.discovery }}
+    # API de Kubernetes (Spring Cloud Kubernetes). Su IP depende del clúster: se limita solo por puerto.
+    - ports:
+        - port: 443
+        - port: 6443
+    {{- end }}
+{{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres
+  labels:
+    {{- include "showcase.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "showcase.selector" "postgres" | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        {{- include "showcase.podsWith" (dict "root" . "key" "database") | nindent 8 }}
+      ports:
+        - port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis
+  labels:
+    {{- include "showcase.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "showcase.selector" "redis" | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        {{- include "showcase.podsWith" (dict "root" . "key" "redis") | nindent 8 }}
+      ports:
+        - port: 6379
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rabbitmq
+  labels:
+    {{- include "showcase.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "showcase.selector" "rabbitmq" | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        {{- include "showcase.podsWith" (dict "root" . "key" "rabbitmq") | nindent 8 }}
+      ports:
+        - port: 5672
+    # API de administración: solo el Job que crea los usuarios.
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "showcase.selector" "rabbitmq-setup" | nindent 14 }}
+      ports:
+        - port: 15672
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $np.monitoringNamespace }}
+      ports:
+        - port: 15692
+  egress:
+    {{- include "showcase.egressDns" . | nindent 4 }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rabbitmq-setup
+  labels:
+    {{- include "showcase.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "showcase.selector" "rabbitmq-setup" | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+  egress:
+    {{- include "showcase.egressDns" . | nindent 4 }}
+    {{- include "showcase.egressPod" (dict "name" "rabbitmq" "port" 15672) | nindent 4 }}
+{{- if .Values.zipkin.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: zipkin
+  labels:
+    {{- include "showcase.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "showcase.selector" "zipkin" | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: {{ toJson (keys .Values.services | sortAlpha) }}
+      ports:
+        - port: 9411
+{{- end }}
+{{- end }}

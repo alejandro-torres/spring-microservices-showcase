@@ -33,9 +33,16 @@ spec:
         {{- include "showcase.labels" . | nindent 8 }}
         {{- include "showcase.selector" "redis" | nindent 8 }}
     spec:
+      # Usuario redis de la imagen (uid 999) en lugar de root.
+      securityContext:
+        {{- include "showcase.podSecurityContext" (dict "user" 999 "group" 1000) | nindent 8 }}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
       containers:
         - name: redis
           image: {{ .Values.redis.image }}
+          securityContext:
+            {{- include "showcase.containerSecurityContext" . | nindent 12 }}
           ports:
             - name: redis
               containerPort: 6379
