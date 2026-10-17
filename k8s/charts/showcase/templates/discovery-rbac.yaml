@@ -1,0 +1,37 @@
+# Descubrimiento de servicios sin Eureka: el gateway y order-service (Spring Cloud Kubernetes) leen de la API de
+# Kubernetes los Services y sus endpoints (las IP de las réplicas listas) de este namespace. Solo lectura.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: service-discovery
+  labels:
+    {{- include "showcase.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: service-discovery
+  labels:
+    {{- include "showcase.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["services", "endpoints", "pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: service-discovery
+  labels:
+    {{- include "showcase.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: service-discovery
+subjects:
+  - kind: ServiceAccount
+    name: service-discovery
+    namespace: {{ .Release.Namespace }}

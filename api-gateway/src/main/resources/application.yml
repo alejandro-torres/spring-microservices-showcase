@@ -1,6 +1,10 @@
 server:
   port: ${SERVER_PORT:8080}
   shutdown: graceful
+  # El gateway trata él mismo las cabeceras X-Forwarded-* (trusted-proxies y RATE_LIMIT_TRUSTED_PROXY_HOPS): necesita
+  # la IP real de la conexión. En Kubernetes, Spring Boot activaría por defecto el modo nativo, que la sustituye por
+  # la de X-Forwarded-For, y el proxy dejaría de reconocerse como de confianza.
+  forward-headers-strategy: none
 
 spring:
   application:
@@ -33,6 +37,11 @@ spring:
           # llega desde una de estas redes; sin ellas, auth-service redirigiría el login a su IP interna. En local y
           # en Docker son la máquina y las redes privadas; en producción, la del balanceador que haya delante.
           trusted-proxies: ${GATEWAY_TRUSTED_PROXIES:127[.]0[.]0[.]1|0:0:0:0:0:0:0:1|10[.].*|172[.](1[6-9]|2[0-9]|3[01])[.].*|192[.]168[.].*}
+          # Solo X-Forwarded-*, sin la cabecera Forwarded (RFC 7239): esta lleva el protocolo de la última conexión
+          # (http, del Ingress al gateway), los servicios le dan prioridad y el login redirigiría a http aunque el
+          # cliente use https.
+          forwarded:
+            enabled: false
           filter:
             request-rate-limiter:
               # Al superar el límite se lanza una excepción en lugar de devolver un 429 vacío: así el
@@ -277,3 +286,19 @@ logging:
       service:
         node-name: ${showcase.instance-id}
         environment: ${ENVIRONMENT:dev}
+
+---
+# En Kubernetes no hay Eureka: Spring Cloud Kubernetes lee las réplicas listas de cada Service con la API de
+# Kubernetes y Spring Cloud LoadBalancer reparte las llamadas igual que con Eureka.
+spring:
+  config:
+    activate:
+      on-cloud-platform: kubernetes
+  cloud:
+    kubernetes:
+      discovery:
+        # Si un Service publica varios puertos, se usa el de la API.
+        primary-port-name: http
+eureka:
+  client:
+    enabled: false

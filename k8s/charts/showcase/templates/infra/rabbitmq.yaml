@@ -65,14 +65,26 @@ spec:
         {{- include "showcase.labels" . | nindent 8 }}
         {{- include "showcase.selector" "rabbitmq" | nindent 8 }}
     spec:
+      # Usuario rabbitmq de la imagen (uid 999) en lugar de root. El sistema de ficheros no es de solo lectura: el
+      # arranque de la imagen escribe su configuración en /etc/rabbitmq.
+      securityContext:
+        {{- include "showcase.podSecurityContext" (dict "user" 999 "group" 999) | nindent 8 }}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
       containers:
         - name: rabbitmq
           image: {{ .Values.rabbitmq.image }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           ports:
             - name: amqp
               containerPort: 5672
             - name: management
               containerPort: 15672
+            - name: prometheus
+              containerPort: 15692
           env:
             - name: RABBITMQ_DEFAULT_USER
               valueFrom:
@@ -131,12 +143,19 @@ spec:
         {{- include "showcase.selector" "rabbitmq-setup" | nindent 8 }}
     spec:
       restartPolicy: OnFailure
+      # Usuario curl_user de la imagen de curl (uid 100).
+      securityContext:
+        {{- include "showcase.podSecurityContext" (dict "user" 100 "group" 101) | nindent 8 }}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
       initContainers:
         {{- include "showcase.waitFor" (dict "root" . "args" (list "rabbitmq-0.rabbitmq-headless" 15672)) | nindent 8 }}
       containers:
         - name: setup-users
           image: {{ .Values.rabbitmq.setupImage }}
           command: ["sh", "/scripts/setup-users.sh"]
+          securityContext:
+            {{- include "showcase.containerSecurityContext" . | nindent 12 }}
           env:
             - name: RABBITMQ_API
               value: http://rabbitmq-0.rabbitmq-headless:15672/api

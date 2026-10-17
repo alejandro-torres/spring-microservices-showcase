@@ -10,9 +10,28 @@ image:
 
 # Perfil de Spring: dev carga datos de ejemplo (usuario admin) y guarda el 100 % de las trazas.
 springProfile: dev
-# URL pública del gateway: emisor de los tokens y origen del login de Swagger (port-forward a localhost:8080).
-publicUrl: http://localhost:8080
+# URL pública del gateway: emisor de los tokens y origen del login de Swagger. Con el Ingress, https://<host>;
+# sin él (port-forward), http://localhost:8080.
+publicUrl: https://showcase.localhost
 corsAllowedOrigins: http://localhost:3000
+
+# Entrada desde fuera del clúster: un Ingress (Traefik, k8s/platform) con HTTPS de cert-manager hacia el gateway.
+ingress:
+  enabled: true
+  className: traefik
+  host: showcase.localhost
+  clusterIssuer: showcase-ca
+  # El gateway solo se fía de las cabeceras X-Forwarded-* que llegan desde la red de pods (el controlador de
+  # Ingress) y el rate limit usa la IP del cliente que añade ese único proxy.
+  trustedProxies: 10[.]244[.].*
+  trustedProxyHops: 1
+
+# NetworkPolicies: todo denegado por defecto; cada pod solo recibe tráfico de quien lo llama y solo sale hacia lo
+# que necesita (su base de datos, RabbitMQ, Redis, los servicios a los que llama, DNS y Tempo).
+networkPolicy:
+  enabled: true
+  ingressNamespace: traefik
+  monitoringNamespace: monitoring
 
 # Contraseñas: se guardan en Secrets de Kubernetes.
 secrets:
@@ -50,38 +69,50 @@ defaultResources:
 
 # Microservicios. port: puerto de la API; managementPort: Actuator (health y métricas).
 # database/rabbitmq/redis: de qué depende cada uno (variables de entorno e initContainers de espera).
+# discovery: descubre otros servicios con la API de Kubernetes (Spring Cloud Kubernetes): necesita permisos de lectura.
+# clients: qué servicios lo llaman (NetworkPolicies). autoscaling: HorizontalPodAutoscaler por uso de CPU.
 services:
-  discovery-service:
-    port: 8761
-    replicas: 1
-    env:
-      EUREKA_HOSTNAME: discovery-service
   auth-service:
     port: 9000
     replicas: 1
     database: auth
     rabbitmq: auth
     redis: true
+    # Todos validan los JWT con su clave pública (/oauth2/jwks).
+    clients: [api-gateway, product-service, customer-service, order-service]
   product-service:
     port: 8081
     replicas: 3
     database: product
     rabbitmq: product
     redis: true
+    clients: [api-gateway, order-service]
+    autoscaling:
+      minReplicas: 3
+      maxReplicas: 6
+      targetCPUUtilizationPercentage: 70
   customer-service:
     port: 8082
     replicas: 1
     database: customer
     rabbitmq: customer
+    clients: [api-gateway, order-service]
   order-service:
     port: 8083
     replicas: 2
     database: order
     rabbitmq: order
+    discovery: true
+    clients: [api-gateway]
+    autoscaling:
+      minReplicas: 2
+      maxReplicas: 4
+      targetCPUUtilizationPercentage: 70
   api-gateway:
     port: 8080
     managementPort: 8081
     replicas: 1
+    discovery: true
     redis: true
 
 postgres:
@@ -106,11 +137,25 @@ rabbitmq:
     requests: { cpu: 100m, memory: 256Mi }
     limits: { cpu: "1", memory: 512Mi }
 
+# Trazas en formato Zipkin: al Zipkin del chart o, con la observabilidad del clúster (k8s/observability), a Tempo.
+tracing:
+  endpoint: http://zipkin:9411/api/v2/spans
+
 zipkin:
+  enabled: true
   image: openzipkin/zipkin:3
   resources:
     requests: { cpu: 50m, memory: 256Mi }
     limits: { cpu: 500m, memory: 512Mi }
 
+# Usuario sin privilegios de las imágenes de los microservicios (adduser -S app en los Dockerfile).
+securityContext:
+  runAsUser: 100
+  runAsGroup: 101
+
 # Imagen de los initContainers que esperan a PostgreSQL y RabbitMQ.
 waitImage: busybox:1.37
+
+# PodMonitors para el Prometheus de kube-prometheus-stack (solo si el clúster tiene sus CRDs).
+monitoring:
+  enabled: true

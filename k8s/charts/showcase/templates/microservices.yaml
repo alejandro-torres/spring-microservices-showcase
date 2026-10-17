@@ -4,6 +4,7 @@ Un Deployment, Service, ConfigMap y Secret por microservicio, generados a partir
 {{- $root := . -}}
 {{- range $name, $svc := .Values.services }}
 {{- $managementPort := $svc.managementPort | default $svc.port }}
+{{- $config := include "showcase.serviceConfig" (dict "root" $root "name" $name "svc" $svc) }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -13,35 +14,7 @@ metadata:
     {{- include "showcase.labels" $root | nindent 4 }}
     {{- include "showcase.selector" $name | nindent 4 }}
 data:
-  # Logs en JSON (ECS) con traceId y spanId.
-  LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
-  {{- if ne $name "discovery-service" }}
-  SPRING_PROFILES_ACTIVE: {{ $root.Values.springProfile | quote }}
-  EUREKA_URL: http://discovery-service:8761/eureka/
-  ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
-  AUTH_JWK_SET_URI: http://auth-service:9000/oauth2/jwks
-  {{- end }}
-  {{- with $svc.database }}
-  DB_URL: jdbc:postgresql://postgres:5432/{{ . }}_db
-  DB_USERNAME: {{ . | quote }}
-  {{- end }}
-  {{- with $svc.rabbitmq }}
-  RABBITMQ_HOST: rabbitmq
-  RABBITMQ_USERNAME: {{ $name }}
-  {{- end }}
-  {{- if $svc.redis }}
-  REDIS_HOST: redis
-  {{- end }}
-  {{- if eq $name "auth-service" }}
-  # Los tokens se piden a través del gateway: el emisor es su URL pública.
-  AUTH_ISSUER: {{ $root.Values.publicUrl | quote }}
-  {{- end }}
-  {{- if eq $name "api-gateway" }}
-  CORS_ALLOWED_ORIGINS: {{ $root.Values.corsAllowedOrigins | quote }}
-  {{- end }}
-  {{- range $key, $value := $svc.env }}
-  {{ $key }}: {{ $value | quote }}
-  {{- end }}
+  {{- $config | nindent 2 }}
 ---
 apiVersion: v1
 kind: Secret
@@ -93,7 +66,15 @@ metadata:
     {{- include "showcase.labels" $root | nindent 4 }}
     {{- include "showcase.selector" $name | nindent 4 }}
 spec:
+  {{- if not $svc.autoscaling }}
   replicas: {{ $svc.replicas }}
+  {{- end }}
+  # Actualización sin cortes: primero arranca una réplica nueva y solo cuando está lista se para una antigua.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       {{- include "showcase.selector" $name | nindent 6 }}
@@ -104,11 +85,21 @@ spec:
         {{- include "showcase.selector" $name | nindent 8 }}
       annotations:
         # Si cambian la configuración o los secretos, los pods se vuelven a crear al hacer helm upgrade.
-        checksum/config: {{ toJson $svc | sha256sum }}
+        checksum/config: {{ $config | sha256sum }}
         checksum/secrets: {{ toJson $root.Values.secrets | sha256sum }}
     spec:
       # Sin las variables REDIS_PORT=tcp://... que Kubernetes crea por cada Service: chocan con las de Spring.
       enableServiceLinks: false
+      securityContext:
+        {{- include "showcase.podSecurityContext" (dict "user" $root.Values.securityContext.runAsUser "group" $root.Values.securityContext.runAsGroup) | nindent 8 }}
+      # Spring termina las peticiones en curso (shutdown: graceful, hasta 30 s) antes de que se fuerce la parada.
+      terminationGracePeriodSeconds: 45
+      {{- if $svc.discovery }}
+      # Permiso para leer Services y endpoints (Spring Cloud Kubernetes); los demás no necesitan la API.
+      serviceAccountName: service-discovery
+      {{- else }}
+      automountServiceAccountToken: false
+      {{- end }}
       {{- if or $svc.database $svc.rabbitmq }}
       initContainers:
         {{- if $svc.database }}
@@ -122,6 +113,13 @@ spec:
         - name: {{ $name }}
           image: "{{ $root.Values.image.repository }}/{{ $name }}:{{ $root.Values.image.tag }}"
           imagePullPolicy: {{ $root.Values.image.pullPolicy }}
+          securityContext:
+            {{- include "showcase.containerSecurityContext" $root | nindent 12 }}
+          # Unos segundos para que el Service y los balanceadores dejen de enviar tráfico a la réplica antes de pararla.
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: 5
           ports:
             - name: http
               containerPort: {{ $svc.port }}
@@ -155,4 +153,59 @@ spec:
             failureThreshold: 3
           resources:
             {{- toYaml ($svc.resources | default $root.Values.defaultResources) | nindent 12 }}
+          # Lo único escribible: los temporales de Tomcat y de la JVM.
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+{{- if $svc.autoscaling }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "showcase.labels" $root | nindent 4 }}
+    {{- include "showcase.selector" $name | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ $name }}
+  minReplicas: {{ $svc.autoscaling.minReplicas }}
+  maxReplicas: {{ $svc.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $svc.autoscaling.targetCPUUtilizationPercentage }}
+  behavior:
+    # Baja despacio (una réplica por minuto, tras 5 minutos estable) para no oscilar con picos cortos.
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+{{- end }}
+{{- if or $svc.autoscaling (gt (int $svc.replicas) 1) }}
+---
+# Durante un drenado de nodo o una actualización del clúster, como mucho una réplica fuera a la vez.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "showcase.labels" $root | nindent 4 }}
+    {{- include "showcase.selector" $name | nindent 4 }}
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      {{- include "showcase.selector" $name | nindent 6 }}
+{{- end }}
 {{- end }}

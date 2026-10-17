@@ -1,0 +1,35 @@
+# Certificados para el clúster local con cert-manager: una CA propia autofirmada (showcase-ca) firma los
+# certificados de los Ingress. Para que el navegador o Java confíen en ellos basta con importar esa CA
+# (kubectl -n cert-manager get secret showcase-ca -o jsonpath='{.data.ca\.crt}').
+# En producción se sustituye por un emisor real, como Let's Encrypt (ACME).
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: showcase-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: Showcase local CA
+  secretName: showcase-ca
+  duration: 87600h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: selfsigned
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: showcase-ca
+spec:
+  ca:
+    secretName: showcase-ca

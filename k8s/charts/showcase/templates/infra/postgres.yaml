@@ -43,9 +43,16 @@ spec:
         {{- include "showcase.labels" . | nindent 8 }}
         {{- include "showcase.selector" "postgres" | nindent 8 }}
     spec:
+      # Usuario postgres de la imagen alpine (uid 70) en lugar de root.
+      securityContext:
+        {{- include "showcase.podSecurityContext" (dict "user" 70 "group" 70) | nindent 8 }}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
       containers:
         - name: postgres
           image: {{ .Values.postgres.image }}
+          securityContext:
+            {{- include "showcase.containerSecurityContext" . | nindent 12 }}
           ports:
             - name: postgres
               containerPort: 5432
@@ -75,7 +82,16 @@ spec:
             - name: init
               mountPath: /docker-entrypoint-initdb.d
               readOnly: true
+            # Lo único escribible además de los datos: el socket y los temporales.
+            - name: run
+              mountPath: /var/run/postgresql
+            - name: tmp
+              mountPath: /tmp
       volumes:
+        - name: run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
         - name: init
           configMap:
             name: postgres-init
