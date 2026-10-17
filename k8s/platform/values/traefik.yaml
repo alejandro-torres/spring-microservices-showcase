@@ -1,0 +1,35 @@
+# Traefik como controlador de Ingress (ingress-nginx está archivado desde marzo de 2026 y ya no recibe parches).
+# Usa recursos Ingress estándar: cambiar de controlador solo cambia ingressClassName.
+#
+# En kind corre en el control-plane, que es el nodo con los puertos 80 y 443 del host mapeados (kind-config.yaml).
+nodeSelector:
+  ingress-ready: "true"
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+
+ingressClass:
+  enabled: true
+  isDefaultClass: true
+  name: traefik
+
+ports:
+  web:
+    hostPort: 80
+    # Todo el tráfico HTTP se redirige a HTTPS.
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+  websecure:
+    hostPort: 443
+
+service:
+  type: ClusterIP
+
+resources:
+  requests: { cpu: 50m, memory: 64Mi }
+  limits: { memory: 256Mi }
