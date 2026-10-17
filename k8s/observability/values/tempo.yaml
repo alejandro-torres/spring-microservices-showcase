@@ -1,0 +1,14 @@
+# Tempo en un solo proceso, con las trazas en disco. Recibe los spans en formato Zipkin (puerto 9411), así los
+# microservicios no cambian: solo cambia la URL de ZIPKIN_ENDPOINT.
+tempo:
+  retention: 168h
+  receivers:
+    zipkin:
+      endpoint: 0.0.0.0:9411
+  resources:
+    requests: { cpu: 50m, memory: 256Mi }
+    limits: { memory: 1Gi }
+
+persistence:
+  enabled: true
+  size: 5Gi
