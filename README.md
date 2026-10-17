@@ -76,7 +76,7 @@ En [docs/curl-examples.md](docs/curl-examples.md) hay un recorrido completo con 
 
 ## Arrancar todo en Kubernetes
 
-El mismo sistema se puede desplegar en un clúster local de kind con un chart de Helm (`k8s/kind/cluster.sh create`, `k8s/deploy.sh` y un port-forward al gateway en el 8080). Los pasos y los requisitos están en [k8s/README.md](k8s/README.md).
+El mismo sistema se puede desplegar en un clúster local de kind con un chart de Helm (`k8s/kind/cluster.sh create`, `k8s/platform/install.sh` y `k8s/deploy.sh`), con HTTPS en https://showcase.localhost, autoescalado, NetworkPolicies y contenedores sin root. Los pasos y los requisitos están en [k8s/README.md](k8s/README.md).
 
 ## Arrancar los servicios uno a uno (desarrollo)
 
