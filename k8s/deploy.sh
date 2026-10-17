@@ -9,7 +9,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CLUSTER_NAME=showcase
 RELEASE=showcase
 NAMESPACE=showcase
-SERVICES=(discovery-service auth-service product-service customer-service order-service api-gateway)
+SERVICES=(auth-service product-service customer-service order-service api-gateway)
 KEYS_DIR="$ROOT/k8s/.secrets"
 
 cd "$ROOT"
@@ -29,7 +29,13 @@ if [[ ! -f "$KEYS_DIR/jwt-private.pem" ]]; then
   openssl pkey -in "$KEYS_DIR/jwt-private.pem" -pubout -out "$KEYS_DIR/jwt-public.pem"
 fi
 
-helm upgrade --install "$RELEASE" k8s/charts/showcase \
+# Con la observabilidad del clúster instalada (k8s/observability/install.sh), las trazas van a Tempo.
+EXTRA_VALUES=()
+if helm -n monitoring status tempo >/dev/null 2>&1; then
+  EXTRA_VALUES=(-f k8s/observability/showcase-values.yaml)
+fi
+
+helm upgrade --install "$RELEASE" k8s/charts/showcase "${EXTRA_VALUES[@]}" \
   --namespace "$NAMESPACE" --create-namespace \
   --set-file secrets.jwtPrivateKey="$KEYS_DIR/jwt-private.pem" \
   --set-file secrets.jwtPublicKey="$KEYS_DIR/jwt-public.pem" \

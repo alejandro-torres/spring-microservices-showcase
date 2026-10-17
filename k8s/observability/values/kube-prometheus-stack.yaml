@@ -1,0 +1,100 @@
+# kube-prometheus-stack: Prometheus (con su operador), Alertmanager, Grafana, kube-state-metrics y node-exporter.
+
+# En kind, etcd, el scheduler, el controller-manager y kube-proxy solo escuchan en localhost: Prometheus no puede
+# leerlos y sus alertas saltarían siempre.
+kubeEtcd:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    # Guarda los exemplars (traceId de peticiones concretas) para saltar de una gráfica a su traza en Tempo.
+    enableFeatures:
+      - exemplar-storage
+    # Lee todos los PodMonitor y PrometheusRule del clúster, no solo los de este release.
+    podMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    resources:
+      requests: { cpu: 100m, memory: 512Mi }
+      limits: { memory: 1Gi }
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 5Gi
+
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests: { cpu: 10m, memory: 64Mi }
+      limits: { memory: 128Mi }
+
+# En Docker Desktop la raíz del nodo no es un montaje compartido y node-exporter no arranca si la monta.
+prometheus-node-exporter:
+  hostRootFsMount:
+    enabled: false
+
+grafana:
+  # Solo para el clúster local: la misma contraseña que Docker Compose sin .env.
+  adminUser: admin
+  adminPassword: admin
+  persistence:
+    enabled: true
+    size: 1Gi
+  grafana.ini:
+    users:
+      default_language: es-ES
+    dashboards:
+      default_home_dashboard_path: /tmp/dashboards/Showcase/01-overview.json
+  sidecar:
+    dashboards:
+      # ConfigMaps con la etiqueta grafana_dashboard=1 (los crea install.sh a partir de docker/grafana/dashboards).
+      folderAnnotation: grafana_folder
+      provider:
+        foldersFromFilesStructure: true
+    datasources:
+      # Datasource de Prometheus que crea el chart: cada exemplar de las gráficas de latencia abre su traza.
+      uid: prometheus
+      exemplarTraceIdDestinations:
+        datasourceUid: tempo
+        traceIdLabelName: trace_id
+  # Los mismos datasources que en Docker Compose, enlazados por el traceId, con Tempo en lugar de Zipkin.
+  additionalDataSources:
+    - name: Loki
+      uid: loki
+      type: loki
+      access: proxy
+      url: http://loki:3100
+      jsonData:
+        derivedFields:
+          - name: traceId
+            matcherType: regex
+            matcherRegex: '"traceId":"(\w+)"'
+            url: "$${__value.raw}"
+            datasourceUid: tempo
+            urlDisplayLabel: Ver la traza en Tempo
+    - name: Tempo
+      uid: tempo
+      type: tempo
+      access: proxy
+      url: http://tempo:3200
+      jsonData:
+        tracesToLogsV2:
+          datasourceUid: loki
+          spanStartTimeShift: "-5m"
+          spanEndTimeShift: "5m"
+          customQuery: true
+          query: '{service=~".+"} | traceId="$${__trace.traceId}"'
+        serviceMap:
+          datasourceUid: prometheus
+        nodeGraph:
+          enabled: true

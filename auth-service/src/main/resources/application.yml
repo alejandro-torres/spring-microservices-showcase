@@ -150,3 +150,14 @@ logging:
       service:
         node-name: ${showcase.instance-id}
         environment: ${ENVIRONMENT:dev}
+
+---
+# En Kubernetes no hay Eureka: los demás servicios encuentran las réplicas con la API de Kubernetes (Services y
+# sus endpoints), así que este servicio no tiene que registrarse en ningún sitio.
+spring:
+  config:
+    activate:
+      on-cloud-platform: kubernetes
+eureka:
+  client:
+    enabled: false

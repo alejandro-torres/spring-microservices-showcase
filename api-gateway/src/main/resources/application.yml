@@ -277,3 +277,19 @@ logging:
       service:
         node-name: ${showcase.instance-id}
         environment: ${ENVIRONMENT:dev}
+
+---
+# En Kubernetes no hay Eureka: Spring Cloud Kubernetes lee las réplicas listas de cada Service con la API de
+# Kubernetes y Spring Cloud LoadBalancer reparte las llamadas igual que con Eureka.
+spring:
+  config:
+    activate:
+      on-cloud-platform: kubernetes
+  cloud:
+    kubernetes:
+      discovery:
+        # Si un Service publica varios puertos, se usa el de la API.
+        primary-port-name: http
+eureka:
+  client:
+    enabled: false

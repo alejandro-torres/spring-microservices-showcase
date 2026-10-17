@@ -15,12 +15,9 @@ metadata:
 data:
   # Logs en JSON (ECS) con traceId y spanId.
   LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
-  {{- if ne $name "discovery-service" }}
   SPRING_PROFILES_ACTIVE: {{ $root.Values.springProfile | quote }}
-  EUREKA_URL: http://discovery-service:8761/eureka/
-  ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
+  ZIPKIN_ENDPOINT: {{ $root.Values.tracing.endpoint | quote }}
   AUTH_JWK_SET_URI: http://auth-service:9000/oauth2/jwks
-  {{- end }}
   {{- with $svc.database }}
   DB_URL: jdbc:postgresql://postgres:5432/{{ . }}_db
   DB_USERNAME: {{ . | quote }}
@@ -104,11 +101,17 @@ spec:
         {{- include "showcase.selector" $name | nindent 8 }}
       annotations:
         # Si cambian la configuración o los secretos, los pods se vuelven a crear al hacer helm upgrade.
-        checksum/config: {{ toJson $svc | sha256sum }}
+        checksum/config: {{ toJson (list (omit $svc "replicas") $root.Values.tracing $root.Values.springProfile $root.Values.publicUrl $root.Values.corsAllowedOrigins) | sha256sum }}
         checksum/secrets: {{ toJson $root.Values.secrets | sha256sum }}
     spec:
       # Sin las variables REDIS_PORT=tcp://... que Kubernetes crea por cada Service: chocan con las de Spring.
       enableServiceLinks: false
+      {{- if $svc.discovery }}
+      # Permiso para leer Services y endpoints (Spring Cloud Kubernetes); los demás no necesitan la API.
+      serviceAccountName: service-discovery
+      {{- else }}
+      automountServiceAccountToken: false
+      {{- end }}
       {{- if or $svc.database $svc.rabbitmq }}
       initContainers:
         {{- if $svc.database }}
