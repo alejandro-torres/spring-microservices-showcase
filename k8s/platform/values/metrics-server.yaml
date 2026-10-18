@@ -1,0 +1,4 @@
+# metrics-server: uso de CPU y memoria de los pods, que necesita el HorizontalPodAutoscaler.
+# Los certificados de los kubelets de kind son autofirmados.
+args:
+  - --kubelet-insecure-tls

@@ -1,0 +1,92 @@
+# Generador de carga para ver el HorizontalPodAutoscaler en acción (k8s/load/hpa-demo.sh).
+# Pide un token del cliente internal-service y lanza peticiones en paralelo directamente a product-service, sin
+# pasar por el gateway (su rate limit cortaría la carga). Las NetworkPolicies de este fichero solo abren ese camino
+# mientras dura la prueba: hpa-demo.sh las borra al terminar.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: load-generator
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: load-generator
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - podSelector:
+            matchExpressions:
+              - { key: app.kubernetes.io/name, operator: In, values: [auth-service, product-service] }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-load-generator
+spec:
+  podSelector:
+    matchExpressions:
+      - { key: app.kubernetes.io/name, operator: In, values: [auth-service, product-service] }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: load-generator
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: load-generator
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: load-generator
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        runAsGroup: 101
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: load
+          image: curlimages/curl:8.10.1
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          env:
+            - name: CLIENT_SECRET
+              valueFrom:
+                secretKeyRef: { name: auth-service, key: INTERNAL_CLIENT_SECRET }
+            - name: DURATION_SECONDS
+              value: "240"
+            - name: WORKERS
+              value: "16"
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              TOKEN=$(curl -fsS -u "internal-service:$CLIENT_SECRET" -d grant_type=client_credentials -d scope=internal \
+                http://auth-service:9000/oauth2/token | sed 's/.*"access_token":"\([^"]*\)".*/\1/')
+              END=$(( $(date +%s) + DURATION_SECONDS ))
+              for i in $(seq "$WORKERS"); do
+                while [ "$(date +%s)" -lt "$END" ]; do
+                  curl -s -o /dev/null -H "Authorization: Bearer $TOKEN" "http://product-service:8081/api/v1/products?size=100"
+                done &
+              done
+              wait
+              echo "Carga terminada"
