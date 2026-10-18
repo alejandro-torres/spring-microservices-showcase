@@ -1,3 +1,4 @@
+{{- if .Values.rabbitmq.enabled }}
 # RabbitMQ con un usuario por servicio (docker/rabbitmq/setup-users.sh, lanzado por un Job).
 # El pod no está listo hasta que existen los usuarios: así ningún servicio arranca sin poder autenticarse.
 apiVersion: v1
@@ -170,3 +171,4 @@ spec:
         - name: scripts
           configMap:
             name: rabbitmq-setup
+{{- end }}
