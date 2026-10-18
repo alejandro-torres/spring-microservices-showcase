@@ -1,3 +1,4 @@
+{{- if .Values.zipkin.enabled }}
 # Zipkin en memoria para las trazas (en la fase de observabilidad se sustituye por Tempo).
 apiVersion: v1
 kind: Service
@@ -45,3 +46,4 @@ spec:
             periodSeconds: 10
           resources:
             {{- toYaml .Values.zipkin.resources | nindent 12 }}
+{{- end }}
