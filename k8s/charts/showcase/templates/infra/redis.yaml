@@ -1,3 +1,4 @@
+{{- if .Values.redis.enabled }}
 # Redis: rate limit del gateway, revocación de tokens y locks distribuidos (Redisson).
 apiVersion: v1
 kind: Service
@@ -68,3 +69,4 @@ spec:
         resources:
           requests:
             storage: {{ .Values.redis.storage }}
+{{- end }}

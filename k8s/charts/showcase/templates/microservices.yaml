@@ -15,6 +15,7 @@ metadata:
     {{- include "showcase.selector" $name | nindent 4 }}
 data:
   {{- $config | nindent 2 }}
+{{- if $root.Values.secrets.create }}
 ---
 apiVersion: v1
 kind: Secret
@@ -37,6 +38,10 @@ stringData:
   JWT_PRIVATE_KEY: {{ required "Falta secrets.jwtPrivateKey (usa k8s/deploy.sh o --set-file)" $root.Values.secrets.jwtPrivateKey | quote }}
   JWT_PUBLIC_KEY: {{ required "Falta secrets.jwtPublicKey (usa k8s/deploy.sh o --set-file)" $root.Values.secrets.jwtPublicKey | quote }}
   {{- end }}
+  {{- if and $svc.redis $root.Values.secrets.redisPassword }}
+  SPRING_DATA_REDIS_PASSWORD: {{ $root.Values.secrets.redisPassword | quote }}
+  {{- end }}
+{{- end }}
 ---
 apiVersion: v1
 kind: Service
@@ -103,10 +108,10 @@ spec:
       {{- if or $svc.database $svc.rabbitmq }}
       initContainers:
         {{- if $svc.database }}
-        {{- include "showcase.waitFor" (dict "root" $root "args" (list "postgres" 5432)) | nindent 8 }}
+        {{- include "showcase.waitFor" (dict "root" $root "args" (list (include "showcase.postgresHost" $root) (include "showcase.postgresPort" $root))) | nindent 8 }}
         {{- end }}
         {{- if $svc.rabbitmq }}
-        {{- include "showcase.waitFor" (dict "root" $root "args" (list "rabbitmq" 5672)) | nindent 8 }}
+        {{- include "showcase.waitFor" (dict "root" $root "args" (list (include "showcase.rabbitmqHost" $root) (include "showcase.rabbitmqPort" $root))) | nindent 8 }}
         {{- end }}
       {{- end }}
       containers:

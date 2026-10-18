@@ -1,0 +1,81 @@
+name: Kubernetes
+
+# Despliega el sistema completo en un clúster de kind (los mismos scripts que en local) y lanza los e2e por el Ingress
+# con HTTPS: comprueba que el chart, las NetworkPolicies, los contenedores sin root y la configuración de Kubernetes
+# siguen funcionando con cada cambio.
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore: ['**.md', 'docs/**']
+  push:
+    branches: [main]
+    paths-ignore: ['**.md', 'docs/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kubernetes-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: e2e en kind
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Instalar Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Instalar kind y kubectl
+        uses: helm/kind-action@v1
+        with:
+          version: v0.33.0
+          install_only: true
+
+      - name: Instalar Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v4.3.1
+
+      - name: Crear el clúster (1 control-plane + 2 workers)
+        run: k8s/kind/cluster.sh create
+
+      - name: Instalar Traefik, cert-manager y metrics-server
+        run: k8s/platform/install.sh
+
+      - name: Construir las imágenes y desplegar el chart
+        run: k8s/deploy.sh
+
+      - name: Lanzar los e2e contra https://showcase.localhost
+        run: k8s/e2e.sh -B -ntp
+
+      - name: Estado del clúster si algo falla
+        if: failure()
+        run: |
+          kubectl get nodes -o wide
+          kubectl get pods -A -o wide
+          kubectl -n showcase get events --sort-by=.lastTimestamp | tail -50
+          for pod in $(kubectl -n showcase get pods -o name); do
+            echo "::group::$pod"
+            kubectl -n showcase describe "$pod" | tail -30
+            kubectl -n showcase logs "$pod" --all-containers --tail=100 || true
+            echo "::endgroup::"
+          done
+
+      - name: Guardar los informes de los e2e
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: informes-e2e-kubernetes
+          path: e2e-tests/target/failsafe-reports/
+          if-no-files-found: ignore
+          retention-days: 7

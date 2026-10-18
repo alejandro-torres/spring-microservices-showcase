@@ -1,0 +1,101 @@
+# Valores para un clúster real con PostgreSQL, Redis y RabbitMQ gestionados (por ejemplo Amazon RDS / ElastiCache /
+# Amazon MQ, Cloud SQL / Memorystore o Azure Database / Azure Cache). Se combinan con values.yaml:
+#
+#   helm upgrade --install showcase k8s/charts/showcase -n showcase --create-namespace \
+#     -f k8s/charts/showcase/values-prod.yaml --set image.tag=<versión>
+#
+# Antes de instalar (ver docs/kubernetes.md):
+#   - En la base de datos: un usuario y una base de datos por servicio, como docker/postgres/init-databases.sh
+#     (auth/auth_db, product/product_db, customer/customer_db, order/order_db).
+#   - En RabbitMQ: un usuario por servicio con los permisos de docker/rabbitmq/setup-users.sh.
+#   - Los Secrets de cada microservicio (secrets.create: false), con las mismas claves que crea el chart:
+#     DB_PASSWORD, RABBITMQ_PASSWORD, SPRING_DATA_REDIS_PASSWORD y, en auth-service, INTERNAL_CLIENT_SECRET,
+#     JWT_PRIVATE_KEY y JWT_PUBLIC_KEY. Lo normal es crearlos con External Secrets desde el gestor de secretos de la
+#     nube, para que ninguna contraseña pase por Git ni por la línea de comandos.
+#   - Ingress controller, cert-manager con un ClusterIssuer de Let's Encrypt y metrics-server (k8s/platform sirve de
+#     referencia), y la observabilidad (k8s/observability) si se quiere la misma que en local.
+
+image:
+  # Registro donde CI publica las imágenes; la versión se fija en cada despliegue (--set image.tag=...).
+  repository: registry.example.com/showcase
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# prod: logs en JSON y el 10 % de las trazas; sin datos de ejemplo.
+springProfile: prod
+publicUrl: https://api.example.com
+corsAllowedOrigins: https://app.example.com
+
+ingress:
+  enabled: true
+  className: traefik
+  host: api.example.com
+  clusterIssuer: letsencrypt
+  # Red de los pods del clúster (desde donde llega el controlador de Ingress). Ajústala a la del CNI del clúster.
+  trustedProxies: 10[.].*
+  trustedProxyHops: 1
+
+networkPolicy:
+  enabled: true
+  ingressNamespace: traefik
+  monitoringNamespace: monitoring
+
+secrets:
+  create: false
+
+postgres:
+  enabled: false
+redis:
+  enabled: false
+rabbitmq:
+  enabled: false
+
+externalDatabase:
+  host: showcase.xxxxxxxx.eu-west-1.rds.amazonaws.com
+  port: 5432
+  jdbcParams: "?sslmode=require"
+  # Red privada donde están los servicios gestionados (para las NetworkPolicies de salida).
+  cidr: 10.0.0.0/16
+externalRedis:
+  host: showcase.xxxxxx.cache.amazonaws.com
+  port: 6379
+  ssl: true
+  cidr: 10.0.0.0/16
+externalRabbitmq:
+  host: b-xxxxxxxx.mq.eu-west-1.amazonaws.com
+  port: 5671
+  vhost: /
+  ssl: true
+  cidr: 10.0.0.0/16
+
+# Trazas a Tempo (k8s/observability) en lugar de Zipkin.
+tracing:
+  endpoint: http://tempo.monitoring:9411/api/v2/spans
+zipkin:
+  enabled: false
+
+# Más margen de memoria que en local; los límites de CPU se mantienen para que el HPA tenga una referencia estable.
+defaultResources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+# Réplicas: al menos dos de cada servicio para que un nodo caído o una actualización no corten el servicio.
+services:
+  auth-service:
+    replicas: 2
+  customer-service:
+    replicas: 2
+  api-gateway:
+    replicas: 2
+  product-service:
+    autoscaling:
+      minReplicas: 3
+      maxReplicas: 10
+  order-service:
+    autoscaling:
+      minReplicas: 2
+      maxReplicas: 6

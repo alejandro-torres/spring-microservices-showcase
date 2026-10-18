@@ -2,6 +2,7 @@
 
 Despliegue del sistema en un clúster de Kubernetes local con [kind](https://kind.sigs.k8s.io/). Docker Compose sigue
 siendo la forma de trabajar en desarrollo; esto es la misma aplicación desplegada como se haría en producción.
+Cómo operarlo (escalar, actualizar, volver atrás, investigar fallos) está en [docs/kubernetes.md](../docs/kubernetes.md).
 
 | Docker Compose | Kubernetes |
 |---|---|

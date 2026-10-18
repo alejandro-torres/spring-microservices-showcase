@@ -32,6 +32,7 @@ spec:
           targetLabel: eureka_app
           action: uppercase
 {{- end }}
+{{- if .Values.rabbitmq.enabled }}
 ---
 # RabbitMQ: mensajes por cola (también las DLQ) y consumidores, con el plugin de Prometheus de RabbitMQ.
 apiVersion: monitoring.coreos.com/v1
@@ -54,4 +55,5 @@ spec:
       relabelings:
         - targetLabel: job
           replacement: rabbitmq
+{{- end }}
 {{- end }}

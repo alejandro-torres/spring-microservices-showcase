@@ -12,15 +12,26 @@ SPRING_PROFILES_ACTIVE: {{ $root.Values.springProfile | quote }}
 ZIPKIN_ENDPOINT: {{ $root.Values.tracing.endpoint | quote }}
 AUTH_JWK_SET_URI: http://auth-service:9000/oauth2/jwks
 {{- with $svc.database }}
-DB_URL: jdbc:postgresql://postgres:5432/{{ . }}_db
+DB_URL: jdbc:postgresql://{{ include "showcase.postgresHost" $root }}:{{ include "showcase.postgresPort" $root }}/{{ . }}_db{{ if not $root.Values.postgres.enabled }}{{ $root.Values.externalDatabase.jdbcParams }}{{ end }}
 DB_USERNAME: {{ . | quote }}
+# Conexiones por réplica: con el HPA al máximo, todas juntas tienen que caber en max_connections de PostgreSQL.
+SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: {{ $root.Values.databasePoolSize | quote }}
 {{- end }}
 {{- with $svc.rabbitmq }}
-RABBITMQ_HOST: rabbitmq
+RABBITMQ_HOST: {{ include "showcase.rabbitmqHost" $root | quote }}
+RABBITMQ_PORT: {{ include "showcase.rabbitmqPort" $root | quote }}
 RABBITMQ_USERNAME: {{ $name }}
+{{- if not $root.Values.rabbitmq.enabled }}
+RABBITMQ_VHOST: {{ $root.Values.externalRabbitmq.vhost | quote }}
+SPRING_RABBITMQ_SSL_ENABLED: {{ $root.Values.externalRabbitmq.ssl | quote }}
+{{- end }}
 {{- end }}
 {{- if $svc.redis }}
-REDIS_HOST: redis
+REDIS_HOST: {{ include "showcase.redisHost" $root | quote }}
+REDIS_PORT: {{ include "showcase.redisPort" $root | quote }}
+{{- if not $root.Values.redis.enabled }}
+SPRING_DATA_REDIS_SSL_ENABLED: {{ $root.Values.externalRedis.ssl | quote }}
+{{- end }}
 {{- end }}
 {{- if eq $name "auth-service" }}
 # Los tokens se piden a través del gateway: el emisor es su URL pública.

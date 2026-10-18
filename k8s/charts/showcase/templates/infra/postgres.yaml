@@ -1,3 +1,4 @@
+{{- if .Values.postgres.enabled }}
 # PostgreSQL con una base de datos y un usuario por servicio (docker/postgres/init-databases.sh).
 apiVersion: v1
 kind: ConfigMap
@@ -51,6 +52,7 @@ spec:
       containers:
         - name: postgres
           image: {{ .Values.postgres.image }}
+          args: ["-c", "max_connections={{ .Values.postgres.maxConnections }}"]
           securityContext:
             {{- include "showcase.containerSecurityContext" . | nindent 12 }}
           ports:
@@ -103,3 +105,4 @@ spec:
         resources:
           requests:
             storage: {{ .Values.postgres.storage }}
+{{- end }}

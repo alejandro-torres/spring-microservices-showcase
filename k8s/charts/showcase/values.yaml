@@ -33,8 +33,12 @@ networkPolicy:
   ingressNamespace: traefik
   monitoringNamespace: monitoring
 
-# Contraseñas: se guardan en Secrets de Kubernetes.
+# Contraseñas: se guardan en Secrets de Kubernetes. Con create: false el chart no los crea y usa los que ya existan
+# con los mismos nombres (cada microservicio y infra-credentials), por ejemplo creados por External Secrets.
 secrets:
+  create: true
+  # Solo con un Redis externo que pida contraseña.
+  redisPassword: ""
   postgresPassword: postgres
   rabbitmqAdminUser: admin
   rabbitmqAdminPassword: admin-dev
@@ -115,14 +119,24 @@ services:
     discovery: true
     redis: true
 
+# Conexiones a la base de datos por réplica (Hikari; 10 por defecto). Al añadir réplicas o subir maxReplicas, revisa
+# que réplicas x databasePoolSize quepa en el max_connections de la base de datos.
+databasePoolSize: 5
+
+# PostgreSQL, Redis y RabbitMQ dentro del clúster (enabled: true) o servicios gestionados fuera (external*).
 postgres:
+  enabled: true
   image: postgres:16-alpine
+  # Con todos los servicios al máximo de réplicas (más una de más durante un rolling update) y databasePoolSize
+  # conexiones cada una: 16 réplicas x 5 = 80, más margen para las conexiones de administración.
+  maxConnections: 200
   storage: 2Gi
   resources:
     requests: { cpu: 100m, memory: 256Mi }
     limits: { cpu: "1", memory: 512Mi }
 
 redis:
+  enabled: true
   image: redis:7-alpine
   storage: 1Gi
   resources:
@@ -130,6 +144,7 @@ redis:
     limits: { cpu: 500m, memory: 256Mi }
 
 rabbitmq:
+  enabled: true
   image: rabbitmq:3-management
   setupImage: curlimages/curl:8.10.1
   storage: 1Gi
@@ -140,6 +155,25 @@ rabbitmq:
 # Trazas en formato Zipkin: al Zipkin del chart o, con la observabilidad del clúster (k8s/observability), a Tempo.
 tracing:
   endpoint: http://zipkin:9411/api/v2/spans
+
+# Servicios gestionados (cuando postgres/redis/rabbitmq.enabled es false). cidr: su red, para las NetworkPolicies.
+externalDatabase:
+  host: ""
+  port: 5432
+  # Se añade a la URL JDBC de cada base de datos, por ejemplo ?sslmode=require
+  jdbcParams: ""
+  cidr: 0.0.0.0/0
+externalRedis:
+  host: ""
+  port: 6379
+  ssl: false
+  cidr: 0.0.0.0/0
+externalRabbitmq:
+  host: ""
+  port: 5671
+  vhost: /
+  ssl: true
+  cidr: 0.0.0.0/0
 
 zipkin:
   enabled: true
