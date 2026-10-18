@@ -304,7 +304,7 @@ En cada servicio que consume eventos (customer, product y order):
 
 ## API Gateway
 
-Toda la API se usa a través de `http://localhost:8080`. El gateway descubre las réplicas de cada servicio en Eureka (`lb://product-service`...) y reparte las peticiones entre ellas.
+Toda la API se usa a través de `http://localhost:8080`. El gateway descubre las réplicas de cada servicio en Eureka (`lb://product-service`...) y reparte las peticiones entre ellas. En Kubernetes no hay Eureka: las réplicas se leen de la API de Kubernetes con Spring Cloud Kubernetes ([k8s/README.md](k8s/README.md)).
 
 | Rutas | Servicio |
 |---|---|

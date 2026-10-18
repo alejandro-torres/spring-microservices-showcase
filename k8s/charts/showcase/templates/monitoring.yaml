@@ -26,9 +26,8 @@ spec:
       # Las métricas ya traen las etiquetas application, instance (la de X-Instance-Id) y environment.
       honorLabels: true
       relabelings:
-        # Eureka no se registra en sí mismo: en Docker Compose tiene su propio job.
         - targetLabel: job
-          replacement: {{ if eq $name "discovery-service" }}discovery-service{{ else }}microservices{{ end }}
+          replacement: microservices
         - sourceLabels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
           targetLabel: eureka_app
           action: uppercase

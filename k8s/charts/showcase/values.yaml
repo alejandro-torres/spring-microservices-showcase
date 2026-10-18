@@ -50,12 +50,8 @@ defaultResources:
 
 # Microservicios. port: puerto de la API; managementPort: Actuator (health y métricas).
 # database/rabbitmq/redis: de qué depende cada uno (variables de entorno e initContainers de espera).
+# discovery: descubre otros servicios con la API de Kubernetes (Spring Cloud Kubernetes): necesita permisos de lectura.
 services:
-  discovery-service:
-    port: 8761
-    replicas: 1
-    env:
-      EUREKA_HOSTNAME: discovery-service
   auth-service:
     port: 9000
     replicas: 1
@@ -78,10 +74,12 @@ services:
     replicas: 2
     database: order
     rabbitmq: order
+    discovery: true
   api-gateway:
     port: 8080
     managementPort: 8081
     replicas: 1
+    discovery: true
     redis: true
 
 postgres:

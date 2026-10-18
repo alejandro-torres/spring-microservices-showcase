@@ -9,7 +9,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CLUSTER_NAME=showcase
 RELEASE=showcase
 NAMESPACE=showcase
-SERVICES=(discovery-service auth-service product-service customer-service order-service api-gateway)
+SERVICES=(auth-service product-service customer-service order-service api-gateway)
 KEYS_DIR="$ROOT/k8s/.secrets"
 
 cd "$ROOT"

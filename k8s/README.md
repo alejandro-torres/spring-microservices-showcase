@@ -38,7 +38,14 @@ Docker Compose (`docker compose stop`).
 ## Qué se despliega (namespace `showcase`)
 
 - **Microservicios**: un Deployment, Service, ConfigMap y Secret por servicio, con sondas de arranque, liveness y
-  readiness sobre `/actuator/health`, requests y limits de CPU y memoria. Siguen usando Eureka (`discovery-service`).
+  readiness sobre `/actuator/health`, requests y limits de CPU y memoria.
+- **Descubrimiento de servicios sin Eureka**: el gateway (rutas `lb://`) y los clientes Feign de order-service usan
+  [Spring Cloud Kubernetes](https://spring.io/projects/spring-cloud-kubernetes), que lee de la API de Kubernetes las
+  réplicas listas de cada Service; Spring Cloud LoadBalancer reparte las llamadas entre ellas como antes. Solo esos
+  dos pods tienen permiso para leer la API (ServiceAccount `service-discovery`, de solo lectura). Al detectar que
+  corren en Kubernetes, los servicios desactivan el cliente de Eureka (`on-cloud-platform: kubernetes` en su
+  `application.yml`), así que `discovery-service` no se despliega. En Docker Compose y en local todo sigue igual,
+  con Eureka.
 - **PostgreSQL** (StatefulSet): una base de datos y un usuario por servicio con
   [docker/postgres/init-databases.sh](../docker/postgres/init-databases.sh).
 - **RabbitMQ** (StatefulSet): un usuario por servicio con [docker/rabbitmq/setup-users.sh](../docker/rabbitmq/setup-users.sh),
@@ -92,6 +99,5 @@ kubectl -n showcase logs -f deploy/order-service     # logs (de una réplica)
 kubectl -n showcase describe pod <pod>               # eventos: por qué no arranca o no está listo
 kubectl -n showcase scale deploy/product-service --replicas=5
 kubectl -n showcase port-forward svc/rabbitmq 15672  # consola de RabbitMQ en http://localhost:15672
-kubectl -n showcase port-forward svc/discovery-service 8761
 helm -n showcase history showcase                    # revisiones del release
 ```
