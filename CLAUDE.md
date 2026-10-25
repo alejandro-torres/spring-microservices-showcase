@@ -7,6 +7,13 @@ Guía para trabajar en este repositorio. La especificación completa está en [d
 - Servicios: `auth-service`, `product-service`, `customer-service`, `order-service`, `api-gateway`, `discovery-service`.
 - Módulos compartidos: `common-lib` (excepciones, paginación, filtros, manejo de errores y mensajería común) y `events-contract` (mensajes de RabbitMQ).
 - Base de paquetes: `com.showcase.<servicio>`.
+- Despliegue: Docker Compose para desarrollo (`docker-compose.yml` y `docker-compose.observability.yml`, configuración en `docker/`) y Kubernetes en `k8s/` (chart de Helm `k8s/charts/showcase`; guía en [k8s/README.md](k8s/README.md) y [docs/kubernetes.md](docs/kubernetes.md)). `discovery-service` (Eureka) solo se usa en Compose: en Kubernetes los servicios lo desactivan al detectar la plataforma y descubren las réplicas con Spring Cloud Kubernetes.
+
+## Kubernetes
+- La configuración que depende del entorno va en `values.yaml` (local) y `values-prod.yaml`, nunca fija en las plantillas. El chart reutiliza los scripts de `docker/` con `--set-file`.
+- Cada llamada nueva entre servicios, o hacia una pieza de infraestructura nueva, necesita su regla de NetworkPolicy (`clients` del servicio en `values.yaml`, o la salida en `networkpolicies.yaml`).
+- Contenedores sin root y con el sistema de ficheros de solo lectura: lo que haya que escribir va a un `emptyDir`.
+- Si cambia `k8s/`, además de `./mvnw verify` se comprueba con `helm lint` y se despliega en kind con `k8s/deploy.sh` y `k8s/e2e.sh` (el workflow `kubernetes.yml` lo repite en cada PR).
 
 ## Flujo de trabajo con Git
 - Nunca se hacen commits directos a `main`: cada cambio va en una rama (`feat/...`, `fix/...`, `docs/...`, `ci/...`, `chore/...`) y se integra con un pull request que aprueba el propietario del repositorio.
