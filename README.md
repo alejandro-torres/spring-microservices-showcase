@@ -2,19 +2,22 @@
 
 Sistema de microservicios en Java 21 y Spring Boot 4 con **arquitectura hexagonal**, pensado como demostración de lo que se puede construir en sistemas distribuidos con Java.
 
-> Desarrollado por fases, cada una en su propio pull request (de la estructura inicial a la observabilidad y las pruebas de extremo a extremo).
+> Desarrollado por fases, cada una en su propio pull request: de la estructura inicial a la observabilidad y las pruebas de extremo a extremo, y después el despliegue en Kubernetes.
+
+Se puede arrancar de dos formas: con **Docker Compose** para el desarrollo diario o en un clúster de **Kubernetes** local (kind) con un chart de Helm, como se desplegaría en producción.
 
 ## Qué incluye
 
 - **4 microservicios de negocio:** `auth-service` (usuarios, roles y OAuth2), `product-service`, `customer-service` y `order-service`.
-- **Infraestructura:** API Gateway (Spring Cloud Gateway) y descubrimiento de servicios (Eureka).
+- **Infraestructura:** API Gateway (Spring Cloud Gateway) y descubrimiento de servicios (Eureka en Docker Compose, la API de Kubernetes con Spring Cloud Kubernetes en el clúster).
 - **Persistencia:** JPA + PostgreSQL, una base de datos por servicio, migraciones con Flyway.
 - **Listados paginados** con `Page` y **filtros dinámicos** (`?filter=campo:operador:valor`).
 - **Mensajería** con RabbitMQ: patrón outbox, saga de pedidos y colas de errores (DLQ).
 - **Escalado horizontal:** varias réplicas por servicio, ShedLock y locks distribuidos con Redis.
-- **Observabilidad:** trazas con Zipkin, métricas con Prometheus, logs con Loki y dashboards en Grafana.
+- **Observabilidad:** métricas con Prometheus, logs con Loki y Grafana Alloy, trazas con Zipkin (Compose) o Tempo (Kubernetes) y dashboards en Grafana, todo enlazado por el `traceId`.
+- **Kubernetes:** chart de Helm con Ingress HTTPS (Traefik y cert-manager), autoescalado (HPA), PodDisruptionBudgets, NetworkPolicies, contenedores sin root y de solo lectura, y rollback con Helm.
 - **Errores** con códigos HTTP estándar, mensajes en español e inglés y sin exponer detalles internos.
-- **Tests** unitarios con JUnit 5 y Mockito, y de integración con Testcontainers.
+- **Tests** unitarios con JUnit 5 y Mockito, de integración con Testcontainers y de extremo a extremo contra el sistema completo, también en CI sobre un clúster kind.
 
 ## Compilar y ejecutar los tests
 
@@ -32,6 +35,7 @@ En Windows (PowerShell o CMD) se usa `mvnw.cmd verify`.
 | Unitarios y de integración (`*IT`, con PostgreSQL, Redis y RabbitMQ reales en Testcontainers) | `./mvnw verify` |
 | Cobertura | `./mvnw verify` falla si `domain` y `application` bajan del 80 % de líneas o del 70 % de ramas. Informe de cada módulo en `<módulo>/target/site/jacoco/index.html` e informe agregado de todos en `coverage-report/target/site/jacoco-aggregate/index.html` (sin configuración, DTOs, entidades, clases `*Application` ni el código de MapStruct) |
 | De extremo a extremo contra el sistema en Docker | Con el sistema arrancado (`docker compose up -d --build`): `./mvnw -Pe2e -pl e2e-tests verify` |
+| De extremo a extremo contra Kubernetes | Con el clúster de kind desplegado: `k8s/e2e.sh` (por https://showcase.localhost) |
 
 Las pruebas de extremo a extremo ([e2e-tests](e2e-tests/src/test/java/com/showcase/e2e/ShowcaseE2EIT.java)) hacen lo mismo que un cliente real y todo a través del gateway: login con authorization code + PKCE en el formulario de auth-service, alta de un producto y de un cliente, pedido que la saga confirma descontando el stock, cancelación que lo devuelve y pedido sin stock rechazado con 422.
 
@@ -48,7 +52,14 @@ Las pruebas de extremo a extremo ([e2e-tests](e2e-tests/src/test/java/com/showca
 | `discovery-service` | Registro de servicios con Eureka (puerto 8761) |
 | `api-gateway` | Punto de entrada único: valida el token, enruta, limita la tasa de peticiones y agrega Swagger (puerto 8080) |
 | `coverage-report` | Informe de cobertura de JaCoCo agregado de todos los módulos |
-| `e2e-tests` | Pruebas de extremo a extremo contra el sistema en Docker (perfil `e2e`) |
+| `e2e-tests` | Pruebas de extremo a extremo contra el sistema completo, en Docker o en Kubernetes (perfil `e2e`) |
+
+| Carpeta | Contenido |
+|---|---|
+| `docker/` | Configuración de Docker Compose: scripts de PostgreSQL y RabbitMQ (una base de datos y un usuario por servicio), Prometheus y sus alertas, Loki, Alloy y Grafana (datasources y dashboards) |
+| `k8s/` | Kubernetes: clúster de kind (`kind/`), plataforma (`platform/`: Traefik, cert-manager, metrics-server), chart de Helm (`charts/showcase`, con `values-prod.yaml`), observabilidad (`observability/`), carga para el autoescalado (`load/`) y los scripts `deploy.sh` y `e2e.sh` |
+| `docs/` | Especificación, diagramas UML, ejemplos con curl y guía de operación en Kubernetes |
+| `.github/workflows/` | CI: `ci.yml` (build y tests) y `kubernetes.yml` (despliegue en kind y e2e) |
 
 ## Arrancar todo con Docker
 
@@ -76,7 +87,30 @@ En [docs/curl-examples.md](docs/curl-examples.md) hay un recorrido completo con 
 
 ## Arrancar todo en Kubernetes
 
-El mismo sistema se puede desplegar en un clúster local de kind con un chart de Helm (`k8s/kind/cluster.sh create`, `k8s/platform/install.sh` y `k8s/deploy.sh`), con HTTPS en https://showcase.localhost, autoescalado, NetworkPolicies y contenedores sin root. Los pasos y los requisitos están en [k8s/README.md](k8s/README.md), y cómo escalar, actualizar, volver atrás e investigar fallos, en [docs/kubernetes.md](docs/kubernetes.md).
+El mismo sistema se despliega en un clúster local de kind (3 nodos dentro de Docker) con un chart de Helm. Requisitos: Docker Desktop con 12 GB de memoria o más, kubectl, kind y Helm.
+
+```bash
+k8s/kind/cluster.sh create          # clúster de 3 nodos
+k8s/platform/install.sh             # Traefik (Ingress), cert-manager (HTTPS) y metrics-server
+k8s/observability/install.sh        # opcional: Prometheus, Grafana, Loki, Alloy y Tempo
+k8s/deploy.sh                       # construye las imágenes, las carga en kind e instala el chart
+k8s/e2e.sh                          # e2e por el Ingress
+```
+
+| Consola | URL |
+|---|---|
+| API y Swagger | https://showcase.localhost/swagger-ui.html (certificado de una CA local; ver [k8s/README.md](k8s/README.md)) |
+| Grafana | `kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80` → http://localhost:3000 |
+| RabbitMQ | `kubectl -n showcase port-forward svc/rabbitmq 15672` → http://localhost:15672 |
+
+Diferencias con Docker Compose:
+- No hay Eureka: las réplicas se descubren con la API de Kubernetes.
+- No hay Zipkin: las trazas van a Tempo y se consultan en Grafana.
+- product-service y order-service se autoescalan (3-6 y 2-4 réplicas).
+- Solo el gateway recibe tráfico de fuera, por el Ingress con HTTPS.
+- Las NetworkPolicies limitan con quién habla cada pod.
+
+Qué se despliega y por qué está en [k8s/README.md](k8s/README.md); cómo escalar, actualizar, volver atrás e investigar fallos, en [docs/kubernetes.md](docs/kubernetes.md).
 
 ## Arrancar los servicios uno a uno (desarrollo)
 
@@ -320,7 +354,7 @@ Toda la API se usa a través de `http://localhost:8080`. El gateway descubre las
 | Rate limiting | Token bucket en Redis (compartido por todas las réplicas): 20 peticiones por segundo con ráfagas de 40 por usuario (`sub` del JWT) o por IP si no hay token; el login (`POST /login` y `/oauth2/token`), 5 por minuto por IP. Al superarlo, **429** con `Retry-After` y el formato de error común |
 | Circuit breaker | Uno por servicio (Resilience4j): una llamada que tarda más de 5 s cuenta como fallo; con la mitad de las últimas 20 fallidas se abre 10 s y responde **503** al instante |
 | Errores | 401, 403, 404, 429 y 503 del gateway en el mismo `ErrorResponseDTO` y los mismos idiomas que los servicios |
-| Traza | Cabecera `X-Trace-Id` en todas las respuestas: es el `traceId` que se busca en Zipkin |
+| Traza | Cabecera `X-Trace-Id` en todas las respuestas: es el `traceId` que se busca en Zipkin (o en Tempo, en Kubernetes) |
 | CORS | Centralizado en el gateway (`CORS_ALLOWED_ORIGINS`) |
 
 Los límites se ajustan con variables de entorno (`RATE_LIMIT_REPLENISH_RATE`, `RATE_LIMIT_BURST_CAPACITY`, `LOGIN_RATE_LIMIT_*`, `GATEWAY_TIMEOUT`).
@@ -338,7 +372,9 @@ Con `docker compose up` arrancan 3 réplicas de product-service y 2 de order-ser
 | Tareas programadas | ShedLock (tabla `shedlock` de cada base de datos): cada tarea la ejecuta una sola réplica a la vez. Tareas: publicador del outbox (cada 5 s), limpieza de `processed_event` (de madrugada), desbloqueo automático de cuentas (cada minuto) y borrado de las autorizaciones OAuth2 caducadas (de madrugada) |
 | Reserva de stock | Lock distribuido por producto en Redis (Redisson, `lock:product:{id}`), cogido antes de abrir la transacción y soltado después del commit; con varios productos, todos los locks en el mismo orden para evitar interbloqueos. Si no se consigue en 3 s, `RESOURCE_BUSY` (423) y el mensaje se reintenta. `@Version` sigue como segunda red de seguridad |
 
-auth-service se mantiene en una réplica: genera su clave de firma de los JWT al arrancar. Para escalarlo hay que darle la misma clave a todas las réplicas con `JWT_PRIVATE_KEY` y `JWT_PUBLIC_KEY` (PEM).
+En Docker Compose, auth-service se mantiene en una réplica: genera su clave de firma de los JWT al arrancar. Para escalarlo hay que darle la misma clave a todas las réplicas con `JWT_PRIVATE_KEY` y `JWT_PUBLIC_KEY` (PEM). En Kubernetes, `k8s/deploy.sh` genera esa clave una vez y la guarda en un Secret, así que auth-service se puede escalar y los tokens sobreviven a los reinicios.
+
+En Kubernetes, además, product-service y order-service se escalan solos según la CPU (HorizontalPodAutoscaler); `k8s/load/hpa-demo.sh` lo demuestra con carga.
 
 ## Escenarios de demostración
 
@@ -365,13 +401,15 @@ El test [StockConcurrencyIT](product-service/src/test/java/com/showcase/product/
 
 ## Trazabilidad con Zipkin
 
+En Kubernetes, Tempo sustituye a Zipkin: recibe las mismas trazas y se consultan en Grafana (*Explore → Tempo*). Lo que sigue describe Docker Compose.
+
 Todos los servicios, incluidos el gateway y auth-service, envían sus trazas a Zipkin (Micrometer Tracing con Brave). Una misma traza sigue la petición por el gateway, las llamadas Feign, cada consulta SQL (sin los valores de los parámetros) y los casos de uso marcados con `@Observed`. También sigue los mensajes de RabbitMQ: el outbox guarda el `traceparent` de la petición y el envío continúa esa traza, así que un pedido se ve de punta a punta: gateway → order-service → RabbitMQ → product-service → RabbitMQ → order-service.
 
 Cada línea de log lleva `[traceId-spanId]`, y el `traceId` es el mismo que devuelven la cabecera `X-Trace-Id` y el campo `traceId` de los errores. Para buscar una petición: http://localhost:9411 → *Search by trace ID*.
 
 ## Observabilidad: Prometheus, Loki y Grafana
 
-Se levanta junto al sistema con un segundo fichero de compose:
+En Kubernetes se instala con `k8s/observability/install.sh` y reutiliza los mismos dashboards y alertas ([k8s/README.md](k8s/README.md#observabilidad-namespace-monitoring)). En Docker Compose se levanta junto al sistema con un segundo fichero de compose:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d --build
@@ -413,13 +451,24 @@ Para probar los endpoints protegidos, pulsa *Authorize*. Hay dos opciones:
 | `oauth2` (recomendado) | Con el `client_id` `web-client` ya relleno y sin secreto, *Authorize* abre en una ventana emergente el formulario de login de auth-service (por ejemplo `admin` / `Showcase-Dev-2026!`). Al entrar, Swagger recibe el token y lo envía en todas las peticiones. Es el mismo flujo authorization code + PKCE que una aplicación de navegador: la contraseña solo la ve auth-service, y siguen valiendo el bloqueo por intentos, la auditoría y el rate limiting del login |
 | `bearer-jwt` | Pega un token obtenido por otra vía, por ejemplo con la función `login` de [docs/curl-examples.md](docs/curl-examples.md) |
 
-El Swagger UI del gateway vuelve de la ventana de login a `http://localhost:8080/swagger-ui/oauth2-redirect.html`, que está entre las redirect URIs de `web-client` (`WEB_CLIENT_REDIRECT_URIS`; auth-service las sincroniza al arrancar). Se comparan exactamente, así que abre Swagger en `http://localhost:8080` y no en `127.0.0.1`. En un servicio arrancado sin el gateway, indica dónde está auth-service con `showcase.openapi.auth-server-url` y añade su redirect URI.
+El Swagger UI del gateway vuelve de la ventana de login a `http://localhost:8080/swagger-ui/oauth2-redirect.html`, que está entre las redirect URIs de `web-client` (`WEB_CLIENT_REDIRECT_URIS`; auth-service las sincroniza al arrancar). Se comparan exactamente, así que abre Swagger en `http://localhost:8080` y no en `127.0.0.1`. En Kubernetes, el chart añade la de su URL pública (`https://showcase.localhost/swagger-ui/oauth2-redirect.html`). En un servicio arrancado sin el gateway, indica dónde está auth-service con `showcase.openapi.auth-server-url` y añade su redirect URI.
+
+## Integración continua
+
+En cada pull request a `main` se ejecutan dos workflows de GitHub Actions:
+
+| Workflow | Qué hace |
+|---|---|
+| [ci.yml](.github/workflows/ci.yml) | `./mvnw verify`: compilación, tests unitarios y de integración y mínimos de cobertura |
+| [kubernetes.yml](.github/workflows/kubernetes.yml) | Crea un clúster de kind, instala la plataforma, construye y despliega el chart y lanza `k8s/e2e.sh`. Si falla, vuelca el estado de los pods y sus logs |
 
 ## Documentación
 
 - [Especificación del proyecto](docs/prompt-microservicios.md)
-- [Diagramas UML](docs/diagramas-uml.html)
+- [Diagramas UML](docs/diagramas-uml.html): arquitectura, despliegue en Docker Compose y en Kubernetes, clases, secuencias y estados
 - [Ejemplos con curl](docs/curl-examples.md): token, paginación, cada error en español e inglés, logout, Zipkin y RabbitMQ
+- [Kubernetes](k8s/README.md): qué se despliega, requisitos y decisiones
+- [Operar en Kubernetes](docs/kubernetes.md): instalar, escalar, actualizar, rollback e investigar fallos
 
 ## Licencia
 

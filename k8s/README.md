@@ -15,7 +15,7 @@ Cómo operarlo (escalar, actualizar, volver atrás, investigar fallos) está en 
 
 ## Requisitos
 
-- Docker Desktop con al menos 8 GB de memoria (recomendado 12 GB o más).
+- Docker Desktop con al menos 12 GB de memoria (16 GB con la observabilidad del clúster).
 - [kubectl](https://kubernetes.io/docs/tasks/tools/), [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
   y [Helm](https://helm.sh/docs/intro/install/). En Windows son tres ejecutables sueltos que basta con dejar en una
   carpeta del `PATH`.
@@ -68,13 +68,21 @@ y `kubectl -n showcase port-forward svc/api-gateway 8080:8080` (con Docker Compo
   autenticarse.
 - **Redis** (StatefulSet) y **Zipkin** (solo sin la observabilidad del clúster).
 - **Clave RSA del JWT**: la genera `deploy.sh` en `k8s/.secrets/` (fuera de Git) y va en el Secret de `auth-service`.
+- **Conexiones a PostgreSQL**: cada réplica abre como mucho `databasePoolSize` (5) y el PostgreSQL del chart admite
+  `postgres.maxConnections` (200), de modo que caben todas las réplicas con el HPA al máximo y en mitad de un rolling
+  update.
 
 La infraestructura usa las mismas imágenes oficiales que Docker Compose (`postgres`, `redis`, `rabbitmq`) con
 plantillas propias, para reutilizar los scripts de `docker/`. Los charts de Bitnami ya no publican imágenes
 gratuitas con versiones fijas, y en producción la base de datos sería un servicio gestionado.
 
-Las contraseñas de [values.yaml](charts/showcase/values.yaml) son las de desarrollo; para otro entorno se pasan con
-`--set` o con un fichero de valores propio.
+Las contraseñas de [values.yaml](charts/showcase/values.yaml) son las de desarrollo. Para un clúster real está
+[values-prod.yaml](charts/showcase/values-prod.yaml):
+- PostgreSQL, Redis y RabbitMQ gestionados, fuera del clúster (`postgres.enabled: false` y `externalDatabase`, etc.).
+- Secrets creados fuera del chart (`secrets.create: false`).
+- Imágenes de un registro y perfil `prod`.
+
+Los pasos están en [docs/kubernetes.md](../docs/kubernetes.md#producción).
 
 ## Preparado para producción
 
@@ -137,6 +145,12 @@ una traza de Tempo se llega a sus logs, y desde los exemplars de las gráficas d
 
 En kind saltan dos alertas sin importancia: `NodeClockNotSynchronising`, porque los nodos son contenedores sin NTP,
 y `CPUThrottlingHigh` mientras arrancan las JVM con el límite de 1 CPU.
+
+## Integración continua
+
+[.github/workflows/kubernetes.yml](../.github/workflows/kubernetes.yml) repite en cada pull request lo mismo que en
+local: `kind/cluster.sh create`, `platform/install.sh`, `deploy.sh` y `e2e.sh`. Si algo falla, el log del job incluye
+los pods, los eventos y los logs de cada servicio.
 
 ## Comandos útiles
 

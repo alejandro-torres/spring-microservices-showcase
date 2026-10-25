@@ -126,7 +126,7 @@
 <section class="group" id="arquitectura">
   <div class="group-head">
     <h2>Arquitectura</h2>
-    <p>La vista general: qué piezas hay, cómo se despliegan y cómo se organizan las capas dentro de cada microservicio.</p>
+    <p>La vista general: qué piezas hay, cómo se despliegan (Docker Compose y Kubernetes) y cómo se organizan las capas dentro de cada microservicio.</p>
   </div>
 
   <figure class="sheet" id="d-componentes">
@@ -225,7 +225,7 @@ flowchart TB
       zk[Zipkin]
       pm[Prometheus]
       lk[Loki]
-      pt[Promtail]
+      pt[Alloy]
       gf[Grafana]
     end
   end
@@ -246,7 +246,71 @@ flowchart TB
       <ul>
         <li>Las réplicas no publican puertos: solo el gateway (y las consolas de herramientas) son accesibles desde fuera.</li>
         <li>Un único contenedor de PostgreSQL con una base de datos por servicio, creadas por <code>init-databases.sh</code>.</li>
-        <li>Promtail lee los logs de todos los contenedores y los manda a Loki; Prometheus encuentra las réplicas solo.</li>
+        <li>Grafana Alloy lee los logs de todos los contenedores y los manda a Loki; Prometheus encuentra las réplicas en Eureka.</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <figure class="sheet" id="d-kubernetes">
+    <div class="sheet-head"><span class="kind">Despliegue</span><h3>Pods en Kubernetes (kind)</h3></div>
+    <div class="diagram"><pre class="mermaid">
+flowchart TB
+  user([Navegador / curl])
+  subgraph host[Máquina local]
+    p443[":443 https://showcase.localhost"]
+  end
+  subgraph cluster[Clúster kind · 1 control-plane + 2 workers]
+    direction TB
+    subgraph traefikns[namespace traefik]
+      ing[Traefik&lt;br/&gt;Ingress · TLS de cert-manager]
+    end
+    subgraph showcase[namespace showcase · NetworkPolicies: todo cerrado salvo lo necesario]
+      direction TB
+      gw[api-gateway]
+      subgraph apps[Deployments]
+        a1[auth-service]
+        pr[product-service&lt;br/&gt;HPA 3-6 réplicas]
+        c1[customer-service]
+        o1[order-service&lt;br/&gt;HPA 2-4 réplicas]
+      end
+      subgraph infra[StatefulSets]
+        pg[(PostgreSQL&lt;br/&gt;4 bases de datos)]
+        rd[(Redis)]
+        rb{{RabbitMQ}}
+      end
+      api[[API de Kubernetes&lt;br/&gt;Services y endpoints]]
+    end
+    subgraph mon[namespace monitoring]
+      pm[Prometheus]
+      al[Alloy · DaemonSet]
+      lk[Loki]
+      tp[Tempo]
+      gf[Grafana]
+    end
+  end
+  user --> p443 --> ing
+  ing --> gw
+  gw --> apps
+  o1 -- Feign --> pr
+  o1 -- Feign --> c1
+  gw -. descubre réplicas .-> api
+  o1 -. descubre réplicas .-> api
+  apps --> pg
+  apps --> rb
+  apps --> rd
+  gw --> rd
+  apps -. trazas .-> tp
+  pm -. PodMonitors .-> apps
+  al -. logs de los pods .-> lk
+  gf --> pm
+  gf --> lk
+  gf --> tp
+</pre></div>
+    <figcaption><strong>Qué repasar</strong>
+      <ul>
+        <li>Solo el gateway recibe tráfico de fuera, por el Ingress con HTTPS; las NetworkPolicies cierran todo lo demás.</li>
+        <li>Sin Eureka: el gateway y order-service leen las réplicas listas de cada Service con Spring Cloud Kubernetes.</li>
+        <li>El HPA ajusta las réplicas de product y order según la CPU; Tempo sustituye a Zipkin y Alloy corre en cada nodo.</li>
       </ul>
     </figcaption>
   </figure>
