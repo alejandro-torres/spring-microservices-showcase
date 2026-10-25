@@ -3,7 +3,7 @@
 Recorrido por la API con `curl` a través del gateway: obtener un token, listados paginados, cada código de error en español y en inglés, cierre de sesión, buscar una traza en Zipkin y seguir un pedido por RabbitMQ.
 
 Requisitos:
-- El sistema arrancado con `docker compose up -d --build`, y para Zipkin `docker-compose.observability.yml`; ver el [README](../README.md).
+- El sistema arrancado con `docker compose up -d --build`; ver el [README](../README.md).
 - Bash con `curl` y `openssl` (en Windows, Git Bash).
 
 Todos los ejemplos usan los datos del perfil `dev`.
@@ -13,6 +13,16 @@ Todos los ejemplos usan los datos del perfil `dev`.
 ```bash
 GW=http://localhost:8080
 ```
+
+> **En Kubernetes** la API está en `https://showcase.localhost`, con un certificado firmado por una CA local. Los ejemplos valen igual con `GW=https://showcase.localhost` y curl confiando en esa CA (en Windows, además `--ssl-no-revoke`):
+>
+> ```bash
+> kubectl -n cert-manager get secret showcase-ca -o jsonpath='{.data.ca\.crt}' | base64 -d > showcase-ca.crt
+> GW=https://showcase.localhost
+> alias curl='curl --cacert showcase-ca.crt --ssl-no-revoke'
+> ```
+>
+> Lo que cambia está en las secciones 5 (las trazas están en Tempo, no en Zipkin) y 6 (la consola de RabbitMQ va por port-forward).
 
 ## 1. Obtener un token
 
@@ -350,6 +360,8 @@ La primera responde `204 No Content` y la segunda `401 INVALID_TOKEN`.
 
 ## 5. Buscar una petición en Zipkin
 
+> En Kubernetes no hay Zipkin: las trazas están en Tempo. En Grafana, *Explore → Tempo → TraceQL* y pega el `traceId`, o busca sus logs en *Explore → Loki* con `{service=~".+"} | traceId="<traceId>"` ([docs/kubernetes.md](kubernetes.md#4-seguir-una-petición-por-su-traceid-grafana)).
+
 Cada respuesta lleva su `traceId` en la cabecera `X-Trace-Id`, y en el cuerpo si es un error. Para crear un pedido de 1 unidad y quedarte con su traza:
 
 ```bash
@@ -367,6 +379,8 @@ curl -s http://localhost:9411/api/v2/trace/<traceId> | grep -o '"serviceName":"[
 La traza de un pedido pasa por api-gateway, order-service, `order_db`, RabbitMQ, product-service, `product_db` y Redis (el lock del stock). Se ve la petición, las consultas SQL, el envío del evento y su consumo. Con el compose de observabilidad, *Logs for this span* abre en Grafana los logs de esa petición en todos los servicios.
 
 ## 6. Seguir un pedido por RabbitMQ
+
+> En Kubernetes, la consola de RabbitMQ se abre con `kubectl -n showcase port-forward svc/rabbitmq 15672` y las URLs de esta sección valen igual.
 
 La consola está en http://localhost:15672 (usuario `admin`, contraseña `admin-dev`). Los exchanges son:
 - `order.events`: `order.created` y `order.cancelled`.
