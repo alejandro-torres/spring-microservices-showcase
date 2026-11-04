@@ -32,8 +32,8 @@ class SecurityErrorHandlingTest {
         var responses = new ErrorResponseFactory(new ErrorMessageResolver(new StaticMessageSource()),
                 Clock.fixed(Instant.parse("2026-10-14T10:00:00Z"), ZoneOffset.UTC));
         var localeResolver = new AcceptHeaderLocaleResolver();
-        localeResolver.setDefaultLocale(Locale.forLanguageTag("es"));
-        localeResolver.setSupportedLocales(List.of(Locale.forLanguageTag("es"), Locale.ENGLISH));
+        localeResolver.setDefaultLocale(Locale.ENGLISH);
+        localeResolver.setSupportedLocales(List.of(Locale.ENGLISH, Locale.forLanguageTag("es")));
         return new SecurityErrorResponseWriter(responses, JsonMapper.builder().build(), localeResolver);
     }
 
@@ -52,7 +52,7 @@ class SecurityErrorHandlingTest {
     class EntryPoint {
 
         @Test
-        @DisplayName("devuelve 401 UNAUTHORIZED en el formato común si no hay credenciales")
+        @DisplayName("returns 401 UNAUTHORIZED in the common format if there are no credentials")
         void commence_withoutCredentials_shouldReturnUnauthorized() throws Exception {
             var response = new MockHttpServletResponse();
 
@@ -63,16 +63,16 @@ class SecurityErrorHandlingTest {
             assertThat(response.getContentType()).startsWith("application/json");
             assertThat(response.getHeader(HttpHeaders.WWW_AUTHENTICATE)).isEqualTo("Bearer");
             assertThat(json(response, "$.code")).isEqualTo("UNAUTHORIZED");
-            assertThat(json(response, "$.message")).isEqualTo("Es necesario autenticarse para acceder a este recurso.");
+            assertThat(json(response, "$.message")).isEqualTo("Authentication is required to access this resource.");
             assertThat(json(response, "$.path")).isEqualTo("/api/v1/users");
             assertThat(json(response, "$.timestamp")).isEqualTo("2026-10-14T10:00:00Z");
         }
 
         @Test
-        @DisplayName("devuelve 401 INVALID_TOKEN en el idioma pedido si el token no es válido")
+        @DisplayName("returns 401 INVALID_TOKEN in the requested language if the token is invalid")
         void commence_withInvalidToken_shouldReturnInvalidToken() throws Exception {
             var request = request("/api/v1/users");
-            request.addHeader(HttpHeaders.ACCEPT_LANGUAGE, "en");
+            request.addHeader(HttpHeaders.ACCEPT_LANGUAGE, "es");
             var response = new MockHttpServletResponse();
 
             new RestAuthenticationEntryPoint(writer).commence(request, response,
@@ -81,7 +81,7 @@ class SecurityErrorHandlingTest {
             assertThat(response.getStatus()).isEqualTo(401);
             assertThat(response.getHeader(HttpHeaders.WWW_AUTHENTICATE)).contains("invalid_token");
             assertThat(json(response, "$.code")).isEqualTo("INVALID_TOKEN");
-            assertThat(json(response, "$.message")).isEqualTo("The access token is invalid, expired or revoked.");
+            assertThat(json(response, "$.message")).isEqualTo("El token de acceso no es válido, ha caducado o ha sido revocado.");
             assertThat(response.getContentAsString()).doesNotContain("Jwt expired");
         }
     }
@@ -91,7 +91,7 @@ class SecurityErrorHandlingTest {
     class AccessDenied {
 
         @Test
-        @DisplayName("devuelve 403 FORBIDDEN en el formato común")
+        @DisplayName("returns 403 FORBIDDEN in the common format")
         void handle_shouldReturnForbidden() throws Exception {
             var response = new MockHttpServletResponse();
 
@@ -100,7 +100,7 @@ class SecurityErrorHandlingTest {
 
             assertThat(response.getStatus()).isEqualTo(403);
             assertThat(json(response, "$.code")).isEqualTo("FORBIDDEN");
-            assertThat(json(response, "$.message")).isEqualTo("No tienes permiso para realizar esta operación.");
+            assertThat(json(response, "$.message")).isEqualTo("You do not have permission to perform this operation.");
         }
     }
 }
