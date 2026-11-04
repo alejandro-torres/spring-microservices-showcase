@@ -1,20 +1,20 @@
-# Ejemplos con curl
+# curl examples
 
-Recorrido por la API con `curl` a través del gateway: obtener un token, listados paginados, cada código de error en español y en inglés, cierre de sesión, buscar una traza en Zipkin y seguir un pedido por RabbitMQ.
+A tour of the API with `curl` through the gateway: getting a token, paginated listings, each error code in English and Spanish, logout, finding a trace in Zipkin and following an order through RabbitMQ.
 
-Requisitos:
-- El sistema arrancado con `docker compose up -d --build`; ver el [README](../README.md).
-- Bash con `curl` y `openssl` (en Windows, Git Bash).
+Requirements:
+- The system started with `docker compose up -d --build`; see the [README](../README.md).
+- Bash with `curl` and `openssl` (on Windows, Git Bash).
 
-Todos los ejemplos usan los datos del perfil `dev`.
+All examples use the data of the `dev` profile.
 
-> En Git Bash para Windows, los cuerpos JSON con tildes o eñes pueden llegar con otra codificación y la API responde `400 MALFORMED_REQUEST`. Por eso los ejemplos no llevan tildes.
+> In Git Bash for Windows, JSON bodies with accented characters can arrive in another encoding and the API responds `400 MALFORMED_REQUEST`. That is why the examples use none.
 
 ```bash
 GW=http://localhost:8080
 ```
 
-> **En Kubernetes** la API está en `https://showcase.localhost`, con un certificado firmado por una CA local. Los ejemplos valen igual con `GW=https://showcase.localhost` y curl confiando en esa CA (en Windows, además `--ssl-no-revoke`):
+> **On Kubernetes** the API is at `https://showcase.localhost`, with a certificate signed by a local CA. The examples work the same with `GW=https://showcase.localhost` and curl trusting that CA (on Windows, also `--ssl-no-revoke`):
 >
 > ```bash
 > kubectl -n cert-manager get secret showcase-ca -o jsonpath='{.data.ca\.crt}' | base64 -d > showcase-ca.crt
@@ -22,26 +22,26 @@ GW=http://localhost:8080
 > alias curl='curl --cacert showcase-ca.crt --ssl-no-revoke'
 > ```
 >
-> Lo que cambia está en las secciones 5 (las trazas están en Tempo, no en Zipkin) y 6 (la consola de RabbitMQ va por port-forward).
+> What changes is in sections 5 (traces are in Tempo, not Zipkin) and 6 (the RabbitMQ console goes through port-forward).
 
-## 1. Obtener un token
+## 1. Get a token
 
-> Para probar la API desde el navegador no hace falta nada de esto: en http://localhost:8080/swagger-ui.html, *Authorize → oauth2* abre el formulario de login y Swagger recoge el token solo (ver el [README](../README.md#documentación-de-la-api-swagger)).
+> To try the API from the browser you need none of this: at http://localhost:8080/swagger-ui.html, *Authorize → oauth2* opens the login form and Swagger picks up the token on its own (see the [README](../README.md#api-documentation-swagger)).
 
-Desde la terminal hay dos formas:
-- **Token de servicio.** `client_credentials` con el cliente `internal-service`. Identifica a un servicio, no a un usuario, así que no tiene permisos de gestión:
+From the terminal there are two ways:
+- **Service token.** `client_credentials` with the `internal-service` client. It identifies a service, not a user, so it has no management permissions:
 
   ```bash
   curl -s -u internal-service:internal-dev-secret -d grant_type=client_credentials -d scope=internal $GW/oauth2/token
   ```
 
-- **Token de usuario.** `authorization_code` con PKCE y el cliente `web-client`, el mismo flujo que sigue un navegador:
-  1. `/oauth2/authorize` redirige al formulario de login.
-  2. El formulario se envía con su token CSRF.
-  3. auth-service redirige al `redirect_uri` con un código.
-  4. El código, junto con el `code_verifier`, se cambia por el token.
+- **User token.** `authorization_code` with PKCE and the `web-client` client, the same flow a browser follows:
+  1. `/oauth2/authorize` redirects to the login form.
+  2. The form is submitted with its CSRF token.
+  3. auth-service redirects to the `redirect_uri` with a code.
+  4. The code, together with the `code_verifier`, is exchanged for the token.
 
-  Esta función hace los cuatro pasos (cópiala en la terminal):
+  This function does the four steps (copy it into the terminal):
 
 ```bash
 login() {
@@ -50,22 +50,22 @@ login() {
   jar=$(mktemp)
   verifier=$(openssl rand -base64 48 | tr '+/' '-_' | tr -d '=\n' | cut -c1-64)
   challenge=$(printf '%s' "$verifier" | openssl dgst -sha256 -binary | openssl base64 -A | tr '+/' '-_' | tr -d '=')
-  # 1. /oauth2/authorize sin sesión redirige al formulario de login
+  # 1. /oauth2/authorize without a session redirects to the login form
   login_url=$(curl -s -c "$jar" -b "$jar" -o /dev/null -w '%{redirect_url}' -G "$gw/oauth2/authorize" \
     --data-urlencode response_type=code --data-urlencode client_id=web-client \
     --data-urlencode 'scope=openid profile' --data-urlencode "redirect_uri=$redirect" \
     --data-urlencode "code_challenge=$challenge" --data-urlencode code_challenge_method=S256 \
     --data-urlencode state=curl)
-  # 2. el formulario lleva un token CSRF
+  # 2. the form carries a CSRF token
   csrf=$(curl -s -c "$jar" -b "$jar" "$login_url" | sed -n 's/.*name="_csrf"[^>]*value="\([^"]*\)".*/\1/p' | head -1)
-  # 3. login → vuelve a /oauth2/authorize → redirige al callback con el código
+  # 3. login → back to /oauth2/authorize → redirects to the callback with the code
   authorize_url=$(curl -s -c "$jar" -b "$jar" -o /dev/null -w '%{redirect_url}' "$gw/login" \
     --data-urlencode "username=$1" --data-urlencode "password=$2" --data-urlencode "_csrf=$csrf")
   code=$(curl -s -c "$jar" -b "$jar" -o /dev/null -w '%{redirect_url}' "$authorize_url" \
     | sed -n 's/.*[?&]code=\([^&]*\).*/\1/p')
   rm -f "$jar"
-  [ -n "$code" ] || { echo "login fallido para $1 (¿contraseña o límite de intentos?)" >&2; return 1; }
-  # 4. código + code_verifier → access token
+  [ -n "$code" ] || { echo "login failed for $1 (password or attempt limit?)" >&2; return 1; }
+  # 4. code + code_verifier → access token
   response=$(curl -s "$gw/oauth2/token" -d grant_type=authorization_code -d client_id=web-client \
     --data-urlencode "code=$code" --data-urlencode "redirect_uri=$redirect" \
     --data-urlencode "code_verifier=$verifier")
@@ -75,7 +75,7 @@ login() {
 }
 ```
 
-`admin` tiene los roles ADMIN y USER; `user01` solo USER. Los dos usan la contraseña de desarrollo `Showcase-Dev-2026!`.
+`admin` has the ADMIN and USER roles; `user01` only USER. Both use the development password `Showcase-Dev-2026!`.
 
 ```bash
 TOKEN=$(login admin 'Showcase-Dev-2026!')
@@ -87,57 +87,57 @@ USER_TOKEN=$(login user01 'Showcase-Dev-2026!')
 curl -s -H "Authorization: Bearer $TOKEN" $GW/api/v1/users/me
 ```
 
-El login tiene su propio límite: 5 peticiones seguidas por IP y después una cada 12 s. Cada login gasta dos de esas peticiones (`POST /login` y `POST /oauth2/token`). Si pides varios tokens seguidos y la función escribe un `429`, espera medio minuto. El token dura 15 minutos.
+The login has its own limit: 5 requests in a row per IP and then one every 12 s. Each login spends two of those requests (`POST /login` and `POST /oauth2/token`). If you request several tokens in a row and the function prints a `429`, wait half a minute. The token lasts 15 minutes.
 
-## 2. Listados paginados y filtros
+## 2. Paginated listings and filters
 
-Todos los listados admiten estos parámetros:
-- `page` y `size` (máximo 100).
-- `sort` y `direction`.
-- `includeInactive=true`, solo para ADMIN.
-- Uno o varios `filter=campo:operador:valor`.
+All listings accept these parameters:
+- `page` and `size` (maximum 100).
+- `sort` and `direction`.
+- `includeInactive=true`, for ADMIN only.
+- One or more `filter=field:operator:value`.
 
-Los campos y operadores permitidos de cada recurso están en el [README](../README.md).
+The allowed fields and operators of each resource are in the [README](../README.md).
 
-Productos entre 500 y 1500 € con stock, del más caro al más barato, de 5 en 5:
+Products between 500 and 1500 € in stock, from most to least expensive, 5 at a time:
 
 ```bash
 curl -s -H "Authorization: Bearer $TOKEN" "$GW/api/v1/products?page=0&size=5&sort=price&direction=desc&filter=price:between:500,1500&filter=stock:gt:0"
 ```
 
-Usuarios con el rol ADMIN, incluidos los borrados:
+Users with the ADMIN role, including deleted ones:
 
 ```bash
 curl -s -H "Authorization: Bearer $TOKEN" "$GW/api/v1/users?filter=role:eq:ADMIN&includeInactive=true"
 ```
 
-Clientes de Madrid ordenados por apellido:
+Customers from Madrid sorted by last name:
 
 ```bash
 curl -s -H "Authorization: Bearer $TOKEN" "$GW/api/v1/customers?filter=city:eq:Madrid&sort=lastName"
 ```
 
-La respuesta trae la página y los totales:
+The response carries the page and the totals:
 
 ```json
-{"content":[{"id":56,"name":"Redes modelo 07","price":702.90,"stock":74, ...}],
+{"content":[{"id":56,"name":"Networking model 07","price":702.90,"stock":74, ...}],
  "page":0,"size":5,"totalElements":17,"totalPages":4,"first":true,"last":false}
 ```
 
-## 3. Errores
+## 3. Errors
 
-Todos los errores tienen el mismo formato y el mismo `traceId` que la cabecera `X-Trace-Id`. El idioma del mensaje depende de `Accept-Language`: español por defecto, inglés con `Accept-Language: en`.
+All errors have the same format and the same `traceId` as the `X-Trace-Id` header. The message language depends on `Accept-Language`: English by default, Spanish with `Accept-Language: es`.
 
 ```json
 {"timestamp":"2026-10-15T00:57:15.059Z","status":400,"error":"Bad Request","code":"FILTER_FIELD_NOT_ALLOWED",
- "message":"No se puede filtrar por 'password'. Campos permitidos: name, price, stock, categoryId, categoryName, createdAt.",
+ "message":"Filtering by 'password' is not allowed. Allowed fields: name, price, stock, categoryId, categoryName, createdAt.",
  "path":"/api/v1/products","traceId":"6ad024ea065fcb84c860cbb1f707cfd6"}
 ```
 
-Para los errores 422 y del flujo de pedidos hacen falta un producto con 1 unidad y un cliente con dirección:
+The 422 and order flow errors need a product with 1 unit and a customer with an address:
 
 ```bash
-PRODUCT_ID=$(curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"name":"Producto de prueba curl","price":9.90,"stock":1,"categoryId":8}' $GW/api/v1/products | sed -n 's/^{"id":\([0-9]*\).*/\1/p')
+PRODUCT_ID=$(curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"name":"curl test product","price":9.90,"stock":1,"categoryId":8}' $GW/api/v1/products | sed -n 's/^{"id":\([0-9]*\).*/\1/p')
 ```
 ```bash
 CUSTOMER_ID=$(curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"firstName":"Ana","lastName":"Curl","email":"ana.curl@example.com","addresses":[{"street":"Gran Via 1","city":"Madrid","postalCode":"28013","country":"ES"}]}' $GW/api/v1/customers | sed -n 's/^{"id":\([0-9]*\).*/\1/p')
@@ -145,61 +145,61 @@ CUSTOMER_ID=$(curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: applic
 
 ### 400 Bad Request
 
-Filtro por un campo que no está en la lista blanca (`FILTER_FIELD_NOT_ALLOWED`):
+Filter by a field not on the whitelist (`FILTER_FIELD_NOT_ALLOWED`):
 
 ```bash
 curl -s -H "Authorization: Bearer $TOKEN" "$GW/api/v1/products?filter=password:eq:x"
 ```
 ```bash
-curl -s -H "Authorization: Bearer $TOKEN" -H "Accept-Language: en" "$GW/api/v1/products?filter=password:eq:x"
+curl -s -H "Authorization: Bearer $TOKEN" -H "Accept-Language: es" "$GW/api/v1/products?filter=password:eq:x"
 ```
 
 ```
-No se puede filtrar por 'password'. Campos permitidos: name, price, stock, categoryId, categoryName, createdAt.
 Filtering by 'password' is not allowed. Allowed fields: name, price, stock, categoryId, categoryName, createdAt.
+No se puede filtrar por 'password'. Campos permitidos: name, price, stock, categoryId, categoryName, createdAt.
 ```
 
-Bean Validation (`VALIDATION_ERROR`). El detalle de cada campo va en `errors`:
+Bean Validation (`VALIDATION_ERROR`). The detail of each field goes in `errors`:
 
 ```bash
 curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"name":""}' $GW/api/v1/categories
 ```
 
 ```json
-{"status":400,"code":"VALIDATION_ERROR","message":"La petición contiene datos no válidos.",
- "errors":[{"field":"name","message":"es obligatorio y no puede estar vacío"},{"field":"name","message":"debe tener entre 2 y 60 caracteres"}], ...}
+{"status":400,"code":"VALIDATION_ERROR","message":"The request contains invalid data.",
+ "errors":[{"field":"name","message":"is required and cannot be blank"},{"field":"name","message":"must be between 2 and 60 characters long"}], ...}
 ```
 
 ### 401 Unauthorized
 
-Sin token (`UNAUTHORIZED`), o con un token falso, caducado o revocado (`INVALID_TOKEN`):
+Without a token (`UNAUTHORIZED`), or with a fake, expired or revoked token (`INVALID_TOKEN`):
 
 ```bash
 curl -s $GW/api/v1/products
 ```
 ```bash
-curl -s -H "Accept-Language: en" -H "Authorization: Bearer abc" $GW/api/v1/products
+curl -s -H "Accept-Language: es" -H "Authorization: Bearer abc" $GW/api/v1/products
 ```
 
 ```
-Es necesario autenticarse para acceder a este recurso.
-The access token is invalid, expired or revoked.
+Authentication is required to access this resource.
+El token de acceso no es válido, ha caducado o ha sido revocado.
 ```
 
 ### 403 Forbidden
 
-`user01` no tiene el permiso `user:read`:
+`user01` does not have the `user:read` permission:
 
 ```bash
 curl -s -H "Authorization: Bearer $USER_TOKEN" $GW/api/v1/users
 ```
 ```bash
-curl -s -H "Accept-Language: en" -H "Authorization: Bearer $USER_TOKEN" $GW/api/v1/users
+curl -s -H "Accept-Language: es" -H "Authorization: Bearer $USER_TOKEN" $GW/api/v1/users
 ```
 
 ```
-No tienes permiso para realizar esta operación.
 You do not have permission to perform this operation.
+No tienes permiso para realizar esta operación.
 ```
 
 ### 404 Not Found
@@ -208,71 +208,71 @@ You do not have permission to perform this operation.
 curl -s -H "Authorization: Bearer $TOKEN" $GW/api/v1/products/999999
 ```
 ```bash
-curl -s -H "Authorization: Bearer $TOKEN" -H "Accept-Language: en" $GW/api/v1/products/999999
+curl -s -H "Authorization: Bearer $TOKEN" -H "Accept-Language: es" $GW/api/v1/products/999999
 ```
 
 ```
-No existe ningún producto activo con id 999999.
 No active product with id 999999 was found.
+No existe ningún producto activo con id 999999.
 ```
 
 ### 409 Conflict
 
-Nombre duplicado (`CATEGORY_ALREADY_EXISTS`):
+Duplicate name (`CATEGORY_ALREADY_EXISTS`):
 
 ```bash
-curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"name":"Redes"}' $GW/api/v1/categories
+curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"name":"Networking"}' $GW/api/v1/categories
 ```
 ```bash
-curl -s -H "Authorization: Bearer $TOKEN" -H "Accept-Language: en" -H "Content-Type: application/json" -d '{"name":"Redes"}' $GW/api/v1/categories
+curl -s -H "Authorization: Bearer $TOKEN" -H "Accept-Language: es" -H "Content-Type: application/json" -d '{"name":"Networking"}' $GW/api/v1/categories
 ```
 
 ```
-Ya existe una categoría llamada 'Redes'.
-A category named 'Redes' already exists.
+A category named 'Networking' already exists.
+Ya existe una categoría llamada 'Networking'.
 ```
 
-Bloqueo optimista (`CONCURRENT_MODIFICATION`): la categoría 8 está en la versión 0 y la petición dice que la modifica desde la 7.
+Optimistic locking (`CONCURRENT_MODIFICATION`): category 8 is at version 0 and the request says it is modifying it from version 7.
 
 ```bash
-curl -s -X PUT -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"name":"Redes","description":"Routers","version":7}' $GW/api/v1/categories/8
+curl -s -X PUT -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"name":"Networking","description":"Routers","version":7}' $GW/api/v1/categories/8
 ```
 
 ```
-Otro usuario ha modificado este recurso. Vuelve a cargarlo e inténtalo de nuevo.
+This resource was modified by another user. Reload it and try again.
 ```
 
 ### 422 Unprocessable Content
 
-Regla de negocio (`INSUFFICIENT_STOCK`): un pedido de 5 unidades de un producto que solo tiene 1.
+Business rule (`INSUFFICIENT_STOCK`): an order of 5 units of a product that only has 1.
 
 ```bash
 curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"customerId\":$CUSTOMER_ID,\"items\":[{\"productId\":$PRODUCT_ID,\"quantity\":5}]}" $GW/api/v1/orders
 ```
 ```bash
-curl -s -H "Authorization: Bearer $TOKEN" -H "Accept-Language: en" -H "Content-Type: application/json" -d "{\"customerId\":$CUSTOMER_ID,\"items\":[{\"productId\":$PRODUCT_ID,\"quantity\":5}]}" $GW/api/v1/orders
+curl -s -H "Authorization: Bearer $TOKEN" -H "Accept-Language: es" -H "Content-Type: application/json" -d "{\"customerId\":$CUSTOMER_ID,\"items\":[{\"productId\":$PRODUCT_ID,\"quantity\":5}]}" $GW/api/v1/orders
 ```
 
 ```
-No hay stock suficiente del producto 67 (quedan 1 unidades).
 Not enough stock of product 67 (1 units left).
+No hay stock suficiente del producto 67 (quedan 1 unidades).
 ```
 
 ### 423 Locked
 
-La API devuelve 423 con `RESOURCE_BUSY` cuando no consigue el lock distribuido de un recurso. Esto solo pasa en la reserva y devolución de stock de la saga, que llegan por RabbitMQ y se reintentan, así que no hay una petición `curl` que lo provoque.
+The API returns 423 with `RESOURCE_BUSY` when it cannot get a resource's distributed lock. This only happens in the saga's stock reservation and return, which arrive through RabbitMQ and are retried, so no `curl` request causes it.
 
-El otro bloqueo es el de una cuenta (`ACCOUNT_LOCKED`) tras 5 contraseñas incorrectas seguidas. Se ve así:
+The other lock is that of an account (`ACCOUNT_LOCKED`) after 5 wrong passwords in a row. It looks like this:
 
 ```bash
 jar=$(mktemp)
 for i in 1 2 3 4 5; do
   csrf=$(curl -s -c $jar -b $jar $GW/login | sed -n 's/.*name="_csrf"[^>]*value="\([^"]*\)".*/\1/p' | head -1)
-  curl -s -c $jar -b $jar -o /dev/null -w '%{http_code} %{redirect_url}\n' $GW/login --data-urlencode username=user02 --data-urlencode password=incorrecta --data-urlencode "_csrf=$csrf"
+  curl -s -c $jar -b $jar -o /dev/null -w '%{http_code} %{redirect_url}\n' $GW/login --data-urlencode username=user02 --data-urlencode password=wrong --data-urlencode "_csrf=$csrf"
 done
 ```
 
-El formulario responde siempre `Invalid credentials`, también con la contraseña buena mientras dure el bloqueo (15 minutos). No dice si la cuenta existe ni si está bloqueada. El bloqueo se ve en la auditoría y en el usuario:
+The form always responds `Invalid credentials`, even with the right password while the lock lasts (15 minutes). It does not say whether the account exists or is locked. The lock shows in the audit log and on the user:
 
 ```bash
 curl -s -H "Authorization: Bearer $TOKEN" "$GW/api/v1/security-audit?filter=username:eq:user02&filter=eventType:eq:ACCOUNT_LOCKED"
@@ -281,51 +281,51 @@ curl -s -H "Authorization: Bearer $TOKEN" "$GW/api/v1/security-audit?filter=user
 curl -s -H "Authorization: Bearer $TOKEN" "$GW/api/v1/users?filter=username:eq:user02"
 ```
 
-Un ADMIN lo quita antes de tiempo (`user02` tiene el id 3):
+An ADMIN removes it early (`user02` has id 3):
 
 ```bash
 curl -s -X PUT -H "Authorization: Bearer $TOKEN" $GW/api/v1/users/3/unlock
 ```
 
-Los mensajes de `ACCOUNT_LOCKED` y `RESOURCE_BUSY` están en los dos idiomas:
+The `ACCOUNT_LOCKED` and `RESOURCE_BUSY` messages are in both languages:
 
 ```
-La cuenta de 'user02' está bloqueada hasta ... por demasiados intentos de inicio de sesión fallidos.
 The account 'user02' is locked until ... after too many failed sign-in attempts.
-El recurso {0} está siendo modificado por otra petición. Inténtalo de nuevo en unos segundos.
+La cuenta de 'user02' está bloqueada hasta ... por demasiados intentos de inicio de sesión fallidos.
 Resource {0} is being modified by another request. Please try again in a few seconds.
+El recurso {0} está siendo modificado por otra petición. Inténtalo de nuevo en unos segundos.
 ```
 
 ### 429 Too Many Requests
 
-Cada usuario puede hacer 20 peticiones por segundo, con ráfagas de hasta 40. Con 80 peticiones en paralelo, las que pasan de la ráfaga reciben 429 y la cabecera `Retry-After`:
+Each user can make 20 requests per second, with bursts of up to 40. With 80 parallel requests, those beyond the burst get 429 and the `Retry-After` header:
 
 ```bash
 seq 1 80 | xargs -P 40 -I{} curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $TOKEN" "$GW/api/v1/categories?size=1" | sort | uniq -c
 ```
 ```bash
-curl -s -i -H "Authorization: Bearer $TOKEN" -H "Accept-Language: en" "$GW/api/v1/categories?size=1"
+curl -s -i -H "Authorization: Bearer $TOKEN" -H "Accept-Language: es" "$GW/api/v1/categories?size=1"
 ```
 
-Las dos peticiones tienen que ir seguidas: el cubo se recupera en un par de segundos.
+The two requests must go one right after the other: the bucket recovers in a couple of seconds.
 
 ```
-Has superado el límite de peticiones. Inténtalo de nuevo más tarde.
 You have exceeded the request limit. Please try again later.
+Has superado el límite de peticiones. Inténtalo de nuevo más tarde.
 ```
 
 ### 500 Internal Server Error
 
-Lo devuelve el manejador de último recurso ante un error no previsto (`INTERNAL_ERROR`), sin detalles internos de Java. No hay ninguna petición válida que lo provoque a propósito. Incluso con la base de datos caída la respuesta es 503. Tiene el formato de siempre:
+It is returned by the last-resort handler on an unexpected error (`INTERNAL_ERROR`), with no internal Java details. No valid request causes it on purpose. Even with the database down the response is 503. It has the usual format:
 
 ```
-Error interno del servidor.
 Internal server error.
+Error interno del servidor.
 ```
 
 ### 503 Service Unavailable
 
-Con un servicio parado, el gateway responde por el circuit breaker, y order-service también cuando no puede consultar a product-service:
+With a service stopped, the gateway responds through the circuit breaker, and so does order-service when it cannot query product-service:
 
 ```bash
 docker compose stop product-service
@@ -334,20 +334,20 @@ docker compose stop product-service
 curl -s -H "Authorization: Bearer $TOKEN" $GW/api/v1/products/1
 ```
 ```bash
-curl -s -H "Authorization: Bearer $TOKEN" -H "Accept-Language: en" -H "Content-Type: application/json" -d "{\"customerId\":$CUSTOMER_ID,\"items\":[{\"productId\":1,\"quantity\":1}]}" $GW/api/v1/orders
+curl -s -H "Authorization: Bearer $TOKEN" -H "Accept-Language: es" -H "Content-Type: application/json" -d "{\"customerId\":$CUSTOMER_ID,\"items\":[{\"productId\":1,\"quantity\":1}]}" $GW/api/v1/orders
 ```
 ```bash
 docker compose start product-service
 ```
 
 ```
-El servicio no está disponible en este momento. Inténtalo de nuevo más tarde.
 The service is currently unavailable. Please try again later.
+El servicio no está disponible en este momento. Inténtalo de nuevo más tarde.
 ```
 
-## 4. Cerrar sesión
+## 4. Log out
 
-`POST /api/v1/auth/logout` revoca el token al momento (se guarda en Redis hasta que caduca):
+`POST /api/v1/auth/logout` revokes the token immediately (it is stored in Redis until it expires):
 
 ```bash
 curl -s -i -X POST -H "Authorization: Bearer $USER_TOKEN" $GW/api/v1/auth/logout
@@ -356,47 +356,47 @@ curl -s -i -X POST -H "Authorization: Bearer $USER_TOKEN" $GW/api/v1/auth/logout
 curl -s -H "Authorization: Bearer $USER_TOKEN" $GW/api/v1/users/me
 ```
 
-La primera responde `204 No Content` y la segunda `401 INVALID_TOKEN`.
+The first responds `204 No Content` and the second `401 INVALID_TOKEN`.
 
-## 5. Buscar una petición en Zipkin
+## 5. Find a request in Zipkin
 
-> En Kubernetes no hay Zipkin: las trazas están en Tempo. En Grafana, *Explore → Tempo → TraceQL* y pega el `traceId`, o busca sus logs en *Explore → Loki* con `{service=~".+"} | traceId="<traceId>"` ([docs/kubernetes.md](kubernetes.md#4-seguir-una-petición-por-su-traceid-grafana)).
+> On Kubernetes there is no Zipkin: traces are in Tempo. In Grafana, *Explore → Tempo → TraceQL* and paste the `traceId`, or search its logs in *Explore → Loki* with `{service=~".+"} | traceId="<traceId>"` ([docs/kubernetes.md](kubernetes.md#4-follow-a-request-by-its-traceid-grafana)).
 
-Cada respuesta lleva su `traceId` en la cabecera `X-Trace-Id`, y en el cuerpo si es un error. Para crear un pedido de 1 unidad y quedarte con su traza:
+Each response carries its `traceId` in the `X-Trace-Id` header, and in the body if it is an error. To create an order of 1 unit and keep its trace:
 
 ```bash
 curl -s -i -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"customerId\":$CUSTOMER_ID,\"items\":[{\"productId\":$PRODUCT_ID,\"quantity\":1}]}" $GW/api/v1/orders | grep -i "^x-trace-id\|^{"
 ```
 
-La traza se puede ver de dos formas:
-- En el navegador: abre http://localhost:9411, pulsa *Search by trace ID* y pega el valor.
-- Con la API de Zipkin:
+The trace can be seen in two ways:
+- In the browser: open http://localhost:9411, click *Search by trace ID* and paste the value.
+- With the Zipkin API:
 
 ```bash
 curl -s http://localhost:9411/api/v2/trace/<traceId> | grep -o '"serviceName":"[^"]*"' | sort | uniq -c
 ```
 
-La traza de un pedido pasa por api-gateway, order-service, `order_db`, RabbitMQ, product-service, `product_db` y Redis (el lock del stock). Se ve la petición, las consultas SQL, el envío del evento y su consumo. Con el compose de observabilidad, *Logs for this span* abre en Grafana los logs de esa petición en todos los servicios.
+An order's trace goes through api-gateway, order-service, `order_db`, RabbitMQ, product-service, `product_db` and Redis (the stock lock). It shows the request, the SQL queries, the event send and its consumption. With the observability compose file, *Logs for this span* opens in Grafana the logs of that request across all services.
 
-## 6. Seguir un pedido por RabbitMQ
+## 6. Follow an order through RabbitMQ
 
-> En Kubernetes, la consola de RabbitMQ se abre con `kubectl -n showcase port-forward svc/rabbitmq 15672` y las URLs de esta sección valen igual.
+> On Kubernetes, the RabbitMQ console opens with `kubectl -n showcase port-forward svc/rabbitmq 15672` and the URLs in this section work the same.
 
-La consola está en http://localhost:15672 (usuario `admin`, contraseña `admin-dev`). Los exchanges son:
-- `order.events`: `order.created` y `order.cancelled`.
-- `product.events`: `stock.reserved` y `stock.reservation-failed`.
+The console is at http://localhost:15672 (user `admin`, password `admin-dev`). The exchanges are:
+- `order.events`: `order.created` and `order.cancelled`.
+- `product.events`: `stock.reserved` and `stock.reservation-failed`.
 - `auth.events`.
 
-Cada servicio tiene sus colas, por ejemplo `product-service.order-created` u `order-service.stock-reserved`, y cada cola su `.dlq`.
+Each service has its queues, for example `product-service.order-created` or `order-service.stock-reserved`, and each queue its `.dlq`.
 
-Un pedido nace `PENDING`, la saga reserva el stock y en uno o dos segundos pasa a `CONFIRMED`:
+An order starts `PENDING`, the saga reserves the stock and within a second or two it becomes `CONFIRMED`:
 
 ```bash
 curl -s -H "Authorization: Bearer $TOKEN" $GW/api/v1/orders/<id>
 ```
 
-Los mensajes se consumen al momento. Para ver uno en la cola, para su consumidor:
-1. Para product-service y cancela el pedido. El evento `order.cancelled` se queda esperando en `product-service.order-cancelled`:
+Messages are consumed immediately. To see one in the queue, stop its consumer:
+1. Stop product-service and cancel the order. The `order.cancelled` event stays waiting in `product-service.order-cancelled`:
 
 ```bash
 docker compose stop product-service
@@ -408,16 +408,16 @@ curl -s -X PUT -H "Authorization: Bearer $TOKEN" $GW/api/v1/orders/<id>/cancel
 curl -s -u admin:admin-dev "http://localhost:15672/api/queues/%2F/product-service.order-cancelled?columns=name,messages_ready"
 ```
 
-2. Mira el mensaje sin consumirlo. Es lo mismo que *Get messages* en la consola, con *Ack mode: Nack message requeue true*:
+2. Look at the message without consuming it. It is the same as *Get messages* in the console, with *Ack mode: Nack message requeue true*:
 
 ```bash
 curl -s -u admin:admin-dev -H "Content-Type: application/json" -d '{"count":1,"ackmode":"ack_requeue_true","encoding":"auto"}' "http://localhost:15672/api/queues/%2F/product-service.order-cancelled/get"
 ```
 
-El mensaje lleva:
-- El sobre común: `eventId`, `eventType`, `source`, `occurredAt`, `version` y `payload`.
-- El `message_id`, que es el mismo `eventId`; el consumidor lo usa para no procesarlo dos veces.
-- La cabecera `traceparent`, que continúa la traza de la petición en Zipkin.
+The message carries:
+- The common envelope: `eventId`, `eventType`, `source`, `occurredAt`, `version` and `payload`.
+- The `message_id`, which is the same `eventId`; the consumer uses it to avoid processing it twice.
+- The `traceparent` header, which continues the request's trace in Zipkin.
 
 ```json
 {"exchange":"order.events","routing_key":"order.cancelled",
@@ -425,13 +425,13 @@ El mensaje lleva:
  "payload":"{\"source\":\"order-service\",\"eventId\":\"b3a1db40-...\",\"eventType\":\"order.cancelled\",\"payload\":{\"orderId\":122,\"lines\":[{\"productId\":67,\"quantity\":1}]}, ...}"}
 ```
 
-3. Arranca product-service. Consume el mensaje, la cola vuelve a 0 y el stock del producto vuelve a 1:
+3. Start product-service. It consumes the message, the queue returns to 0 and the product's stock returns to 1:
 
 ```bash
 docker compose start product-service
 ```
 
-Los mensajes que fallan después de los reintentos acaban en la DLQ de su cola. Se consultan y se reenvían desde el gateway:
+Messages that fail after the retries end up in their queue's DLQ. They are viewed and re-sent from the gateway:
 
 ```bash
 curl -s -H "Authorization: Bearer $TOKEN" $GW/api/v1/admin/product-service/dead-letters

@@ -1,165 +1,162 @@
 # Kubernetes
 
-Despliegue del sistema en un clúster de Kubernetes local con [kind](https://kind.sigs.k8s.io/). Docker Compose sigue
-siendo la forma de trabajar en desarrollo; esto es la misma aplicación desplegada como se haría en producción.
-Cómo operarlo (escalar, actualizar, volver atrás, investigar fallos) está en [docs/kubernetes.md](../docs/kubernetes.md).
+Deployment of the system on a local Kubernetes cluster with [kind](https://kind.sigs.k8s.io/). Docker Compose remains
+the way to work in development; this is the same application deployed as it would be in production.
+How to operate it (scale, upgrade, roll back, investigate failures) is in [docs/kubernetes.md](../docs/kubernetes.md).
 
 | Docker Compose | Kubernetes |
 |---|---|
-| `docker-compose.yml` | chart de Helm en `k8s/charts/showcase` |
+| `docker-compose.yml` | Helm chart in `k8s/charts/showcase` |
 | `docker compose up` | `k8s/deploy.sh` (`helm upgrade --install`) |
-| un contenedor por servicio | Deployments con réplicas y autoescalado (product 3-6, order 2-4) |
-| `ports: 8080:8080` del gateway | Ingress con HTTPS en https://showcase.localhost |
-| `depends_on` | initContainers que esperan a PostgreSQL y RabbitMQ |
-| `.env` | Secrets de Kubernetes |
+| one container per service | Deployments with replicas and autoscaling (product 3-6, order 2-4) |
+| the gateway's `ports: 8080:8080` | Ingress with HTTPS at https://showcase.localhost |
+| `depends_on` | initContainers that wait for PostgreSQL and RabbitMQ |
+| `.env` | Kubernetes Secrets |
 
-## Requisitos
+## Requirements
 
-- Docker Desktop con al menos 12 GB de memoria (16 GB con la observabilidad del clúster).
+- Docker Desktop with at least 12 GB of memory (16 GB with the cluster observability).
 - [kubectl](https://kubernetes.io/docs/tasks/tools/), [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
-  y [Helm](https://helm.sh/docs/intro/install/). En Windows son tres ejecutables sueltos que basta con dejar en una
-  carpeta del `PATH`.
-- Git Bash (Windows) o cualquier shell bash para los scripts. Usa `openssl` para generar la clave del JWT.
+  and [Helm](https://helm.sh/docs/intro/install/). On Windows they are three standalone executables you just need to
+  place in a folder on the `PATH`.
+- Git Bash (Windows) or any bash shell for the scripts. `openssl` is used to generate the JWT key.
 
-## Arrancar
+## Start
 
 ```bash
-k8s/kind/cluster.sh create          # clúster de 3 nodos: 1 control-plane + 2 workers, puertos 80/443 mapeados
-k8s/platform/install.sh             # Traefik (Ingress), cert-manager (HTTPS) y metrics-server (autoescalado)
-k8s/deploy.sh                       # construye las imágenes, las carga en kind e instala el chart
-k8s/e2e.sh                          # e2e contra https://showcase.localhost
+k8s/kind/cluster.sh create          # 3-node cluster: 1 control-plane + 2 workers, ports 80/443 mapped
+k8s/platform/install.sh             # Traefik (Ingress), cert-manager (HTTPS) and metrics-server (autoscaling)
+k8s/deploy.sh                       # builds the images, loads them into kind and installs the chart
+k8s/e2e.sh                          # e2e against https://showcase.localhost
 ```
 
-La API queda en **https://showcase.localhost** (Swagger en https://showcase.localhost/swagger-ui.html, con login
-OAuth2 + PKCE). `*.localhost` apunta siempre a la propia máquina, sin tocar el fichero hosts. El certificado lo firma
-una CA local que crea `k8s/platform/install.sh`; para que el navegador no avise, importa esa CA como entidad raíz de
-confianza (en Windows, doble clic en el fichero → *Instalar certificado* → *Entidades de certificación raíz de
-confianza*):
+The API is at **https://showcase.localhost** (Swagger at https://showcase.localhost/swagger-ui.html, with OAuth2 +
+PKCE login). `*.localhost` always points to the machine itself, without touching the hosts file. The certificate is
+signed by a local CA created by `k8s/platform/install.sh`; to stop the browser warning, import that CA as a trusted
+root authority (on Windows, double-click the file → *Install Certificate* → *Trusted Root Certification
+Authorities*):
 
 ```bash
 kubectl -n cert-manager get secret showcase-ca -o jsonpath='{.data.ca\.crt}' | base64 -d > showcase-ca.crt
 ```
 
-Con `curl`, `--cacert showcase-ca.crt` (en Windows además `--ssl-no-revoke`). [docs/curl-examples.md](../docs/curl-examples.md)
-sirve cambiando `http://localhost:8080` por `https://showcase.localhost`. `k8s/e2e.sh` prepara lo que necesita Java (un
-truststore con la CA y la resolución de `showcase.localhost`) y lanza los mismos e2e que con Docker Compose.
+With `curl`, `--cacert showcase-ca.crt` (on Windows also `--ssl-no-revoke`). [docs/curl-examples.md](../docs/curl-examples.md)
+works by replacing `http://localhost:8080` with `https://showcase.localhost`. `k8s/e2e.sh` prepares what Java needs (a
+truststore with the CA and the resolution of `showcase.localhost`) and runs the same e2e tests as with Docker Compose.
 
-Sin Ingress, con un port-forward como en Compose: `k8s/deploy.sh --set ingress.enabled=false --set publicUrl=http://localhost:8080`
-y `kubectl -n showcase port-forward svc/api-gateway 8080:8080` (con Docker Compose parado para dejar libre el 8080).
+Without the Ingress, with a port-forward as in Compose: `k8s/deploy.sh --set ingress.enabled=false --set publicUrl=http://localhost:8080`
+and `kubectl -n showcase port-forward svc/api-gateway 8080:8080` (with Docker Compose stopped to leave 8080 free).
 
-`SKIP_BUILD=1 k8s/deploy.sh` reinstala el chart sin reconstruir las imágenes. Para borrarlo todo:
+`SKIP_BUILD=1 k8s/deploy.sh` reinstalls the chart without rebuilding the images. To delete everything:
 `k8s/kind/cluster.sh delete`.
 
-## Qué se despliega (namespace `showcase`)
+## What is deployed (`showcase` namespace)
 
-- **Microservicios**: un Deployment, Service, ConfigMap y Secret por servicio, con sondas de arranque, liveness y
-  readiness sobre `/actuator/health`, requests y limits de CPU y memoria.
-- **Descubrimiento de servicios sin Eureka**: el gateway (rutas `lb://`) y los clientes Feign de order-service usan
-  [Spring Cloud Kubernetes](https://spring.io/projects/spring-cloud-kubernetes), que lee de la API de Kubernetes las
-  réplicas listas de cada Service; Spring Cloud LoadBalancer reparte las llamadas entre ellas como antes. Solo esos
-  dos pods tienen permiso para leer la API (ServiceAccount `service-discovery`, de solo lectura). Al detectar que
-  corren en Kubernetes, los servicios desactivan el cliente de Eureka (`on-cloud-platform: kubernetes` en su
-  `application.yml`), así que `discovery-service` no se despliega. En Docker Compose y en local todo sigue igual,
-  con Eureka.
-- **PostgreSQL** (StatefulSet): una base de datos y un usuario por servicio con
+- **Microservices**: one Deployment, Service, ConfigMap and Secret per service, with startup, liveness and readiness
+  probes on `/actuator/health`, and CPU and memory requests and limits.
+- **Service discovery without Eureka**: the gateway (`lb://` routes) and order-service's Feign clients use
+  [Spring Cloud Kubernetes](https://spring.io/projects/spring-cloud-kubernetes), which reads from the Kubernetes API the
+  ready replicas of each Service; Spring Cloud LoadBalancer distributes the calls among them as before. Only those
+  two pods have permission to read the API (`service-discovery` ServiceAccount, read-only). On detecting they run on
+  Kubernetes, the services disable the Eureka client (`on-cloud-platform: kubernetes` in their `application.yml`), so
+  `discovery-service` is not deployed. On Docker Compose and locally everything stays the same, with Eureka.
+- **PostgreSQL** (StatefulSet): one database and one user per service with
   [docker/postgres/init-databases.sh](../docker/postgres/init-databases.sh).
-- **RabbitMQ** (StatefulSet): un usuario por servicio con [docker/rabbitmq/setup-users.sh](../docker/rabbitmq/setup-users.sh),
-  lanzado por un Job. El pod no está listo hasta que existen los usuarios, así que ningún servicio arranca sin poder
-  autenticarse.
-- **Redis** (StatefulSet) y **Zipkin** (solo sin la observabilidad del clúster).
-- **Clave RSA del JWT**: la genera `deploy.sh` en `k8s/.secrets/` (fuera de Git) y va en el Secret de `auth-service`.
-- **Conexiones a PostgreSQL**: cada réplica abre como mucho `databasePoolSize` (5) y el PostgreSQL del chart admite
-  `postgres.maxConnections` (200), de modo que caben todas las réplicas con el HPA al máximo y en mitad de un rolling
+- **RabbitMQ** (StatefulSet): one user per service with [docker/rabbitmq/setup-users.sh](../docker/rabbitmq/setup-users.sh),
+  launched by a Job. The pod is not ready until the users exist, so no service starts unable to authenticate.
+- **Redis** (StatefulSet) and **Zipkin** (only without the cluster observability).
+- **JWT RSA key**: `deploy.sh` generates it in `k8s/.secrets/` (outside Git) and it goes in the `auth-service` Secret.
+- **PostgreSQL connections**: each replica opens at most `databasePoolSize` (5) and the chart's PostgreSQL allows
+  `postgres.maxConnections` (200), so all replicas fit with the HPA at its maximum and in the middle of a rolling
   update.
 
-La infraestructura usa las mismas imágenes oficiales que Docker Compose (`postgres`, `redis`, `rabbitmq`) con
-plantillas propias, para reutilizar los scripts de `docker/`. Los charts de Bitnami ya no publican imágenes
-gratuitas con versiones fijas, y en producción la base de datos sería un servicio gestionado.
+The infrastructure uses the same official images as Docker Compose (`postgres`, `redis`, `rabbitmq`) with its own
+templates, to reuse the `docker/` scripts. The Bitnami charts no longer publish free images with fixed versions, and
+in production the database would be a managed service.
 
-Las contraseñas de [values.yaml](charts/showcase/values.yaml) son las de desarrollo. Para un clúster real está
+The passwords in [values.yaml](charts/showcase/values.yaml) are the development ones. For a real cluster there is
 [values-prod.yaml](charts/showcase/values-prod.yaml):
-- PostgreSQL, Redis y RabbitMQ gestionados, fuera del clúster (`postgres.enabled: false` y `externalDatabase`, etc.).
-- Secrets creados fuera del chart (`secrets.create: false`).
-- Imágenes de un registro y perfil `prod`.
+- Managed PostgreSQL, Redis and RabbitMQ, outside the cluster (`postgres.enabled: false` and `externalDatabase`, etc.).
+- Secrets created outside the chart (`secrets.create: false`).
+- Images from a registry and the `prod` profile.
 
-Los pasos están en [docs/kubernetes.md](../docs/kubernetes.md#producción).
+The steps are in [docs/kubernetes.md](../docs/kubernetes.md#production).
 
-## Preparado para producción
+## Production ready
 
-- **Entrada**: [Traefik](https://doc.traefik.io/traefik/) como controlador de Ingress, con recursos `Ingress` estándar
-  ([ingress-nginx](https://github.com/kubernetes/ingress-nginx) está archivado desde marzo de 2026). HTTP redirige a
-  HTTPS. El gateway solo se fía de las cabeceras `X-Forwarded-*` que llegan desde la red de pods
-  (`GATEWAY_TRUSTED_PROXIES`) y el rate limit usa la IP del cliente que añade ese único proxy
+- **Entry**: [Traefik](https://doc.traefik.io/traefik/) as the Ingress controller, with standard `Ingress` resources
+  ([ingress-nginx](https://github.com/kubernetes/ingress-nginx) has been archived since March 2026). HTTP redirects to
+  HTTPS. The gateway only trusts the `X-Forwarded-*` headers arriving from the pod network
+  (`GATEWAY_TRUSTED_PROXIES`) and the rate limit uses the client IP added by that single proxy
   (`RATE_LIMIT_TRUSTED_PROXY_HOPS=1`).
-- **HTTPS**: cert-manager emite el certificado del Ingress con la CA local (`k8s/platform/cluster-issuer.yaml`); en un
-  entorno real se cambia el ClusterIssuer por Let's Encrypt u otra CA.
-- **Autoescalado**: HorizontalPodAutoscaler por CPU (70 % de lo reservado) en product-service (3 a 6 réplicas) y
-  order-service (2 a 4). Sube en cuanto hace falta y baja una réplica por minuto tras 5 minutos estable.
-  `k8s/load/hpa-demo.sh` lanza 4 minutos de carga sobre product-service y muestra cómo crecen las réplicas.
-- **PodDisruptionBudget**: en los servicios con varias réplicas, como mucho una fuera a la vez durante un drenado de
-  nodo o una actualización del clúster.
-- **NetworkPolicies**: todo denegado por defecto. Solo el gateway recibe tráfico de fuera (del controlador de
-  Ingress); cada servicio solo acepta a quien lo llama y solo sale hacia su base de datos, RabbitMQ, Redis, los
-  servicios que usa, el DNS y Tempo; Prometheus lee las métricas desde `monitoring`. El clúster de kind las aplica
-  (kindnet).
-- **Actualizaciones sin cortes**: rolling update con `maxUnavailable: 0` (la réplica nueva tiene que estar lista antes
-  de parar una antigua), una pausa en `preStop` para que deje de recibir tráfico y el apagado ordenado de Spring
-  (hasta 30 s). Si una versión falla, `helm rollback` vuelve a la anterior:
+- **HTTPS**: cert-manager issues the Ingress certificate with the local CA (`k8s/platform/cluster-issuer.yaml`); in a
+  real environment, the ClusterIssuer is switched to Let's Encrypt or another CA.
+- **Autoscaling**: HorizontalPodAutoscaler by CPU (70 % of the requested amount) on product-service (3 to 6 replicas)
+  and order-service (2 to 4). It scales up as soon as needed and down one replica per minute after 5 stable minutes.
+  `k8s/load/hpa-demo.sh` runs 4 minutes of load on product-service and shows the replicas growing.
+- **PodDisruptionBudget**: on services with several replicas, at most one out at a time during a node drain or a
+  cluster upgrade.
+- **NetworkPolicies**: everything denied by default. Only the gateway receives outside traffic (from the Ingress
+  controller); each service only accepts its callers and only goes out to its database, RabbitMQ, Redis, the services
+  it uses, DNS and Tempo; Prometheus reads the metrics from `monitoring`. The kind cluster enforces them (kindnet).
+- **Zero-downtime updates**: rolling update with `maxUnavailable: 0` (the new replica must be ready before stopping an
+  old one), a `preStop` pause so it stops receiving traffic, and Spring's graceful shutdown (up to 30 s). If a version
+  fails, `helm rollback` returns to the previous one:
 
   ```bash
-  helm -n showcase history showcase           # revisiones
-  helm -n showcase rollback showcase          # a la revisión anterior (o: rollback showcase <revisión>)
+  helm -n showcase history showcase           # revisions
+  helm -n showcase rollback showcase          # to the previous revision (or: rollback showcase <revision>)
   ```
 
-- **Contenedores sin privilegios**: todos corren sin root (`runAsNonRoot`, sin escalada de privilegios, sin
-  capacidades de Linux, perfil seccomp por defecto). Los microservicios, PostgreSQL y Redis además con el sistema de
-  ficheros de solo lectura (solo `/tmp` y los datos son escribibles); RabbitMQ no, porque su imagen escribe la
-  configuración al arrancar. Solo el gateway y order-service montan el token de la API de Kubernetes.
+- **Unprivileged containers**: all run without root (`runAsNonRoot`, no privilege escalation, no Linux capabilities,
+  default seccomp profile). The microservices, PostgreSQL and Redis also have a read-only file system (only `/tmp` and
+  the data are writable); RabbitMQ does not, because its image writes its configuration at startup. Only the gateway
+  and order-service mount the Kubernetes API token.
 
-## Observabilidad (namespace `monitoring`)
+## Observability (`monitoring` namespace)
 
 ```bash
-k8s/observability/install.sh        # Prometheus, Grafana, Alertmanager, Loki, Alloy y Tempo
-k8s/deploy.sh                       # vuelve a desplegar la aplicación con las trazas hacia Tempo
+k8s/observability/install.sh        # Prometheus, Grafana, Alertmanager, Loki, Alloy and Tempo
+k8s/deploy.sh                       # redeploys the application with traces going to Tempo
 kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80
 ```
 
-Grafana queda en http://localhost:3000 (admin / admin), con los mismos dashboards que Docker Compose en la carpeta
-*Showcase* y además los de Kubernetes (pods, nodos, recursos).
+Grafana is at http://localhost:3000 (admin / admin), with the same dashboards as Docker Compose in the *Showcase*
+folder plus the Kubernetes ones (pods, nodes, resources).
 
-- **Métricas**: [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack).
-  El chart crea un `PodMonitor` por servicio y otro para RabbitMQ, con las mismas etiquetas que en Compose
-  (`job="microservices"`, `eureka_app`), así que los dashboards de [docker/grafana/dashboards](../docker/grafana/dashboards)
-  y las alertas de [docker/prometheus/alerts.yml](../docker/prometheus/alerts.yml) se cargan sin cambios. Además hay
-  alertas de pods en CrashLoop, pods que no están listos y Deployments sin todas sus réplicas
+- **Metrics**: [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack).
+  The chart creates one `PodMonitor` per service and another for RabbitMQ, with the same labels as in Compose
+  (`job="microservices"`, `eureka_app`), so the dashboards in [docker/grafana/dashboards](../docker/grafana/dashboards)
+  and the alerts in [docker/prometheus/alerts.yml](../docker/prometheus/alerts.yml) load unchanged. There are also
+  alerts for pods in CrashLoop, pods that are not ready and Deployments without all their replicas
   ([alerts-kubernetes.yml](observability/alerts-kubernetes.yml)).
-- **Logs**: Grafana Alloy corre como DaemonSet (un pod por nodo), lee los ficheros de log de los pods de
-  `showcase` y los envía a Loki con las etiquetas `service`, `container` y `level`, y el `traceId` como metadato.
-- **Trazas**: Tempo, con disco persistente, sustituye a Zipkin. Recibe los spans en formato Zipkin, así que en los
-  microservicios solo cambia `ZIPKIN_ENDPOINT`. `deploy.sh` lo detecta y aplica
+- **Logs**: Grafana Alloy runs as a DaemonSet (one pod per node), reads the log files of the `showcase` pods and
+  sends them to Loki with the labels `service`, `container` and `level`, and the `traceId` as metadata.
+- **Traces**: Tempo, with a persistent disk, replaces Zipkin. It receives spans in Zipkin format, so in the
+  microservices only `ZIPKIN_ENDPOINT` changes. `deploy.sh` detects it and applies
   [showcase-values.yaml](observability/showcase-values.yaml).
 
-**Buscar por traceId**: en *Explore → Loki*, `{service=~".+"} | traceId="<traceId>"` muestra los logs de la petición
-en todos los servicios, y el enlace *Ver la traza en Tempo* de cada línea abre la traza. En sentido contrario, desde
-una traza de Tempo se llega a sus logs, y desde los exemplars de las gráficas de latencia, a la traza de esa petición.
+**Search by traceId**: in *Explore → Loki*, `{service=~".+"} | traceId="<traceId>"` shows the request's logs across
+all services, and each line's *View the trace in Tempo* link opens the trace. In the other direction, from a Tempo
+trace you reach its logs, and from the exemplars of the latency charts, the trace of that request.
 
-En kind saltan dos alertas sin importancia: `NodeClockNotSynchronising`, porque los nodos son contenedores sin NTP,
-y `CPUThrottlingHigh` mientras arrancan las JVM con el límite de 1 CPU.
+On kind two unimportant alerts fire: `NodeClockNotSynchronising`, because the nodes are containers without NTP,
+and `CPUThrottlingHigh` while the JVMs start with the 1 CPU limit.
 
-## Integración continua
+## Continuous integration
 
-[.github/workflows/kubernetes.yml](../.github/workflows/kubernetes.yml) repite en cada pull request lo mismo que en
-local: `kind/cluster.sh create`, `platform/install.sh`, `deploy.sh` y `e2e.sh`. Si algo falla, el log del job incluye
-los pods, los eventos y los logs de cada servicio.
+[.github/workflows/kubernetes.yml](../.github/workflows/kubernetes.yml) repeats on each pull request the same as
+locally: `kind/cluster.sh create`, `platform/install.sh`, `deploy.sh` and `e2e.sh`. If something fails, the job log
+includes the pods, the events and each service's logs.
 
-## Comandos útiles
+## Useful commands
 
 ```bash
-kubectl -n showcase get pods -o wide                 # pods y en qué nodo está cada uno
-kubectl -n showcase logs -f deploy/order-service     # logs (de una réplica)
-kubectl -n showcase describe pod <pod>               # eventos: por qué no arranca o no está listo
-kubectl -n showcase get hpa                          # autoescalado: uso de CPU y réplicas
-kubectl -n showcase scale deploy/customer-service --replicas=2   # los que no tienen HPA
-kubectl -n showcase port-forward svc/rabbitmq 15672  # consola de RabbitMQ en http://localhost:15672
-helm -n showcase history showcase                    # revisiones del release
+kubectl -n showcase get pods -o wide                 # pods and which node each is on
+kubectl -n showcase logs -f deploy/order-service     # logs (of one replica)
+kubectl -n showcase describe pod <pod>               # events: why it does not start or is not ready
+kubectl -n showcase get hpa                          # autoscaling: CPU usage and replicas
+kubectl -n showcase scale deploy/customer-service --replicas=2   # those without an HPA
+kubectl -n showcase port-forward svc/rabbitmq 15672  # RabbitMQ console at http://localhost:15672
+helm -n showcase history showcase                    # release revisions
 ```
