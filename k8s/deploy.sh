@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Construye las imágenes, las carga en kind e instala (o actualiza) el chart en el clúster local.
+# Builds the images, loads them into kind and installs (or upgrades) the chart on the local cluster.
 #   k8s/deploy.sh              # build + kind load + helm upgrade --install
-#   SKIP_BUILD=1 k8s/deploy.sh # sin reconstruir las imágenes
-# Después: kubectl port-forward svc/api-gateway 8080:8080  ->  http://localhost:8080/swagger-ui.html
+#   SKIP_BUILD=1 k8s/deploy.sh # without rebuilding the images
+# Afterwards: kubectl port-forward svc/api-gateway 8080:8080  ->  http://localhost:8080/swagger-ui.html
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -22,14 +22,14 @@ for service in "${SERVICES[@]}"; do
   kind load docker-image "showcase/$service:latest" --name "$CLUSTER_NAME"
 done
 
-# Clave RSA del JWT: se genera una vez y se reutiliza (los tokens emitidos siguen siendo válidos tras un upgrade).
+# JWT RSA key: generated once and reused (issued tokens stay valid after an upgrade).
 if [[ ! -f "$KEYS_DIR/jwt-private.pem" ]]; then
   mkdir -p "$KEYS_DIR"
   openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$KEYS_DIR/jwt-private.pem"
   openssl pkey -in "$KEYS_DIR/jwt-private.pem" -pubout -out "$KEYS_DIR/jwt-public.pem"
 fi
 
-# Con la observabilidad del clúster instalada (k8s/observability/install.sh), las trazas van a Tempo.
+# With the cluster observability installed (k8s/observability/install.sh), traces go to Tempo.
 EXTRA_VALUES=()
 if helm -n monitoring status tempo >/dev/null 2>&1; then
   EXTRA_VALUES=(-f k8s/observability/showcase-values.yaml)
@@ -43,12 +43,12 @@ helm upgrade --install "$RELEASE" k8s/charts/showcase "${EXTRA_VALUES[@]}" \
   --set-file scripts.rabbitmqSetupUsers=docker/rabbitmq/setup-users.sh \
   "$@"
 
-# Con la misma etiqueta latest, Kubernetes no ve cambios en la imagen: se reinician los pods para usar la nueva.
+# With the same latest tag, Kubernetes sees no change in the image: the pods are restarted to use the new one.
 if [[ -z "${SKIP_BUILD:-}" ]]; then
   kubectl -n "$NAMESPACE" rollout restart deployment "${SERVICES[@]}"
 fi
 
-echo "Esperando a que arranquen los servicios..."
+echo "Waiting for the services to start..."
 for service in "${SERVICES[@]}"; do
   kubectl -n "$NAMESPACE" rollout status deployment "$service" --timeout=10m
 done

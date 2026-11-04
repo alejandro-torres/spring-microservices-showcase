@@ -1,8 +1,8 @@
 name: Kubernetes
 
-# Despliega el sistema completo en un clúster de kind (los mismos scripts que en local) y lanza los e2e por el Ingress
-# con HTTPS: comprueba que el chart, las NetworkPolicies, los contenedores sin root y la configuración de Kubernetes
-# siguen funcionando con cada cambio.
+# Deploys the full system to a kind cluster (the same scripts as locally) and runs the e2e tests through the Ingress
+# over HTTPS: checks that the chart, the NetworkPolicies, the non-root containers and the Kubernetes configuration
+# keep working with each change.
 on:
   pull_request:
     branches: [main]
@@ -21,11 +21,11 @@ concurrency:
 
 jobs:
   e2e:
-    name: e2e en kind
+    name: e2e on kind
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - name: Descargar el código
+      - name: Check out the code
         uses: actions/checkout@v4
 
       - name: Instalar Java 21
@@ -35,7 +35,7 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Instalar kind y kubectl
+      - name: Install kind and kubectl
         uses: helm/kind-action@v1
         with:
           version: v0.33.0
@@ -46,19 +46,19 @@ jobs:
         with:
           version: v4.3.1
 
-      - name: Crear el clúster (1 control-plane + 2 workers)
+      - name: Create the cluster (1 control-plane + 2 workers)
         run: k8s/kind/cluster.sh create
 
-      - name: Instalar Traefik, cert-manager y metrics-server
+      - name: Install Traefik, cert-manager and metrics-server
         run: k8s/platform/install.sh
 
-      - name: Construir las imágenes y desplegar el chart
+      - name: Build the images and deploy the chart
         run: k8s/deploy.sh
 
-      - name: Lanzar los e2e contra https://showcase.localhost
+      - name: Run the e2e tests against https://showcase.localhost
         run: k8s/e2e.sh -B -ntp
 
-      - name: Estado del clúster si algo falla
+      - name: Cluster state if something fails
         if: failure()
         run: |
           kubectl get nodes -o wide
@@ -71,7 +71,7 @@ jobs:
             echo "::endgroup::"
           done
 
-      - name: Guardar los informes de los e2e
+      - name: Save the e2e reports
         if: always()
         uses: actions/upload-artifact@v4
         with:

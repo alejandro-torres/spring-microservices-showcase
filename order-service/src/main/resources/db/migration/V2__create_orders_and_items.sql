@@ -1,9 +1,9 @@
 CREATE TABLE orders (
     id                   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    -- Cliente de customer-service. No es clave foránea: está en otra base de datos.
+    -- customer-service customer. Not a foreign key: it is in another database.
     customer_id          BIGINT        NOT NULL,
     status               VARCHAR(20)   NOT NULL,
-    -- Se guarda (además de calcularse en el dominio) para poder filtrar y ordenar por importe.
+    -- Stored (as well as computed in the domain) to be able to filter and sort by amount.
     total                NUMERIC(12, 2) NOT NULL,
     shipping_street      VARCHAR(255)  NOT NULL,
     shipping_city        VARCHAR(100)  NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE orders (
 CREATE TABLE order_items (
     id           BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     order_id     BIGINT         NOT NULL REFERENCES orders (id),
-    -- Producto de product-service; el nombre y el precio son una copia del momento de la compra.
+    -- product-service product; the name and price are a copy from the time of purchase.
     product_id   BIGINT         NOT NULL,
     product_name VARCHAR(150)   NOT NULL,
     unit_price   NUMERIC(12, 2) NOT NULL,

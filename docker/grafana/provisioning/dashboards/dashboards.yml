@@ -1,4 +1,4 @@
-# Dashboards versionados en el repositorio (docker/grafana/dashboards), cargados en la carpeta "Showcase".
+# Dashboards versioned in the repository (docker/grafana/dashboards), loaded into the "Showcase" folder.
 apiVersion: 1
 
 providers:

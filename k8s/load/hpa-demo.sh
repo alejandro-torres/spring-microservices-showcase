@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Demostración del HorizontalPodAutoscaler: carga sobre product-service durante 4 minutos y muestra cómo sube el
-# número de réplicas (de 3 hasta 6). Después vuelve poco a poco a 3 (una réplica por minuto tras 5 minutos estable).
+# HorizontalPodAutoscaler demo: load on product-service for 4 minutes, showing how the
+# number of replicas rises (from 3 up to 6). It then slowly returns to 3 (one replica per minute after 5 stable minutes).
 #   k8s/load/hpa-demo.sh
 set -euo pipefail
 
@@ -12,9 +12,9 @@ trap cleanup EXIT
 
 cleanup
 kubectl -n "$NAMESPACE" apply -f "$MANIFEST"
-echo "Carga en marcha. Réplicas de product-service (Ctrl+C para parar antes):"
+echo "Load running. product-service replicas (Ctrl+C to stop early):"
 end=$(( $(date +%s) + 300 ))
 while [[ $(date +%s) -lt $end ]]; do
-  echo "$(date +%T)  $(kubectl -n "$NAMESPACE" get hpa product-service -o jsonpath='CPU {.status.currentMetrics[0].resource.current.averageUtilization}% (objetivo {.spec.metrics[0].resource.target.averageUtilization}%), réplicas {.status.currentReplicas} -> {.status.desiredReplicas}')"
+  echo "$(date +%T)  $(kubectl -n "$NAMESPACE" get hpa product-service -o jsonpath='CPU {.status.currentMetrics[0].resource.current.averageUtilization}% (target {.spec.metrics[0].resource.target.averageUtilization}%), replicas {.status.currentReplicas} -> {.status.desiredReplicas}')"
   sleep 15
 done

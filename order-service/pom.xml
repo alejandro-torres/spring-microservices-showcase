@@ -12,7 +12,7 @@
 
     <artifactId>order-service</artifactId>
     <name>order-service</name>
-    <description>Pedidos: valida clientes y productos con Feign y Resilience4j</description>
+    <description>Orders: validates customers and products with Feign and Resilience4j</description>
 
     <dependencies>
         <dependency>
@@ -32,7 +32,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
-        <!-- Documentación OpenAPI y Swagger UI (la configuración común está en common-lib) -->
+        <!-- OpenAPI documentation and Swagger UI (the common configuration is in common-lib) -->
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
@@ -45,7 +45,7 @@
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-circuitbreaker</artifactId>
         </dependency>
-        <!-- Mensajería: saga de pedidos con RabbitMQ (outbox, reintentos y DLQ en common-lib) -->
+        <!-- Messaging: order saga with RabbitMQ (outbox, retries and DLQ in common-lib) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-amqp</artifactId>
@@ -54,28 +54,28 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
-        <!-- Métricas en /actuator/prometheus (solo accesible desde la red interna) -->
+        <!-- Metrics at /actuator/prometheus (only accessible from the internal network) -->
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
-        <!-- Estado de los circuit breakers como métricas -->
+        <!-- Circuit breaker state as metrics -->
         <dependency>
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-micrometer</artifactId>
         </dependency>
-        <!-- Registro en Eureka: el gateway y Feign descubren las réplicas -->
+        <!-- Registration in Eureka: the gateway and Feign discover the replicas -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
         </dependency>
-        <!-- En Kubernetes, las réplicas se descubren con la API de Kubernetes en lugar de Eureka (solo se activa allí).
-             Cliente fabric8: ignora los campos nuevos de la API que no conoce, el cliente oficial falla con ellos. -->
+        <!-- In Kubernetes, replicas are discovered with the Kubernetes API instead of Eureka (only enabled there).
+             fabric8 client: it ignores new API fields it does not know, while the official client fails on them. -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-kubernetes-fabric8</artifactId>
         </dependency>
-        <!-- Trazas distribuidas: Micrometer Tracing (Brave) + Zipkin, spans de las consultas SQL y @Observed -->
+        <!-- Distributed traces: Micrometer Tracing (Brave) + Zipkin, spans of SQL queries and @Observed -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-zipkin</artifactId>
@@ -88,7 +88,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aspectj</artifactId>
         </dependency>
-        <!-- Tareas programadas con varias réplicas: solo una las ejecuta (ShedLock sobre la base de datos) -->
+        <!-- Scheduled tasks with several replicas: only one runs them (ShedLock on the database) -->
         <dependency>
             <groupId>net.javacrumbs.shedlock</groupId>
             <artifactId>shedlock-spring</artifactId>
@@ -98,7 +98,7 @@
             <artifactId>shedlock-provider-jdbc-template</artifactId>
         </dependency>
 
-        <!-- Seguridad: valida los JWT emitidos por auth-service con su clave pública (JWKS) -->
+        <!-- Security: validates the JWTs issued by auth-service with its public key (JWKS) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security-oauth2-resource-server</artifactId>

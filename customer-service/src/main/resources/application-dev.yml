@@ -1,9 +1,9 @@
-# Perfil de desarrollo: añade clientes de ejemplo para probar la paginación y los filtros.
+# Development profile: adds sample customers to try pagination and filters.
 spring:
   flyway:
     locations: classpath:db/migration,classpath:db/dev-data
-    # Los datos de ejemplo son V1000: sin esto, una migración nueva del esquema (V3, V6...) se rechazaría en una
-    # base de desarrollo que ya los tiene.
+    # The sample data is V1000: without this, a new schema migration (V3, V6...) would be rejected on a
+    # development database that already has it.
     out-of-order: true
 
 logging:
@@ -13,5 +13,5 @@ logging:
 management:
   tracing:
     sampling:
-      # En desarrollo se guardan todas las trazas.
+      # In development all traces are kept.
       probability: 1.0

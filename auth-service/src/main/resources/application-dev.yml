@@ -1,14 +1,14 @@
-# Perfil de desarrollo: añade datos de ejemplo (usuarios, roles y permisos) para probar la paginación y los filtros.
+# Development profile: adds sample data (users, roles and permissions) to try pagination and filters.
 spring:
   flyway:
     locations: classpath:db/migration,classpath:db/dev-data
-    # Los datos de ejemplo son V1000: sin esto, una migración nueva del esquema (V3, V6...) se rechazaría en una
-    # base de desarrollo que ya los tiene.
+    # The sample data is V1000: without this, a new schema migration (V3, V6...) would be rejected on a
+    # development database that already has it.
     out-of-order: true
   jpa:
     show-sql: false
 
-# Secreto del cliente internal-service solo para desarrollo (en otros entornos va en la variable INTERNAL_CLIENT_SECRET).
+# Secret of the internal-service client for development only (in other environments it goes in the INTERNAL_CLIENT_SECRET variable).
 INTERNAL_CLIENT_SECRET: internal-dev-secret
 
 logging:
@@ -18,5 +18,5 @@ logging:
 management:
   tracing:
     sampling:
-      # En desarrollo se guardan todas las trazas.
+      # In development all traces are kept.
       probability: 1.0

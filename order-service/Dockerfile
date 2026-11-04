@@ -1,20 +1,20 @@
 # syntax=docker/dockerfile:1.7
-# Imagen de order-service. Se construye desde la raíz del repositorio, porque necesita los módulos compartidos:
+# Image oforder-service. Built from the repository root, because it needs the shared modules:
 #   docker build -f order-service/Dockerfile -t showcase/order-service .
 
-# --- Compilación: Maven Wrapper con la caché de dependencias compartida entre builds ---
+# --- Build: Maven Wrapper with the dependency cache shared between builds ---
 FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /workspace
 COPY . .
-# sharing=locked: las imágenes se construyen en paralelo y no deben escribir la caché a la vez.
+# sharing=locked: the images are built in parallel and must not write to the cache at once.
 RUN --mount=type=cache,target=/root/.m2,sharing=locked \
     ./mvnw -q -B -pl order-service -am package -Dmaven.test.skip=true -Djacoco.skip=true
-# Capas de Spring Boot: las dependencias (que casi nunca cambian) quedan en capas distintas que el código, así
-# una nueva versión solo vuelve a subir la capa de la aplicación.
+# Spring Boot layers: the dependencies (which rarely change) go in different layers from the code, so
+# a new version only re-uploads the application layer.
 RUN java -Djarmode=tools -jar order-service/target/order-service-*.jar extract --layers --launcher \
         --destination /workspace/extracted
 
-# --- Ejecución: solo el JRE, con un usuario sin privilegios ---
+# --- Runtime: only the JRE, with an unprivileged user ---
 FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S app && adduser -S app -G app
 WORKDIR /app
@@ -24,7 +24,7 @@ COPY --from=build /workspace/extracted/snapshot-dependencies/ ./
 COPY --from=build /workspace/extracted/application/ ./
 USER app
 EXPOSE 8083
-# La JVM ajusta la memoria al límite del contenedor.
+# The JVM adjusts its memory to the container limit.
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError"
 HEALTHCHECK --interval=10s --timeout=3s --start-period=60s --retries=5 \
     CMD wget -qO- http://localhost:8083/actuator/health/readiness | grep -q '"status":"UP"' || exit 1

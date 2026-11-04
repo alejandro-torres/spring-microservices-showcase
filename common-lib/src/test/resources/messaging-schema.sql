@@ -1,4 +1,4 @@
--- Misma estructura que las migraciones Flyway de los servicios que usan la mensajería común.
+-- Same structure as the Flyway migrations of the services using the common messaging.
 CREATE TABLE IF NOT EXISTS outbox_event (
     id             UUID         PRIMARY KEY,
     aggregate_type VARCHAR(50)  NOT NULL,

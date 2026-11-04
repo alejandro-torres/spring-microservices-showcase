@@ -15,11 +15,11 @@ concurrency:
 
 jobs:
   build:
-    name: Build y tests
+    name: Build and tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Descargar el código
+      - name: Check out the code
         uses: actions/checkout@v4
 
       - name: Instalar Java 21
@@ -29,10 +29,10 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Compilar y ejecutar los tests
+      - name: Compile and run the tests
         run: ./mvnw -B -ntp verify
 
-      - name: Guardar los informes de tests y cobertura
+      - name: Save the test and coverage reports
         if: always()
         uses: actions/upload-artifact@v4
         with:

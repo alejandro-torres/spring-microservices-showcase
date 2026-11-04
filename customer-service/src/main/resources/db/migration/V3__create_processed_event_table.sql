@@ -1,4 +1,4 @@
--- Consumo idempotente: eventos de RabbitMQ ya procesados por este servicio.
+-- Idempotent consumption: RabbitMQ events already processed by this service.
 CREATE TABLE processed_event (
     event_id     UUID         PRIMARY KEY,
     event_type   VARCHAR(100) NOT NULL,

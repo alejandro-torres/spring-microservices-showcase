@@ -1,5 +1,5 @@
 {{- if .Values.zipkin.enabled }}
-# Zipkin en memoria para las trazas (en la fase de observabilidad se sustituye por Tempo).
+# In-memory Zipkin for traces (replaced by Tempo with the cluster observability).
 apiVersion: v1
 kind: Service
 metadata:

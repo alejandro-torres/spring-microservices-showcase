@@ -1,4 +1,4 @@
-# Prometheus: descubre todas las réplicas en Eureka (sin listar instancias a mano) y lee sus métricas.
+# Prometheus: discovers all the replicas in Eureka (without listing instances by hand) and reads their metrics.
 global:
   scrape_interval: 10s
   evaluation_interval: 10s
@@ -7,11 +7,11 @@ rule_files:
   - /etc/prometheus/alerts.yml
 
 scrape_configs:
-  # Microservicios: cada réplica registrada en Eureka publica en el metadato prometheus-port el puerto de su
-  # actuator (el gateway usa uno interno distinto del público).
+  # Microservices: each replica registered in Eureka publishes in the prometheus-port metadata the port of its
+  # actuator (the gateway uses an internal one different from the public one).
   - job_name: microservices
     metrics_path: /actuator/prometheus
-    # Las métricas ya traen las etiquetas application, instance (la de X-Instance-Id) y environment.
+    # The metrics already carry the tags application, instance (that of X-Instance-Id) and environment.
     honor_labels: true
     eureka_sd_configs:
       - server: http://discovery-service:8761/eureka
@@ -23,14 +23,14 @@ scrape_configs:
       - source_labels: [__meta_eureka_app_name]
         target_label: eureka_app
 
-  # Eureka no se registra en sí mismo: se lee por su nombre en la red de Docker.
+  # Eureka does not register with itself: it is read by its name on the Docker network.
   - job_name: discovery-service
     metrics_path: /actuator/prometheus
     honor_labels: true
     static_configs:
       - targets: ["discovery-service:8761"]
 
-  # RabbitMQ: mensajes por cola (también las DLQ) y consumidores, con el plugin de Prometheus de RabbitMQ.
+  # RabbitMQ: messages per queue (DLQs too) and consumers, with RabbitMQ's Prometheus plugin.
   - job_name: rabbitmq
     metrics_path: /metrics/detailed
     params:

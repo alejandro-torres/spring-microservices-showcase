@@ -1,4 +1,4 @@
--- Outbox: eventos guardados en la misma transacción que el cambio del usuario, pendientes de enviar a RabbitMQ.
+-- Outbox: events stored in the same transaction as the user change, pending send to RabbitMQ.
 CREATE TABLE outbox_event (
     id             UUID         PRIMARY KEY,
     aggregate_type VARCHAR(50)  NOT NULL,
@@ -6,7 +6,7 @@ CREATE TABLE outbox_event (
     event_type     VARCHAR(100) NOT NULL,
     exchange       VARCHAR(100) NOT NULL,
     routing_key    VARCHAR(100) NOT NULL,
-    -- Sobre completo (EventEnvelopeDTO) tal como se envía.
+    -- Full envelope (EventEnvelopeDTO) as it is sent.
     payload        JSONB        NOT NULL,
     status         VARCHAR(20)  NOT NULL,
     attempts       INTEGER      NOT NULL DEFAULT 0,
@@ -16,5 +16,5 @@ CREATE TABLE outbox_event (
     CONSTRAINT ck_outbox_event_status CHECK (status IN ('PENDING', 'SENT', 'UNROUTED'))
 );
 
--- Índice parcial: el publicador solo busca los pendientes, que son muy pocos frente a los ya enviados.
+-- Partial index: the publisher only looks for pending rows, which are very few compared with those already sent.
 CREATE INDEX idx_outbox_event_pending ON outbox_event (created_at, id) WHERE status = 'PENDING';

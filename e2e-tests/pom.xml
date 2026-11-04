@@ -12,7 +12,7 @@
 
     <artifactId>e2e-tests</artifactId>
     <name>e2e-tests</name>
-    <description>Pruebas de extremo a extremo contra el sistema completo levantado con docker compose (perfil e2e)</description>
+    <description>End-to-end tests against the full system started with docker compose (e2e profile)</description>
 
     <dependencies>
         <dependency>

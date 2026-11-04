@@ -1,5 +1,5 @@
 {{- if .Values.redis.enabled }}
-# Redis: rate limit del gateway, revocación de tokens y locks distribuidos (Redisson).
+# Redis: gateway rate limit, token revocation and distributed locks (Redisson).
 apiVersion: v1
 kind: Service
 metadata:
@@ -34,7 +34,7 @@ spec:
         {{- include "showcase.labels" . | nindent 8 }}
         {{- include "showcase.selector" "redis" | nindent 8 }}
     spec:
-      # Usuario redis de la imagen (uid 999) en lugar de root.
+      # redis user of the image (uid 999) instead of root.
       securityContext:
         {{- include "showcase.podSecurityContext" (dict "user" 999 "group" 1000) | nindent 8 }}
       automountServiceAccountToken: false

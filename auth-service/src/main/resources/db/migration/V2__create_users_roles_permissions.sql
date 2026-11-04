@@ -26,7 +26,7 @@ CREATE TABLE role_permissions (
     PRIMARY KEY (role_id, permission_id)
 );
 
--- El username y el email son únicos aunque el usuario se borre (borrado lógico), para conservar la auditoría.
+-- Username and email are unique even if the user is deleted (soft delete), to keep the audit trail.
 CREATE TABLE users (
     id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     username      VARCHAR(30)  NOT NULL,
@@ -47,7 +47,7 @@ CREATE TABLE user_roles (
     PRIMARY KEY (user_id, role_id)
 );
 
--- Índices para los filtros y la ordenación más habituales en los listados paginados.
+-- Indexes for the most common filters and sorts in paginated listings.
 CREATE INDEX idx_users_active_created_at ON users (active, created_at);
 CREATE INDEX idx_user_roles_role_id ON user_roles (role_id);
 CREATE INDEX idx_role_permissions_permission_id ON role_permissions (permission_id);

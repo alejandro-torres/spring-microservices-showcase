@@ -1,19 +1,19 @@
-# Sistema completo: los 6 servicios (3 réplicas de product-service y 2 de order-service) + PostgreSQL (una base
-# por servicio) + Redis + RabbitMQ + Zipkin.
+# Full system: the 6 services (3 replicas of product-service and 2 of order-service) + PostgreSQL (one database
+# per service) + Redis + RabbitMQ + Zipkin.
 #   docker compose up -d --build
-# Las contraseñas se leen de .env (ver .env.example); sin él se usan valores de desarrollo.
-# Consolas: gateway http://localhost:8080 (Swagger en /swagger-ui.html), Eureka http://localhost:8761,
+# Passwords are read from .env (see .env.example); without it, development values are used.
+# Consoles: gateway http://localhost:8080 (Swagger at /swagger-ui.html), Eureka http://localhost:8761,
 # RabbitMQ http://localhost:15672, Zipkin http://localhost:9411.
 name: spring-microservices-showcase
 
-# Configuración común de los microservicios de negocio
+# Common configuration of the business microservices
 x-service-env: &service-env
   SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
   EUREKA_URL: http://discovery-service:8761/eureka/
   ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
   RABBITMQ_HOST: rabbitmq
   AUTH_JWK_SET_URI: http://auth-service:9000/oauth2/jwks
-  # Logs en JSON (ECS) con traceId y spanId: los recoge Grafana Alloy y los envía a Loki.
+  # JSON logs (ECS) with traceId and spanId: Grafana Alloy collects them and sends them to Loki.
   LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
 
 x-service-depends: &service-depends
@@ -68,7 +68,7 @@ services:
       timeout: 10s
       retries: 10
 
-  # Tarea de un solo uso: crea un usuario de RabbitMQ por servicio con permisos solo sobre lo suyo.
+  # One-off task: creates a RabbitMQ user per service with permissions only over its own resources.
   rabbitmq-setup:
     image: curlimages/curl:8.10.1
     entrypoint: ["sh", "/setup-users.sh"]
@@ -113,7 +113,7 @@ services:
       RABBITMQ_USERNAME: auth-service
       RABBITMQ_PASSWORD: ${AUTH_RABBITMQ_PASSWORD:-auth-dev}
       REDIS_HOST: redis
-      # Los tokens se piden a través del gateway: el emisor es la URL pública del gateway.
+      # Tokens are requested through the gateway: the issuer is the gateway's public URL.
       AUTH_ISSUER: http://localhost:8080
       INTERNAL_CLIENT_SECRET: ${INTERNAL_CLIENT_SECRET:-internal-dev-secret}
     depends_on:
@@ -126,8 +126,8 @@ services:
       context: .
       dockerfile: product-service/Dockerfile
     image: showcase/product-service
-    # Varias réplicas: cada una se registra en Eureka y el gateway reparte el tráfico; la reserva de stock se
-    # protege con un lock de Redis por producto. Más réplicas: docker compose up -d --scale product-service=5
+    # Several replicas: each registers in Eureka and the gateway distributes the traffic; the stock reservation is
+    # protected with a Redis lock per product. More replicas: docker compose up -d --scale product-service=5
     deploy:
       replicas: ${PRODUCT_SERVICE_REPLICAS:-3}
     environment:

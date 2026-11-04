@@ -1,5 +1,5 @@
-# Valores del chart showcase cuando está instalada la observabilidad del clúster: las trazas van a Tempo
-# (que recibe el formato Zipkin) y no se despliega Zipkin. k8s/deploy.sh los añade solo si Tempo está instalado.
+# Values of the showcase chart when the cluster observability is installed: traces go to Tempo
+# (which accepts the Zipkin format) and Zipkin is not deployed. k8s/deploy.sh adds them only if Tempo is installed.
 tracing:
   endpoint: http://tempo.monitoring:9411/api/v2/spans
 

@@ -13,9 +13,9 @@
     <artifactId>coverage-report</artifactId>
     <packaging>pom</packaging>
     <name>coverage-report</name>
-    <description>Informe de cobertura de JaCoCo agregado de todos los módulos (target/site/jacoco-aggregate)</description>
+    <description>Aggregated JaCoCo coverage report of all modules (target/site/jacoco-aggregate)</description>
 
-    <!-- Depende de todos los módulos para que Maven lo construya el último y JaCoCo encuentre sus clases y datos -->
+    <!-- Depends on all modules so that Maven builds it last and JaCoCo finds their classes and data -->
     <dependencies>
         <dependency>
             <groupId>com.showcase</groupId>
@@ -63,7 +63,7 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <executions>
-                    <!-- Aquí no hay código propio: no se mide ni se exige un mínimo, solo se agrega -->
+                    <!-- There is no code of its own here: no minimum is measured or required, it only aggregates -->
                     <execution>
                         <id>prepare-agent</id>
                         <phase>none</phase>
@@ -83,8 +83,8 @@
                             <goal>report-aggregate</goal>
                         </goals>
                         <configuration>
-                            <!-- Fuera del informe: configuración, DTOs, entidades JPA, clases *Application y el
-                                 código que genera MapStruct -->
+                            <!-- Excluded from the report: configuration, DTOs, JPA entities, *Application classes and the
+                                 code MapStruct generates -->
                             <excludes>
                                 <exclude>**/*Application.class</exclude>
                                 <exclude>**/config/**</exclude>

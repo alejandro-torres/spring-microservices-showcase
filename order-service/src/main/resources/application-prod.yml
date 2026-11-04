@@ -1,5 +1,5 @@
-# Perfil de producción: logs en JSON (ECS) con el traceId y el spanId en cada línea, listos para Loki, y el
-# 10 % de las trazas.
+# Production profile: JSON logs (ECS) with the traceId and spanId on each line, ready for Loki, and
+# 10 % of the traces.
 logging:
   structured:
     format:

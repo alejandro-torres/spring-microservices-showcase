@@ -1,7 +1,7 @@
 server:
   port: ${SERVER_PORT:8082}
   shutdown: graceful
-  # Respeta las cabeceras X-Forwarded-* del gateway (URLs de Swagger, Location de los 201...).
+  # Honors the gateway's X-Forwarded-* headers (Swagger URLs, Location of 201s...).
   forward-headers-strategy: framework
   error:
     include-stacktrace: never
@@ -12,7 +12,7 @@ spring:
   application:
     name: customer-service
   messages:
-    # messages.properties está en español; sin esto un servidor en otro idioma usaría su locale como respaldo.
+    # messages.properties is in English; without this a server in another language would use its locale as a fallback.
     fallback-to-system-locale: false
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/customer_db}
@@ -33,17 +33,17 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          # Clave pública de auth-service para validar los JWT (se descarga y se cachea).
+          # auth-service's public key to validate JWTs (downloaded and cached).
           jwk-set-uri: ${AUTH_JWK_SET_URI:http://localhost:9000/oauth2/jwks}
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
-    # guest/guest solo sirve en local; en docker-compose cada servicio tiene su propio usuario.
+    # guest/guest only works locally; in docker-compose each service has its own user.
     username: ${RABBITMQ_USERNAME:guest}
     password: ${RABBITMQ_PASSWORD:guest}
     virtual-host: ${RABBITMQ_VHOST:/}
-    # El outbox solo da un evento por enviado si RabbitMQ confirma que lo ha recibido (confirm) y que tenía
-    # una cola de destino (return con mandatory).
+    # The outbox only considers an event sent if RabbitMQ confirms it has received it (confirm) and that it had
+    # a destination queue (return with mandatory).
     publisher-confirm-type: correlated
     publisher-returns: true
     template:
@@ -51,17 +51,17 @@ spring:
       observation-enabled: true
     listener:
       simple:
-        # ACK automático cuando el listener termina sin excepción (después del commit del servicio).
+        # Automatic ACK when the listener ends without an exception (after the service's commit).
         acknowledge-mode: auto
         prefetch: 10
         concurrency: 1
         max-concurrency: 4
-        # Un mensaje rechazado no vuelve a la cola: va a su DLQ.
+        # A rejected message does not return to the queue: it goes to its DLQ.
         default-requeue-rejected: false
         observation-enabled: true
         retry:
           enabled: true
-          # 1 intento + 3 reintentos esperando 1 s, 2 s y 4 s; después, a la DLQ.
+          # 1 attempt + 3 retries waiting 1 s, 2 s and 4 s; then, to the DLQ.
           max-retries: 3
           initial-interval: 1s
           multiplier: 2
@@ -71,10 +71,10 @@ spring:
 
 showcase:
   messaging:
-    # Los eventos procesados se guardan 7 días (para descartar duplicados); después los borra una tarea nocturna.
+    # Processed events are kept for 7 days (to discard duplicates); a nightly task then deletes them.
     processed-event-retention: 7d
     source: ${spring.application.name}
-    # customer-service solo consume: no publica eventos (no tiene outbox).
+    # customer-service only consumes: it publishes no events (it has no outbox).
     consumers:
       user-registered:
         queue: customer-service.user-registered
@@ -93,21 +93,21 @@ eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
-    # Lista de réplicas refrescada cada 5 s (por defecto 30 s).
+    # Replica list refreshed every 5 s (30 s by default).
     registry-fetch-interval-seconds: 5
   instance:
-    # Id único de cada réplica, calculado una vez al arrancar (common-lib); es el mismo que la cabecera
-    # X-Instance-Id de las respuestas.
+    # Unique id of each replica, computed once at startup (common-lib); it is the same as the
+    # X-Instance-Id header of the responses.
     instance-id: ${showcase.instance-id}
     prefer-ip-address: true
-    # Latido cada 5 s; si faltan durante 15 s, Eureka retira la réplica.
+    # Heartbeat every 5 s; if missing for 15 s, Eureka removes the replica.
     lease-renewal-interval-in-seconds: 5
     lease-expiration-duration-in-seconds: 15
-    # Prometheus descubre las réplicas en Eureka y lee aquí en qué puerto están sus métricas.
+    # Prometheus discovers the replicas in Eureka and reads here which port their metrics are on.
     metadata-map:
       prometheus-port: ${management.server.port:${server.port}}
 
-# Cada consulta SQL es un span en Zipkin (sin los valores de los parámetros, que pueden ser datos personales).
+# Each SQL query is a span in Zipkin (without the parameter values, which may be personal data).
 jdbc:
   includes: connection, query
   datasource-proxy:
@@ -115,14 +115,14 @@ jdbc:
 
 management:
   metrics:
-    # Etiquetas comunes de todas las métricas: servicio, réplica (la misma de X-Instance-Id) y entorno.
+    # Common tags of all metrics: service, replica (the same as X-Instance-Id) and environment.
     tags:
       application: ${spring.application.name}
       instance: ${showcase.instance-id}
       environment: ${ENVIRONMENT:dev}
     distribution:
-      # Histograma de latencias para calcular p50/p95/p99 en Prometheus; con trazas, cada cubo lleva un
-      # exemplar con el traceId de una petición real (para saltar de la gráfica a Zipkin).
+      # Latency histogram to compute p50/p95/p99 in Prometheus; with traces, each bucket carries an
+      # exemplar with the traceId of a real request (to jump from the chart to Zipkin).
       percentiles-histogram:
         http.server.requests: true
         http.client.requests: true
@@ -132,11 +132,11 @@ management:
         enabled: true
   observations:
     annotations:
-      # Spans propios con @Observed en los casos de uso clave (se ven en Zipkin dentro de la petición).
+      # Custom spans with @Observed in the key use cases (visible in Zipkin within the request).
       enabled: true
   tracing:
     sampling:
-      # 10 % por defecto (prod); el perfil dev muestrea el 100 %.
+      # 10 % by default (prod); the dev profile samples 100 %.
       probability: ${TRACING_SAMPLING_PROBABILITY:0.1}
     export:
       zipkin:
@@ -150,8 +150,8 @@ management:
       probes:
         enabled: true
 
-# Logs estructurados (cuando se activan con logging.structured.format.console=ecs, como en Docker y en prod):
-# cada línea es un JSON con el servicio, la réplica, el entorno y el traceId/spanId de la petición.
+# Structured logs (when enabled with logging.structured.format.console=ecs, as in Docker and prod):
+# each line is a JSON with the service, the replica, the environment and the request's traceId/spanId.
 logging:
   structured:
     ecs:
@@ -160,8 +160,8 @@ logging:
         environment: ${ENVIRONMENT:dev}
 
 ---
-# En Kubernetes no hay Eureka: los demás servicios encuentran las réplicas con la API de Kubernetes (Services y
-# sus endpoints), así que este servicio no tiene que registrarse en ningún sitio.
+# In Kubernetes there is no Eureka: the other services find the replicas with the Kubernetes API (Services and
+# their endpoints), so this service does not have to register anywhere.
 spring:
   config:
     activate:

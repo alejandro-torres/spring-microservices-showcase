@@ -1,5 +1,5 @@
--- Tablas del servidor de autorización OAuth2 de Spring Security (esquema oficial adaptado a PostgreSQL:
--- blob → text y timestamp → timestamptz, como indica la propia documentación de Spring).
+-- Tables of the Spring Security OAuth2 authorization server (official schema adapted to PostgreSQL:
+-- blob → text and timestamp → timestamptz, as Spring's own documentation states).
 
 CREATE TABLE oauth2_registered_client (
     id                            VARCHAR(100)  NOT NULL,

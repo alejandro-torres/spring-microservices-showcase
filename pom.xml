@@ -29,7 +29,7 @@
     </modules>
 
     <name>Spring Microservices Showcase</name>
-    <description>Microservicios con Java 21, Spring Boot 4 y arquitectura hexagonal</description>
+    <description>Microservices with Java 21, Spring Boot 4 and hexagonal architecture</description>
 
     <properties>
         <java.version>21</java.version>
@@ -47,8 +47,8 @@
         <redisson.version>4.7.0</redisson.version>
     </properties>
 
-    <!-- Lombok en todos los módulos (solo en compilación). Se usa en la infraestructura y la aplicación, nunca
-         en el dominio, que no depende de ningún framework. -->
+    <!-- Lombok in all modules (compile only). It is used in the infrastructure and application, never
+         in the domain, which depends on no framework. -->
     <dependencies>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -129,8 +129,8 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <configuration>
                         <parameters>true</parameters>
-                        <!-- Lombok antes que MapStruct, y el binding entre los dos, para que MapStruct vea el
-                             código que genera Lombok -->
+                        <!-- Lombok before MapStruct, and the binding between them, so that MapStruct sees the
+                             code Lombok generates -->
                         <annotationProcessorPaths>
                             <path>
                                 <groupId>org.projectlombok</groupId>
@@ -159,7 +159,7 @@
         </pluginManagement>
 
         <plugins>
-            <!-- Tests de integración (*IT) con Testcontainers: se ejecutan en la fase verify -->
+            <!-- Integration tests (*IT) with Testcontainers: they run in the verify phase -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
@@ -173,7 +173,7 @@
                 </executions>
             </plugin>
 
-            <!-- Cobertura: informe en target/site/jacoco y mínimos en domain y application -->
+            <!-- Coverage: report in target/site/jacoco and minimums in domain and application -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -227,7 +227,7 @@
         </plugins>
     </build>
 
-    <!-- Pruebas de extremo a extremo contra el sistema levantado con docker compose: ./mvnw -Pe2e -pl e2e-tests verify -->
+    <!-- End-to-end tests against the system started with docker compose: ./mvnw -Pe2e -pl e2e-tests verify -->
     <profiles>
         <profile>
             <id>e2e</id>

@@ -1,4 +1,4 @@
-# Solo el código fuente entra en el contexto de construcción de las imágenes
+# Only the source code goes into the image build context
 **/target/
 .git/
 .idea/

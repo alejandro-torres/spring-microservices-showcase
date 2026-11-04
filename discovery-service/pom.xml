@@ -12,7 +12,7 @@
 
     <artifactId>discovery-service</artifactId>
     <name>discovery-service</name>
-    <description>Registro de servicios (Eureka Server): cada réplica se registra y el gateway y Feign las descubren</description>
+    <description>Service registry (Eureka Server): each replica registers and the gateway and Feign discover them</description>
 
     <dependencies>
         <dependency>
@@ -23,7 +23,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
-        <!-- Métricas en /actuator/prometheus (solo accesible desde la red interna) -->
+        <!-- Metrics at /actuator/prometheus (only accessible from the internal network) -->
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>

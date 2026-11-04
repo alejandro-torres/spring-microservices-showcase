@@ -12,28 +12,28 @@ eureka:
   instance:
     hostname: ${EUREKA_HOSTNAME:localhost}
   client:
-    # Es el propio registro: no se registra en sí mismo ni descarga el registro de otro.
+    # It is the registry itself: it does not register with itself or download another's registry.
     register-with-eureka: false
     fetch-registry: false
     service-url:
       defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
   server:
-    # Retira enseguida las réplicas que dejan de enviar latidos (con pocas réplicas, la autoprotección de
-    # Eureka las mantendría registradas y el gateway seguiría enviándoles tráfico).
+    # Removes right away the replicas that stop sending heartbeats (with few replicas, Eureka's
+    # self-preservation would keep them registered and the gateway would keep sending them traffic).
     enable-self-preservation: false
     eviction-interval-timer-in-ms: 5000
     response-cache-update-interval-ms: 3000
 
 management:
   metrics:
-    # Etiquetas comunes de todas las métricas: servicio, réplica (la misma de X-Instance-Id) y entorno.
+    # Common tags of all metrics: service, replica (the same as X-Instance-Id) and environment.
     tags:
       application: ${spring.application.name}
       instance: ${HOSTNAME:discovery-service}
       environment: ${ENVIRONMENT:dev}
     distribution:
-      # Histograma de latencias para calcular p50/p95/p99 en Prometheus; con trazas, cada cubo lleva un
-      # exemplar con el traceId de una petición real (para saltar de la gráfica a Zipkin).
+      # Latency histogram to compute p50/p95/p99 in Prometheus; with traces, each bucket carries an
+      # exemplar with the traceId of a real request (to jump from the chart to Zipkin).
       percentiles-histogram:
         http.server.requests: true
         http.client.requests: true

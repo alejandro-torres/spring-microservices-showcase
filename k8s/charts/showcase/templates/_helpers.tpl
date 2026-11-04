@@ -1,17 +1,17 @@
-{{/* Etiquetas comunes de todos los recursos del chart. */}}
+{{/* Common labels of all the chart's resources. */}}
 {{- define "showcase.labels" -}}
 app.kubernetes.io/part-of: showcase
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
 {{- end -}}
 
-{{/* Selector de un componente: app.kubernetes.io/name=<nombre>. */}}
+{{/* Selector of a component: app.kubernetes.io/name=<name>. */}}
 {{- define "showcase.selector" -}}
 app.kubernetes.io/name: {{ . }}
 app.kubernetes.io/instance: showcase
 {{- end -}}
 
-{{/* initContainer que espera a que un puerto TCP acepte conexiones: (list host port). */}}
+{{/* initContainer that waits for a TCP port to accept connections: (list host port). */}}
 {{- define "showcase.waitFor" -}}
 - name: wait-for-{{ regexReplaceAll "[.].*" (index .args 0) "" }}
   image: {{ .root.Values.waitImage }}
@@ -20,7 +20,7 @@ app.kubernetes.io/instance: showcase
   command: ["sh", "-c", "until nc -z -w 2 {{ index .args 0 }} {{ index .args 1 }}; do echo 'Esperando a {{ index .args 0 }}'; sleep 2; done"]
 {{- end -}}
 
-{{/* Contenedor sin privilegios: sin escalada, sin capacidades de Linux y con el sistema de ficheros de solo lectura. */}}
+{{/* Unprivileged container: no escalation, no Linux capabilities and a read-only file system. */}}
 {{- define "showcase.containerSecurityContext" -}}
 allowPrivilegeEscalation: false
 readOnlyRootFilesystem: true
@@ -28,7 +28,7 @@ capabilities:
   drop: ["ALL"]
 {{- end -}}
 
-{{/* Pod sin root con el usuario dado: (dict "user" uid "group" gid). */}}
+{{/* Non-root pod with the given user: (dict "user" uid "group" gid). */}}
 {{- define "showcase.podSecurityContext" -}}
 runAsNonRoot: true
 runAsUser: {{ .user }}
@@ -38,7 +38,7 @@ seccompProfile:
   type: RuntimeDefault
 {{- end -}}
 
-{{/* Regla de salida hacia los pods de un componente del chart: (dict "name" nombre "port" puerto). */}}
+{{/* Egress rule towards the pods of a chart component: (dict "name" name "port" port). */}}
 {{- define "showcase.egressPod" -}}
 - to:
     - podSelector:
@@ -48,7 +48,7 @@ seccompProfile:
     - port: {{ .port }}
 {{- end -}}
 
-{{/* Regla de salida hacia el DNS del clúster. */}}
+{{/* Egress rule towards the cluster DNS. */}}
 {{- define "showcase.egressDns" -}}
 - to:
     - namespaceSelector:
@@ -64,7 +64,7 @@ seccompProfile:
       protocol: TCP
 {{- end -}}
 
-{{/* Origen: los microservicios que tienen definida una clave en values.yaml (database, rabbitmq, redis). */}}
+{{/* Source: the microservices that have a key defined in values.yaml (database, rabbitmq, redis). */}}
 {{- define "showcase.podsWith" -}}
 {{- $names := list -}}
 {{- range $name, $svc := .root.Values.services -}}
