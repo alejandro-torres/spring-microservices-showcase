@@ -11,7 +11,7 @@ import com.showcase.product.domain.event.StockReservedEvent;
 import java.util.List;
 import org.mapstruct.Mapper;
 
-/** Eventos de dominio de stock ↔ MessageDTO de events-contract. */
+/** Stock domain events ↔ MessageDTO in events-contract. */
 @Mapper(componentModel = "spring")
 public interface StockMessageMapper {
 

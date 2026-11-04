@@ -90,7 +90,7 @@ public class OrderController {
                 PageQueryParser.parse(page, size, sort, direction, SORT), includeInactive);
     }
 
-    /** Pedidos de un cliente, del más reciente al más antiguo por defecto; admite los mismos filtros. */
+    /** A customer's orders, from most recent to oldest by default; accepts the same filters. */
     @PreAuthorize("hasAuthority('order:read')")
     @GetMapping("/by-customer/{customerId}")
     public PageResponseDTO<OrderResponseDTO> findByCustomer(
@@ -122,7 +122,7 @@ public class OrderController {
         return mapper.toResponse(orderService.cancel(id));
     }
 
-    /** Borrado lógico de pedidos cerrados (cancelados o rechazados): es una tarea de administración. */
+    /** Soft delete of closed orders (cancelled or rejected): this is an administration task. */
     @PreAuthorize("hasAuthority('order:write') and hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable @Positive Long id) {

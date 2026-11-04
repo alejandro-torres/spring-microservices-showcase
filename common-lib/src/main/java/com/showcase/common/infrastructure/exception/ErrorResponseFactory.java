@@ -18,13 +18,13 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 /**
- * Construye las respuestas {@link ErrorResponseDTO} con el mensaje traducido, la ruta y el traceId.
- * La comparten el {@link GlobalExceptionHandler} y los handlers de seguridad.
+ * Builds the {@link ErrorResponseDTO} responses with the translated message, the path and the traceId.
+ * Shared by the {@link GlobalExceptionHandler} and the security handlers.
  */
 @RequiredArgsConstructor
 public class ErrorResponseFactory {
 
-    /** Clave del MDC donde Micrometer Tracing deja el identificador de la traza. */
+    /** MDC key where Micrometer Tracing leaves the trace identifier. */
     static final String TRACE_ID_KEY = "traceId";
 
     private final ErrorMessageResolver messageResolver;
@@ -42,8 +42,8 @@ public class ErrorResponseFactory {
     }
 
     /**
-     * Cuerpo de la respuesta de error. Lo usan también los filtros de seguridad, que se ejecutan antes que
-     * Spring MVC y por eso reciben el idioma explícitamente.
+     * Error response body. Also used by the security filters, which run before Spring MVC and therefore
+     * receive the language explicitly.
      */
     public ErrorResponseDTO body(HttpStatus status, ErrorCode errorCode, List<Object> args,
                                  List<FieldErrorDTO> fieldErrors, HttpServletRequest request, Locale locale) {
@@ -58,7 +58,7 @@ public class ErrorResponseFactory {
                 fieldErrors);
     }
 
-    /** Traduce el mensaje de un error de validación al idioma de la petición. */
+    /** Translates a validation error's message to the request's language. */
     public String resolve(MessageSourceResolvable error) {
         return messageResolver.resolve(error, LocaleContextHolder.getLocale());
     }

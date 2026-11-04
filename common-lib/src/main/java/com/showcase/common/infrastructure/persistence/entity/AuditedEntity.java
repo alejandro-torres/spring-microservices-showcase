@@ -13,7 +13,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 /**
- * Columnas comunes: id, borrado lógico, versión para el bloqueo optimista y fechas de auditoría.
+ * Common columns: id, soft delete, version for optimistic locking and audit dates.
  */
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)

@@ -50,15 +50,15 @@ class PermissionServiceImplTest {
     class Create {
 
         @Test
-        @DisplayName("crea el permiso con el nombre normalizado")
+        @DisplayName("creates the permission with the normalized name")
         void create_shouldSaveNormalizedPermission() {
             given(permissionRepository.save(any(Permission.class))).willAnswer(invocation -> invocation.getArgument(0));
 
-            assertThat(permissionService.create("Report:Read", "Ver informes").getName()).isEqualTo("report:read");
+            assertThat(permissionService.create("Report:Read", "View reports").getName()).isEqualTo("report:read");
         }
 
         @Test
-        @DisplayName("rechaza un permiso ya existente")
+        @DisplayName("rejects an existing permission")
         void create_withExistingName_shouldThrow() {
             given(permissionRepository.existsByName("user:read")).willReturn(true);
 
@@ -70,11 +70,11 @@ class PermissionServiceImplTest {
     }
 
     @Nested
-    @DisplayName("findById, findAll y update")
+    @DisplayName("findById, findAll and update")
     class FindAndUpdate {
 
         @Test
-        @DisplayName("findById lanza PERMISSION_NOT_FOUND si no existe y findAll delega en el repositorio")
+        @DisplayName("findById throws PERMISSION_NOT_FOUND if it does not exist and findAll delegates to the repository")
         void find_shouldThrowOrDelegate() {
             var page = PageResult.of(List.of(permission(1L, "user:read")), 0, 10, 1);
             given(permissionRepository.findAll(List.of(), PageQuery.firstPage(), false)).willReturn(page);
@@ -84,13 +84,13 @@ class PermissionServiceImplTest {
         }
 
         @Test
-        @DisplayName("update cambia la descripción si la versión coincide y la rechaza si no")
+        @DisplayName("update changes the description if the version matches and rejects it otherwise")
         void update_shouldCheckVersion() {
             given(permissionRepository.findById(1L)).willReturn(Optional.of(permission(1L, "user:read")));
             given(permissionRepository.save(any(Permission.class))).willAnswer(invocation -> invocation.getArgument(0));
 
-            assertThat(permissionService.update(1L, "Ver usuarios", 0L).getDescription()).isEqualTo("Ver usuarios");
-            assertThatThrownBy(() -> permissionService.update(1L, "Otra", 9L)).isInstanceOf(ConflictException.class);
+            assertThat(permissionService.update(1L, "View users", 0L).getDescription()).isEqualTo("View users");
+            assertThatThrownBy(() -> permissionService.update(1L, "Other", 9L)).isInstanceOf(ConflictException.class);
         }
     }
 
@@ -99,7 +99,7 @@ class PermissionServiceImplTest {
     class Delete {
 
         @Test
-        @DisplayName("hace el borrado lógico si ningún rol activo lo usa")
+        @DisplayName("does the soft delete if no active role uses it")
         void delete_unusedPermission_shouldDeactivate() {
             given(permissionRepository.findById(1L)).willReturn(Optional.of(permission(1L, "user:read")));
 
@@ -110,7 +110,7 @@ class PermissionServiceImplTest {
         }
 
         @Test
-        @DisplayName("rechaza borrar un permiso incluido en roles con PERMISSION_IN_USE (409)")
+        @DisplayName("rejects deleting a permission included in roles with PERMISSION_IN_USE (409)")
         void delete_permissionInUse_shouldThrow() {
             given(permissionRepository.findById(1L)).willReturn(Optional.of(permission(1L, "user:read")));
             given(roleRepository.countActiveByPermissionId(1L)).willReturn(2L);

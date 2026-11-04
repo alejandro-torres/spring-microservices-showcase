@@ -4,8 +4,8 @@ import com.showcase.order.domain.event.OrderCancelledEvent;
 import com.showcase.order.domain.event.OrderCreatedEvent;
 
 /**
- * Publicación de los eventos de pedidos (puerto de salida). Se llama dentro de la transacción del cambio de
- * negocio: el evento se guarda con él y se envía después.
+ * Publishing of order events (outbound port). It is called within the transaction of the business change:
+ * the event is stored with it and sent later.
  */
 public interface OrderEventPublisher {
 

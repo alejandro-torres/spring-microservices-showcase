@@ -16,9 +16,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Administración de las DLQ del servicio (solo ADMIN): ver qué mensajes han fallado y devolverlos a su cola
- * cuando el problema se ha corregido. Lo registra la autoconfiguración de mensajería en los servicios que
- * consumen eventos.
+ * Administration of the service's DLQs (ADMIN only): see which messages have failed and return them to their queue
+ * once the problem has been fixed. It is registered by the messaging auto-configuration in the services that
+ * consume events.
  */
 @RestController
 @RequestMapping("/api/v1/admin/dead-letters")
@@ -35,7 +35,7 @@ public class DeadLetterController {
                 .toList();
     }
 
-    /** Muestra los primeros mensajes sin sacarlos de la DLQ. */
+    /** Shows the first messages without taking them out of the DLQ. */
     @GetMapping("/{queue}/messages")
     public List<DeadLetterMessageResponseDTO> messages(@PathVariable String queue,
                                                        @RequestParam(defaultValue = "10") @Min(1) @Max(100) int limit) {
@@ -45,7 +45,7 @@ public class DeadLetterController {
                 .toList();
     }
 
-    /** Devuelve los mensajes a su cola original; si alguno no se puede reenviar, se queda en la DLQ (503). */
+    /** Returns the messages to their original queue; any that cannot be re-sent stay in the DLQ (503). */
     @PostMapping("/{queue}/replay")
     public DeadLetterReplayResponseDTO replay(@PathVariable String queue,
                                               @RequestParam(defaultValue = "100") @Min(1) @Max(1000) int max) {

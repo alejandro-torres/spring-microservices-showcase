@@ -14,20 +14,20 @@ class RetryAfterTest {
     class Seconds {
 
         @Test
-        @DisplayName("login: 12 fichas por petición y 1 por segundo → 12 s")
+        @DisplayName("login: 12 tokens per request and 1 per second → 12 s")
         void seconds_forLoginLimit_shouldBeTwelve() {
             assertThat(RetryAfter.seconds(headers("12", "1"))).isEqualTo(12);
         }
 
         @Test
-        @DisplayName("redondea hacia arriba y nunca baja de 1 s")
+        @DisplayName("rounds up and never goes below 1 s")
         void seconds_shouldRoundUpWithMinimumOfOne() {
             assertThat(RetryAfter.seconds(headers("3", "2"))).isEqualTo(2);
             assertThat(RetryAfter.seconds(headers("1", "20"))).isEqualTo(1);
         }
 
         @Test
-        @DisplayName("sin cabeceras válidas devuelve 1 s")
+        @DisplayName("without valid headers it returns 1 s")
         void seconds_withoutHeaders_shouldDefaultToOne() {
             assertThat(RetryAfter.seconds(new HttpHeaders())).isEqualTo(1);
             assertThat(RetryAfter.seconds(headers("0", "0"))).isEqualTo(1);

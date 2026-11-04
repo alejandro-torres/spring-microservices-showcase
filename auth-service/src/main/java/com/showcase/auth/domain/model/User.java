@@ -14,7 +14,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Usuario del sistema. La contraseña llega ya cifrada: el dominio nunca ve la contraseña en claro.
+ * System user. The password arrives already hashed: the domain never sees the plain-text password.
  */
 public class User extends AuditedModel {
 
@@ -49,10 +49,10 @@ public class User extends AuditedModel {
     }
 
     /**
-     * Registra un intento de login fallido. Al llegar a {@code maxAttempts} seguidos, bloquea la cuenta
-     * durante {@code lockDuration} y reinicia el contador.
+     * Records a failed login attempt. On reaching {@code maxAttempts} in a row, it locks the account
+     * for {@code lockDuration} and resets the counter.
      *
-     * @return {@code true} si este intento ha provocado el bloqueo
+     * @return {@code true} if this attempt caused the lock
      */
     public boolean registerFailedLogin(int maxAttempts, Duration lockDuration, Instant now) {
         if (isLocked(now)) {
@@ -67,22 +67,22 @@ public class User extends AuditedModel {
         return false;
     }
 
-    /** Un login correcto reinicia el contador de intentos fallidos. */
+    /** A successful login resets the failed attempts counter. */
     public void resetFailedLogins() {
         failedAttempts = 0;
     }
 
-    /** El bloqueo caduca solo: pasada la fecha {@code lockedUntil}, la cuenta vuelve a estar disponible. */
+    /** The lock expires on its own: past the {@code lockedUntil} date, the account is available again. */
     public boolean isLocked(Instant now) {
         return lockedUntil != null && lockedUntil.isAfter(now);
     }
 
-    /** La comprobación de la contraseña actual y del historial la hace el servicio, que conoce el hasher. */
+    /** Checking the current password and the history is done by the service, which knows the hasher. */
     public void changePassword(String newPasswordHash) {
         this.passwordHash = Objects.requireNonNull(newPasswordHash, "newPasswordHash");
     }
 
-    /** Desbloqueo manual (lo hace un ADMIN antes de que caduque el bloqueo). */
+    /** Manual unlock (done by an ADMIN before the lock expires). */
     public void unlock() {
         lockedUntil = null;
         failedAttempts = 0;
@@ -110,7 +110,7 @@ public class User extends AuditedModel {
         return roles.stream().anyMatch(role -> Objects.equals(role.getId(), roleId));
     }
 
-    /** Un usuario borrado tampoco puede iniciar sesión. */
+    /** A deleted user cannot log in either. */
     @Override
     public void deactivate() {
         super.deactivate();

@@ -11,7 +11,7 @@ public interface OrderRepository {
 
     Order save(Order order);
 
-    /** Solo pedidos activos. */
+    /** Active orders only. */
     Optional<Order> findById(Long id);
 
     PageResult<Order> findAll(List<FilterCriterion> filters, PageQuery pageQuery, boolean includeInactive);

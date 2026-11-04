@@ -8,13 +8,13 @@ import com.showcase.common.domain.page.PageResult;
 import java.util.List;
 
 /**
- * Registro y consulta de la auditoría de seguridad.
+ * Recording and lookup of the security audit log.
  */
 public interface SecurityAuditService {
 
     /**
-     * Registra el evento en su propia transacción: queda guardado aunque la operación que lo provoca
-     * falle y haga rollback.
+     * Records the event in its own transaction: it stays saved even if the operation causing it
+     * fails and rolls back.
      */
     void record(SecurityEventType type, String username, String details);
 

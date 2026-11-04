@@ -54,7 +54,7 @@ public class PermissionController {
         return mapper.toResponse(permissionService.findById(id));
     }
 
-    // Los registros borrados (includeInactive) solo los ve un ADMIN.
+    // Deleted records (includeInactive) are only visible to an ADMIN.
     @PreAuthorize("hasAuthority('permission:read') and (!#includeInactive or hasRole('ADMIN'))")
     @GetMapping
     public PageResponseDTO<PermissionResponseDTO> findAll(

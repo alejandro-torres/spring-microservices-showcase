@@ -9,8 +9,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * product-service es un resource server: valida los JWT de auth-service con su clave pública (JWKS)
- * y autoriza cada endpoint con {@code @PreAuthorize} según los permisos del token.
+ * product-service is a resource server: it validates auth-service's JWTs with its public key (JWKS)
+ * and authorizes each endpoint with {@code @PreAuthorize} according to the token's permissions.
  */
 @Configuration(proxyBeanMethods = false)
 @EnableMethodSecurity
@@ -20,7 +20,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    ResourceServerSecurityCustomizer resourceServer) throws Exception {
         http.authorizeHttpRequests(authorize -> authorize
-                // /actuator/prometheus: solo se publica en la red interna de Docker; el gateway no lo enruta.
+                // /actuator/prometheus: only published on the internal Docker network; the gateway does not route it.
                 .requestMatchers("/actuator/health/**", "/actuator/info", "/actuator/prometheus").permitAll()
                 .requestMatchers(OpenApiPaths.PUBLIC).permitAll()
                 .requestMatchers("/api/**").authenticated()

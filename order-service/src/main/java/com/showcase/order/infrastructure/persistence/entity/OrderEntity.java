@@ -43,7 +43,7 @@ public class OrderEntity extends AuditedEntity {
     @Column(name = "shipping_country", nullable = false, length = 2)
     private String shippingCountry;
 
-    /** Composición: las líneas se guardan y se borran (orphanRemoval) junto con el pedido. */
+    /** Composition: lines are saved and deleted (orphanRemoval) together with the order. */
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("id")
     private List<OrderItemEntity> items = new ArrayList<>();

@@ -8,8 +8,8 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
 /**
- * Rellena los parámetros de tipo {@link FilterParameters} de los controllers con todos los valores
- * de {@code filter} tal cual llegan, sin separarlos por comas.
+ * Fills the controllers' {@link FilterParameters} parameters with all the {@code filter} values
+ * as they arrive, without splitting them by commas.
  */
 public class FilterParametersArgumentResolver implements HandlerMethodArgumentResolver {
 

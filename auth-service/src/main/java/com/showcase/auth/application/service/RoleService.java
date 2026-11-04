@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Casos de uso de gestión de roles (puerto de entrada).
+ * Use cases for role management (inbound port).
  */
 public interface RoleService {
 
@@ -20,6 +20,6 @@ public interface RoleService {
 
     Role update(Long id, String description, Set<Long> permissionIds, Long version);
 
-    /** Borrado lógico; falla si algún usuario activo tiene el rol. */
+    /** Soft delete; fails if any active user has the role. */
     void delete(Long id);
 }

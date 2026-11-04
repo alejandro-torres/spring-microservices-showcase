@@ -8,25 +8,25 @@ import lombok.NoArgsConstructor;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 /**
- * Respuestas de error que puede dar cada tipo de operación, según la tabla del CRUD de la especificación. Todas
- * usan el cuerpo común {@code ErrorResponseDTO}.
+ * Error responses each type of operation can give, per the CRUD table in the specification. All
+ * use the common {@code ErrorResponseDTO} body.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class StandardErrorResponses {
 
     private static final Map<Integer, String> DESCRIPTIONS = Map.of(
-            400, "Petición no válida (datos, paginación o filtros)",
-            401, "Falta el token o no es válido",
-            403, "El token no tiene el permiso necesario",
-            404, "El recurso no existe o está borrado",
-            409, "Conflicto: duplicado, versión desactualizada o dependencias activas",
-            422, "La operación incumple una regla de negocio",
-            500, "Error inesperado (sin detalles internos)",
-            503, "Un servicio del que depende no está disponible");
+            400, "Invalid request (data, pagination or filters)",
+            401, "Missing or invalid token",
+            403, "The token does not have the required permission",
+            404, "The resource does not exist or has been deleted",
+            409, "Conflict: duplicate, stale version or active dependencies",
+            422, "The operation breaks a business rule",
+            500, "Unexpected error (no internal details)",
+            503, "A service it depends on is unavailable");
 
     /**
-     * @param targetsOneResource si la ruta lleva una variable como {@code {id}} (operación sobre un recurso)
-     * @return código HTTP → descripción, ordenado por código
+     * @param targetsOneResource whether the path has a variable such as {@code {id}} (operation on one resource)
+     * @return HTTP code → description, sorted by code
      */
     public static SortedMap<Integer, String> forOperation(RequestMethod method, boolean targetsOneResource) {
         SortedMap<Integer, String> responses = new TreeMap<>();
@@ -37,11 +37,11 @@ public final class StandardErrorResponses {
             case PUT, PATCH -> add(responses, 400, 404, 409, 422);
             case DELETE -> add(responses, 404, 409);
             default -> {
-                // HEAD, OPTIONS y TRACE no tienen errores propios que documentar.
+                // HEAD, OPTIONS and TRACE have no errors of their own to document.
             }
         }
         if (targetsOneResource && method == RequestMethod.POST) {
-            // POST sobre un recurso existente (p. ej. /customers/{id}/addresses): puede no existir.
+            // POST on an existing resource (e.g. /customers/{id}/addresses): it may not exist.
             add(responses, 404);
         }
         return responses;

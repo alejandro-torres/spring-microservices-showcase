@@ -19,7 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Lecturas en transacciones de solo lectura (a nivel de clase) y una transacción por escritura.
+ * Reads in read-only transactions (at class level) and one transaction per write.
  */
 @Service
 @Transactional(readOnly = true)
@@ -29,7 +29,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
 
-    /** {@code timeout}: una escritura del catálogo nunca debería tener la conexión ocupada más de 5 s. */
+    /** {@code timeout}: a catalog write should never hold the connection for more than 5 s. */
     @Override
     @Transactional(timeout = 5)
     public Product create(String name, String description, BigDecimal price, int initialStock, Long categoryId) {
@@ -47,7 +47,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    @Observed(name = "product.search", contextualName = "buscar productos")
+    @Observed(name = "product.search", contextualName = "search products")
     public PageResult<Product> findAll(List<FilterCriterion> filters, PageQuery pageQuery, boolean includeInactive) {
         return productRepository.findAll(filters, pageQuery, includeInactive);
     }
@@ -81,8 +81,8 @@ public class ProductServiceImpl implements ProductService {
     }
 
     /**
-     * Dos ajustes simultáneos del mismo producto no se pisan: el segundo en guardar falla por la
-     * versión de la entidad (@Version) y la API responde 409 para que se reintente con datos frescos.
+     * Two simultaneous adjustments of the same product do not overwrite each other: the second to save fails on the
+     * entity's version (@Version) and the API responds 409 so it can be retried with fresh data.
      */
     @Override
     @Transactional

@@ -6,8 +6,8 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
- * Ejecuta una acción solo si la transacción en curso se confirma (o enseguida, si no hay transacción). Las
- * métricas de negocio la usan para no contar, por ejemplo, un pedido "creado" cuya transacción acaba en rollback.
+ * Runs an action only if the current transaction commits (or immediately, if there is no transaction). Business
+ * metrics use it so as not to count, for example, a "created" order whose transaction ends in a rollback.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class AfterCommit {

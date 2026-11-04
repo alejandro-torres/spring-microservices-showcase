@@ -7,7 +7,7 @@ import com.showcase.product.domain.model.Category;
 import java.util.List;
 
 /**
- * Casos de uso de las categorías (puerto de entrada).
+ * Use cases for categories (inbound port).
  */
 public interface CategoryService {
 
@@ -19,6 +19,6 @@ public interface CategoryService {
 
     Category update(Long id, String name, String description, Long version);
 
-    /** Borrado lógico; falla con 409 si la categoría tiene productos activos. */
+    /** Soft delete; fails with 409 if the category has active products. */
     void delete(Long id);
 }

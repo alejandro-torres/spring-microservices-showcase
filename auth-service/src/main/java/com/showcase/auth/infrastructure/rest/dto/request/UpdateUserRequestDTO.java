@@ -7,8 +7,8 @@ import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 /**
- * Actualización de usuario. {@code version} es la que devolvió el GET: si otro la ha cambiado
- * entretanto, la API responde 409.
+ * User update. {@code version} is the one returned by the GET: if someone else has changed it
+ * in the meantime, the API responds 409.
  */
 public record UpdateUserRequestDTO(
         @NotBlank @Email @Size(max = 255) String email,

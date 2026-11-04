@@ -15,8 +15,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 /**
- * Conversión de los modelos de dominio a los DTOs de respuesta. Las peticiones no se mapean a modelos:
- * los controllers pasan sus campos a los servicios, que crean los modelos con sus reglas.
+ * Conversion from domain models to response DTOs. Requests are not mapped to models:
+ * the controllers pass their fields to the services, which create the models with their rules.
  */
 @Mapper(componentModel = "spring")
 public interface AuthRestMapper {
@@ -32,7 +32,7 @@ public interface AuthRestMapper {
     @Mapping(target = "eventType", source = "type")
     SecurityAuditEventResponseDTO toResponse(SecurityAuditEvent event);
 
-    /** Ordenados alfabéticamente para que la respuesta sea estable. */
+    /** Sorted alphabetically so the response is stable. */
     default Set<String> roleNames(Set<Role> roles) {
         return roles.stream().map(Role::getName).collect(Collectors.toCollection(TreeSet::new));
     }

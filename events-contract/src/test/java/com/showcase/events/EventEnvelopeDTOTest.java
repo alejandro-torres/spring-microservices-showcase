@@ -19,11 +19,11 @@ class EventEnvelopeDTOTest {
     private final JsonMapper jsonMapper = JsonMapper.builder().build();
 
     @Nested
-    @DisplayName("serialización JSON")
+    @DisplayName("JSON serialization")
     class Json {
 
         @Test
-        @DisplayName("el sobre tiene el formato del contrato, con la fecha en ISO-8601")
+        @DisplayName("the envelope follows the contract's format, with the date in ISO-8601")
         void serialize_shouldWriteContractFormat() {
             // given
             UUID eventId = UUID.fromString("7d1f5b0e-4a64-4f4b-9b1e-2a6b1c2d3e4f");
@@ -44,7 +44,7 @@ class EventEnvelopeDTOTest {
         }
 
         @Test
-        @DisplayName("se lee de vuelta con el tipo del payload")
+        @DisplayName("is read back with the payload's type")
         void deserialize_withPayloadType_shouldRestoreEnvelope() {
             // given
             String json = """

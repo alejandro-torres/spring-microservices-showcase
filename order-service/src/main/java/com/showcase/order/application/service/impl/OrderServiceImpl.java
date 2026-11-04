@@ -29,14 +29,13 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Crear un pedido exige consultar customer-service y product-service. Esas llamadas pueden tardar
- * segundos (o fallar por timeout), así que se hacen SIN transacción ({@code NOT_SUPPORTED}) para no tener
- * una conexión a la base de datos bloqueada mientras tanto; después, {@link OrderWriter} guarda en una
- * transacción corta.
+ * Creating an order requires querying customer-service and product-service. Those calls can take
+ * seconds (or fail by timeout), so they run WITHOUT a transaction ({@code NOT_SUPPORTED}) so as not to hold
+ * a database connection in the meantime; afterwards, {@link OrderWriter} saves in a short transaction.
  * <p>
- * {@code OrderWriter} es otro bean a propósito: si su método {@code @Transactional} estuviera en esta clase y se
- * llamara con {@code this.save(...)}, la llamada no pasaría por el proxy de Spring y la anotación se ignoraría
- * (autoinvocación).
+ * {@code OrderWriter} is a separate bean on purpose: if its {@code @Transactional} method were in this class and
+ * called with {@code this.save(...)}, the call would not go through the Spring proxy and the annotation would be
+ * ignored (self-invocation).
  */
 @Service
 @Transactional(readOnly = true)
@@ -53,7 +52,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    @Observed(name = "order.create", contextualName = "crear pedido")
+    @Observed(name = "order.create", contextualName = "create order")
     public Order create(Long customerId, List<OrderLine> lines) {
         ShippingAddress address = customerClient.findById(customerId)
                 .orElseThrow(() -> new ResourceNotFoundException(OrderErrorCode.CUSTOMER_NOT_FOUND, customerId))
@@ -83,12 +82,12 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * El cambio de estado y el {@code OrderCancelledEvent} se guardan juntos: o se cancela y se pide devolver el
-     * stock, o no pasa ninguna de las dos cosas.
+     * The status change and the {@code OrderCancelledEvent} are saved together: either it is cancelled and the
+     * stock return is requested, or neither happens.
      */
     @Override
     @Transactional
-    @Observed(name = "order.cancel", contextualName = "cancelar pedido")
+    @Observed(name = "order.cancel", contextualName = "cancel order")
     public Order cancel(Long id) {
         Order order = findById(id);
         order.cancel();
@@ -107,8 +106,8 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * El stock se comprueba aquí solo para fallar pronto: la reserva real (atómica) la hará product-service
-     * en la saga del pedido.
+     * The stock is checked here only to fail fast: the real (atomic) reservation is done by product-service
+     * in the order saga.
      */
     private List<OrderItem> toItems(List<OrderLine> lines) {
         return lines.stream().map(line -> {

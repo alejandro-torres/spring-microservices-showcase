@@ -23,17 +23,17 @@ class MessagingExceptionClassifierTest {
     class IsRetryable {
 
         @Test
-        @DisplayName("no reintenta un mensaje mal formado")
+        @DisplayName("does not retry a malformed message")
         void isRetryable_withConversionError_shouldReturnFalse() {
             // given
-            var error = wrap(new MessageConversionException("JSON no válido"));
+            var error = wrap(new MessageConversionException("Invalid JSON"));
 
             // when / then
             assertThat(MessagingExceptionClassifier.isRetryable(error)).isFalse();
         }
 
         @Test
-        @DisplayName("no reintenta los errores de negocio: datos no válidos, recurso inexistente, regla o conflicto")
+        @DisplayName("does not retry business errors: invalid data, missing resource, rule or conflict")
         void isRetryable_withBusinessErrors_shouldReturnFalse() {
             assertThat(MessagingExceptionClassifier.isRetryable(
                     wrap(new InvalidRequestException(CommonErrorCode.VALIDATION_ERROR)))).isFalse();
@@ -46,7 +46,7 @@ class MessagingExceptionClassifierTest {
         }
 
         @Test
-        @DisplayName("reintenta los errores pasajeros: otro servicio caído, bloqueos y conflictos de concurrencia")
+        @DisplayName("retries transient errors: another service down, locks and concurrency conflicts")
         void isRetryable_withTransientErrors_shouldReturnTrue() {
             assertThat(MessagingExceptionClassifier.isRetryable(
                     wrap(new ExternalServiceException(CommonErrorCode.SERVICE_UNAVAILABLE)))).isTrue();
@@ -57,7 +57,7 @@ class MessagingExceptionClassifierTest {
         }
 
         @Test
-        @DisplayName("reintenta un error inesperado")
+        @DisplayName("retries an unexpected error")
         void isRetryable_withUnexpectedError_shouldReturnTrue() {
             assertThat(MessagingExceptionClassifier.isRetryable(wrap(new IllegalStateException("boom")))).isTrue();
         }

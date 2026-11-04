@@ -1,12 +1,12 @@
 package com.showcase.auth.application.security;
 
 /**
- * Datos de la petición en curso que se guardan en la auditoría.
+ * Data of the current request stored in the audit log.
  *
- * @param ip        IP del cliente (la primera de X-Forwarded-For si viene del gateway)
- * @param userAgent navegador o cliente HTTP
- * @param traceId   identificador de la traza (el mismo que en Zipkin y en los logs)
- * @param actor     usuario autenticado que hace la operación, o null si es anónima
+ * @param ip        client IP (the first one in X-Forwarded-For if it comes from the gateway)
+ * @param userAgent browser or HTTP client
+ * @param traceId   trace identifier (the same as in Zipkin and the logs)
+ * @param actor     authenticated user performing the operation, or null if anonymous
  */
 public record RequestMetadata(String ip, String userAgent, String traceId, String actor) {
 

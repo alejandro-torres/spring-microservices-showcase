@@ -2,6 +2,6 @@ package com.showcase.events.auth;
 
 import java.time.Instant;
 
-/** Cuenta bloqueada por intentos fallidos de login hasta {@code lockedUntil}. */
+/** Account locked by failed login attempts until {@code lockedUntil}. */
 public record AccountLockedMessageDTO(Long userId, String username, Instant lockedUntil) {
 }

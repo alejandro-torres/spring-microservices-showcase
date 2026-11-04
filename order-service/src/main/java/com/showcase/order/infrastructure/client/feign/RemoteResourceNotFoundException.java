@@ -1,12 +1,12 @@
 package com.showcase.order.infrastructure.client.feign;
 
 /**
- * El servicio remoto respondió 404. No sale de la capa de infraestructura: las implementaciones de los
- * clientes la convierten en un {@code Optional} vacío.
+ * The remote service responded 404. It does not leave the infrastructure layer: the client implementations
+ * turn it into an empty {@code Optional}.
  */
 public class RemoteResourceNotFoundException extends RuntimeException {
 
     public RemoteResourceNotFoundException(String methodKey) {
-        super("Recurso remoto no encontrado: " + methodKey);
+        super("Remote resource not found: " + methodKey);
     }
 }

@@ -8,9 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
- * Contadores {@code showcase.auth.registrations}, {@code showcase.auth.logins} (etiqueta {@code result}: success o
- * failure) y {@code showcase.auth.accounts.locked}. Se incrementan después del commit. Micrometer devuelve el mismo
- * contador si ya está registrado con ese nombre y etiquetas.
+ * {@code showcase.auth.registrations}, {@code showcase.auth.logins} ({@code result} tag: success or failure) and
+ * {@code showcase.auth.accounts.locked} counters. They are incremented after the commit. Micrometer returns the same
+ * counter if already registered with that name and tags.
  */
 @Component
 @RequiredArgsConstructor
@@ -20,7 +20,7 @@ public class MicrometerAuthMetricsImpl implements AuthMetrics {
 
     @Override
     public void userRegistered() {
-        increment(Counter.builder("showcase.auth.registrations").description("Usuarios registrados"));
+        increment(Counter.builder("showcase.auth.registrations").description("Registered users"));
     }
 
     @Override
@@ -36,11 +36,11 @@ public class MicrometerAuthMetricsImpl implements AuthMetrics {
     @Override
     public void accountLocked() {
         increment(Counter.builder("showcase.auth.accounts.locked")
-                .description("Cuentas bloqueadas por intentos fallidos"));
+                .description("Accounts locked by failed attempts"));
     }
 
     private static Counter.Builder logins() {
-        return Counter.builder("showcase.auth.logins").description("Intentos de login por resultado");
+        return Counter.builder("showcase.auth.logins").description("Login attempts by result");
     }
 
     private void increment(Counter.Builder builder) {

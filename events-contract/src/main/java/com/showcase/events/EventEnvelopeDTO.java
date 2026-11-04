@@ -4,10 +4,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Sobre común de todos los mensajes de RabbitMQ. {@code eventId} sirve para el consumo idempotente y
- * {@code version} permite evolucionar el contrato de un evento sin romper a los consumidores.
+ * Common envelope of all RabbitMQ messages. {@code eventId} serves idempotent consumption and
+ * {@code version} allows evolving an event's contract without breaking consumers.
  *
- * @param <T> el {@code *MessageDTO} del evento
+ * @param <T> the event's {@code *MessageDTO}
  */
 public record EventEnvelopeDTO<T>(
         UUID eventId,

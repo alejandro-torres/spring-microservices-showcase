@@ -1,5 +1,5 @@
 package com.showcase.order.application.service;
 
-/** Línea pedida por el cliente: el precio y el nombre se toman de product-service, nunca de la petición. */
+/** Line requested by the customer: the price and name come from product-service, never from the request. */
 public record OrderLine(Long productId, int quantity) {
 }

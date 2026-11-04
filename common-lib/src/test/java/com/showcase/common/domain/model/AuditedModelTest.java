@@ -20,7 +20,7 @@ class AuditedModelTest {
     }
 
     @Test
-    @DisplayName("checkVersion acepta la versión actual y rechaza otra con CONCURRENT_MODIFICATION")
+    @DisplayName("checkVersion accepts the current version and rejects another with CONCURRENT_MODIFICATION")
     void checkVersion_shouldDetectConcurrentChanges() {
         var model = new Sample(3L);
 
@@ -33,7 +33,7 @@ class AuditedModelTest {
     }
 
     @Test
-    @DisplayName("deactivate hace el borrado lógico y conserva el resto de datos")
+    @DisplayName("deactivate does the soft delete and keeps the other data")
     void deactivate_shouldOnlyChangeActive() {
         var model = new Sample(0L);
 

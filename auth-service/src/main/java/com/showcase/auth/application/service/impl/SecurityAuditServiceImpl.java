@@ -27,9 +27,9 @@ public class SecurityAuditServiceImpl implements SecurityAuditService {
     private final Clock clock;
 
     /**
-     * REQUIRES_NEW suspende la transacción del llamador y abre una nueva que se confirma al salir de
-     * este método. Así, si la operación principal falla después (p. ej. un login fallido que lanza una
-     * excepción), el registro de auditoría no se pierde con su rollback.
+     * REQUIRES_NEW suspends the caller's transaction and opens a new one that commits on leaving
+     * this method. This way, if the main operation fails later (e.g. a failed login that throws an
+     * exception), the audit record is not lost with its rollback.
      */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)

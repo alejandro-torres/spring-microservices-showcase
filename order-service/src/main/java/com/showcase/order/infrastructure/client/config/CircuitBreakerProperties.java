@@ -5,8 +5,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
 /**
- * Por defecto: si fallan al menos la mitad de las últimas 10 llamadas (con un mínimo de 5), el circuito se
- * abre 10 segundos y las llamadas fallan al instante con 503 en lugar de esperar al timeout.
+ * By default: if at least half of the last 10 calls fail (with a minimum of 5), the circuit opens for
+ * 10 seconds and calls fail instantly with 503 instead of waiting for the timeout.
  */
 @ConfigurationProperties("showcase.clients.circuit-breaker")
 public record CircuitBreakerProperties(

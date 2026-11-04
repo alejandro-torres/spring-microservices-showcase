@@ -40,7 +40,7 @@ class StockEventPublisherImplTest {
     class Publish {
 
         @Test
-        @DisplayName("guarda stock.reserved en el outbox")
+        @DisplayName("saves stock.reserved in the outbox")
         void publish_reserved_shouldAppend() {
             publisher.publish(new StockReservedEvent(7L, NOW));
 
@@ -49,7 +49,7 @@ class StockEventPublisherImplTest {
         }
 
         @Test
-        @DisplayName("guarda stock.reservation-failed con el motivo y el producto")
+        @DisplayName("saves stock.reservation-failed with the reason and the product")
         void publish_failed_shouldAppend() {
             publisher.publish(new StockReservationFailedEvent(7L, "INSUFFICIENT_STOCK", 10L, NOW));
 
@@ -58,7 +58,7 @@ class StockEventPublisherImplTest {
         }
 
         @Test
-        @DisplayName("guarda stock.released en el outbox")
+        @DisplayName("saves stock.released in the outbox")
         void publish_released_shouldAppend() {
             publisher.publish(new StockReleasedEvent(7L, NOW));
 

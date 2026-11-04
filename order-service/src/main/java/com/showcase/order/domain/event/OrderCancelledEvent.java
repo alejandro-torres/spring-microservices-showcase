@@ -4,7 +4,7 @@ import com.showcase.order.domain.model.Order;
 import java.time.Instant;
 import java.util.List;
 
-/** Se ha cancelado un pedido confirmado: hay que devolver su stock (compensación de la saga). */
+/** A confirmed order has been cancelled: its stock must be returned (saga compensation). */
 public record OrderCancelledEvent(Long orderId, List<OrderEventLine> lines, Instant occurredAt) {
 
     public OrderCancelledEvent {

@@ -31,14 +31,14 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * Bloqueo de cuentas con transacciones reales: demuestra {@code noRollbackFor} y el flujo completo de login.
+ * Account locking with real transactions: demonstrates {@code noRollbackFor} and the full login flow.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 class AccountLockoutIT {
 
-    private static final String PASSWORD = "Secreta-Test-123";
+    private static final String PASSWORD = "Secret-Test-123";
 
     @Autowired
     private MockMvc mockMvc;
@@ -71,7 +71,7 @@ class AccountLockoutIT {
     }
 
     @Test
-    @DisplayName("noRollbackFor: el bloqueo se guarda aunque onFailure termine lanzando AccountLockedException")
+    @DisplayName("noRollbackFor: the lock is saved even though onFailure ends up throwing AccountLockedException")
     void noRollbackFor_shouldPersistLockDespiteException() {
         userService.create("lock.service", "lock.service@example.com", PASSWORD, Set.of());
 
@@ -84,25 +84,25 @@ class AccountLockoutIT {
         assertThatThrownBy(() -> loginAttemptService.onFailure("lock.service"))
                 .isInstanceOf(AccountLockedException.class);
 
-        // La excepción salió del método @Transactional y, aun así, el bloqueo está en la base de datos.
+        // The exception left the @Transactional method and, even so, the lock is in the database.
         var stored = userJpaRepository.findByUsernameAndActiveTrue("lock.service").orElseThrow();
         assertThat(stored.getLockedUntil()).isNotNull();
         assertThat(stored.getFailedAttempts()).isZero();
-        // Y el evento account.locked del outbox se confirmó en la misma transacción.
+        // And the outbox's account.locked event committed in the same transaction.
         assertThat(jdbcClient.sql("SELECT count(*) FROM outbox_event WHERE event_type = 'account.locked' "
                         + "AND aggregate_id = :id")
                 .param("id", String.valueOf(stored.getId())).query(Long.class).single()).isEqualTo(1);
     }
 
     @Test
-    @DisplayName("tras 5 contraseñas incorrectas la cuenta se bloquea, y un ADMIN puede desbloquearla")
+    @DisplayName("after 5 wrong passwords the account locks, and an ADMIN can unlock it")
     void fiveFailedLogins_shouldLockUntilAdminUnlocks() throws Exception {
         long userId = userService.create("lock.form", "lock.form@example.com", PASSWORD, Set.of()).getId();
 
         for (int i = 0; i < 5; i++) {
-            login("lock.form", "incorrecta", "/login?error");
+            login("lock.form", "wrong", "/login?error");
         }
-        // Con la cuenta bloqueada, ni siquiera la contraseña correcta permite entrar.
+        // With the account locked, not even the correct password allows login.
         login("lock.form", PASSWORD, "/login?error");
 
         assertThat(auditedEvents("lock.form"))

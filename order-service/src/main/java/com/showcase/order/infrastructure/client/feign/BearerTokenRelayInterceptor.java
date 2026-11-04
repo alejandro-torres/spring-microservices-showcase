@@ -7,9 +7,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
 /**
- * Reenvía el JWT del usuario a los otros servicios, que aplican sus propios permisos (p. ej. product:read).
- * Lee el contexto de seguridad del hilo actual, así que las llamadas Feign deben hacerse en el mismo hilo
- * que la petición (por eso el circuit breaker se ejecuta de forma síncrona).
+ * Forwards the user's JWT to the other services, which apply their own permissions (e.g. product:read).
+ * It reads the current thread's security context, so Feign calls must run on the same thread
+ * as the request (which is why the circuit breaker runs synchronously).
  */
 public class BearerTokenRelayInterceptor implements RequestInterceptor {
 

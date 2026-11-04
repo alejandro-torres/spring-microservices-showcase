@@ -7,7 +7,7 @@ import com.showcase.common.domain.page.PageResult;
 import java.util.List;
 
 /**
- * Casos de uso de gestión de permisos (puerto de entrada).
+ * Use cases for permission management (inbound port).
  */
 public interface PermissionService {
 
@@ -19,6 +19,6 @@ public interface PermissionService {
 
     Permission update(Long id, String description, Long version);
 
-    /** Borrado lógico; falla si algún rol activo incluye el permiso. */
+    /** Soft delete; fails if any active role includes the permission. */
     void delete(Long id);
 }

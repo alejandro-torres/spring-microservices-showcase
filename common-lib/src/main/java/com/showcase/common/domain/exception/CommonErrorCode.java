@@ -1,7 +1,7 @@
 package com.showcase.common.domain.exception;
 
 /**
- * Códigos de error compartidos por todos los servicios.
+ * Error codes shared by all services.
  */
 public enum CommonErrorCode implements ErrorCode {
 

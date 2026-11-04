@@ -4,13 +4,13 @@ import com.showcase.common.domain.exception.CommonErrorCode;
 import com.showcase.common.domain.exception.InvalidRequestException;
 
 /**
- * Petición de una página de resultados, independiente de Spring Data.
- * El adaptador de persistencia la convierte en un {@code PageRequest}.
+ * Request for a page of results, independent of Spring Data.
+ * The persistence adapter converts it to a {@code PageRequest}.
  *
- * @param page      número de página, empezando en 0
- * @param size      elementos por página, entre 1 y {@link #MAX_SIZE}
- * @param sort      campo por el que se ordena (ya validado contra la lista blanca del recurso)
- * @param direction sentido de la ordenación
+ * @param page      page number, starting at 0
+ * @param size      elements per page, between 1 and {@link #MAX_SIZE}
+ * @param sort      field to sort by (already validated against the resource's whitelist)
+ * @param direction sort direction
  */
 public record PageQuery(int page, int size, String sort, SortDirection direction) {
 
@@ -38,7 +38,7 @@ public record PageQuery(int page, int size, String sort, SortDirection direction
         return new PageQuery(DEFAULT_PAGE, DEFAULT_SIZE, DEFAULT_SORT, SortDirection.ASC);
     }
 
-    /** Desplazamiento del primer elemento de la página, útil para consultas manuales. */
+    /** Offset of the page's first element, useful for manual queries. */
     public long offset() {
         return (long) page * size;
     }

@@ -44,7 +44,7 @@ class CustomerAccountServiceImplTest {
     class CreateForUser {
 
         @Test
-        @DisplayName("crea el cliente del usuario, sin direcciones y con el email normalizado")
+        @DisplayName("creates the user's customer, with no addresses and with the normalized email")
         void createForUser_shouldCreateCustomer() {
             // given
             given(processedEvents.registerIfAbsent(EVENT_ID, "user.registered")).willReturn(true);
@@ -63,7 +63,7 @@ class CustomerAccountServiceImplTest {
         }
 
         @Test
-        @DisplayName("ignora un evento duplicado")
+        @DisplayName("ignores a duplicate event")
         void createForUser_duplicateEvent_shouldDoNothing() {
             // given
             given(processedEvents.registerIfAbsent(EVENT_ID, "user.registered")).willReturn(false);
@@ -76,7 +76,7 @@ class CustomerAccountServiceImplTest {
         }
 
         @Test
-        @DisplayName("no crea otro cliente si el usuario ya tiene uno")
+        @DisplayName("does not create another customer if the user already has one")
         void createForUser_existingCustomer_shouldDoNothing() {
             // given
             given(processedEvents.registerIfAbsent(EVENT_ID, "user.registered")).willReturn(true);
@@ -90,7 +90,7 @@ class CustomerAccountServiceImplTest {
         }
 
         @Test
-        @DisplayName("lanza EMAIL_ALREADY_EXISTS si otro cliente usa el email (el mensaje irá a la DLQ)")
+        @DisplayName("throws EMAIL_ALREADY_EXISTS if another customer uses the email (the message will go to the DLQ)")
         void createForUser_emailInUse_shouldThrow() {
             // given
             given(processedEvents.registerIfAbsent(EVENT_ID, "user.registered")).willReturn(true);
@@ -109,7 +109,7 @@ class CustomerAccountServiceImplTest {
     class DeactivateForUser {
 
         @Test
-        @DisplayName("marca como inactivo el cliente del usuario")
+        @DisplayName("marks the user's customer as inactive")
         void deactivateForUser_shouldDeactivateCustomer() {
             // given
             var customer = Customer.create(10L, "Ana", "García", "ana@example.com", null);
@@ -125,7 +125,7 @@ class CustomerAccountServiceImplTest {
         }
 
         @Test
-        @DisplayName("un usuario sin cliente no es un error")
+        @DisplayName("a user without a customer is not an error")
         void deactivateForUser_withoutCustomer_shouldDoNothing() {
             // given
             given(processedEvents.registerIfAbsent(EVENT_ID, "user.disabled")).willReturn(true);
@@ -139,7 +139,7 @@ class CustomerAccountServiceImplTest {
         }
 
         @Test
-        @DisplayName("ignora un evento duplicado")
+        @DisplayName("ignores a duplicate event")
         void deactivateForUser_duplicateEvent_shouldDoNothing() {
             // given
             given(processedEvents.registerIfAbsent(EVENT_ID, "user.disabled")).willReturn(false);
@@ -157,7 +157,7 @@ class CustomerAccountServiceImplTest {
     class RecordAccountLocked {
 
         @Test
-        @DisplayName("registra el evento sin modificar el cliente")
+        @DisplayName("records the event without modifying the customer")
         void recordAccountLocked_shouldOnlyRegisterEvent() {
             // given
             given(processedEvents.registerIfAbsent(EVENT_ID, "account.locked")).willReturn(true);

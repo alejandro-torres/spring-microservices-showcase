@@ -33,8 +33,8 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /**
- * Concurrencia con PostgreSQL y Redis reales. Varias réplicas se simulan con varios hilos: todos pasan por el mismo
- * lock de Redis, igual que lo harían procesos distintos.
+ * Concurrency with real PostgreSQL and Redis. Several replicas are simulated with several threads: all go through
+ * the same Redis lock, just as separate processes would.
  */
 @SpringBootTest(properties = "showcase.messaging.outbox.enabled=false")
 @Import(TestcontainersConfiguration.class)
@@ -60,18 +60,18 @@ class StockConcurrencyIT {
 
     private Long createProduct(int stock) {
         String suffix = UUID.randomUUID().toString().substring(0, 8);
-        Long categoryId = categoryService.create("Concurrencia " + suffix, null).getId();
-        return productService.create("Último stock " + suffix, null, new BigDecimal("9.99"), stock, categoryId)
+        Long categoryId = categoryService.create("Concurrency " + suffix, null).getId();
+        return productService.create("Last stock " + suffix, null, new BigDecimal("9.99"), stock, categoryId)
                 .getId();
     }
 
     @Nested
-    @DisplayName("reservas simultáneas")
+    @DisplayName("simultaneous reservations")
     class ConcurrentReservations {
 
         @Test
-        @DisplayName("20 pedidos a la vez sobre las 5 últimas unidades: se reservan exactamente 5 y el stock no "
-                + "queda negativo")
+        @DisplayName("20 orders at once for the last 5 units: exactly 5 are reserved and the stock does not "
+                + "go negative")
         void concurrentReservations_onLastUnits_shouldNeverOversell() throws Exception {
             // given
             Long productId = createProduct(5);
@@ -80,7 +80,7 @@ class StockConcurrencyIT {
             CountDownLatch start = new CountDownLatch(1);
             List<Future<?>> results = new ArrayList<>();
 
-            // when: todos empiezan a la vez
+            // when: they all start at once
             for (int i = 0; i < orders; i++) {
                 long orderId = 90_000L + i;
                 results.add(pool.submit(() -> {
@@ -103,13 +103,13 @@ class StockConcurrencyIT {
     }
 
     @Nested
-    @DisplayName("lock ocupado")
+    @DisplayName("busy lock")
     class BusyLock {
 
         @Test
-        @DisplayName("si otra réplica tiene el lock del producto, se rinde a tiempo con RESOURCE_BUSY")
+        @DisplayName("if another replica holds the product's lock, it gives up in time with RESOURCE_BUSY")
         void lockHeldByOtherReplica_shouldFailWithResourceBusy() throws Exception {
-            // given: otra "réplica" coge el lock y lo retiene
+            // given: another "replica" takes the lock and holds it
             var otherReplica = new RedissonDistributedLockManagerImpl(redisson, Duration.ofSeconds(1),
                     Duration.ofSeconds(10), new SimpleMeterRegistry());
             var impatient = new RedissonDistributedLockManagerImpl(redisson, Duration.ofMillis(200),
@@ -126,11 +126,11 @@ class StockConcurrencyIT {
 
             // when / then
             assertThatThrownBy(() -> impatient.executeWithLocks(List.of("lock:product:1", "lock:product:2"),
-                    () -> "no debería ejecutarse"))
+                    () -> "should not run"))
                     .isInstanceOf(DomainException.class)
                     .hasFieldOrPropertyWithValue("errorCode", CommonErrorCode.RESOURCE_BUSY);
 
-            // and: al soltarlo, el lock vuelve a estar disponible (y el segundo, que no llegó a cogerse, también)
+            // and: when released, the lock is available again (and so is the second one, which was never acquired)
             release.countDown();
             holder.get(5, TimeUnit.SECONDS);
             pool.shutdown();
@@ -140,11 +140,11 @@ class StockConcurrencyIT {
     }
 
     @Nested
-    @DisplayName("lock tras un fallo")
+    @DisplayName("lock after a failure")
     class LockAfterFailure {
 
         @Test
-        @DisplayName("si la operación falla, el lock se suelta igualmente y otra réplica puede cogerlo")
+        @DisplayName("if the operation fails, the lock is released anyway and another replica can take it")
         void failingAction_shouldReleaseLock() {
             // given
             var replica = new RedissonDistributedLockManagerImpl(redisson, Duration.ofMillis(200),
@@ -154,10 +154,11 @@ class StockConcurrencyIT {
 
             // when
             assertThatThrownBy(() -> replica.executeWithLocks(List.of("lock:product:77"), () -> {
-                throw new IllegalStateException("fallo en mitad de la reserva");
+                throw new IllegalStateException("failure halfway through the reservation");
             })).isInstanceOf(IllegalStateException.class);
 
-            // then: desde otro hilo (otra "réplica") se consigue enseguida, sin esperar a que caduque
+            // then: from another thread (another "replica") it is acquired immediately, without waiting for it to
+            // expire
             ExecutorService pool = Executors.newSingleThreadExecutor();
             try {
                 assertThat(pool.submit(() -> otherReplica.executeWithLocks(List.of("lock:product:77"), () -> "ok"))

@@ -8,15 +8,15 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Casos de uso de gestión de usuarios (puerto de entrada).
+ * Use cases for user management (inbound port).
  */
 public interface UserService {
 
     User create(String username, String email, String rawPassword, Set<Long> roleIds);
 
     /**
-     * Alta pública: el usuario recibe siempre el rol USER. El nombre y los apellidos no se guardan aquí: viajan
-     * en el evento para que customer-service cree el perfil de cliente.
+     * Public sign-up: the user always gets the USER role. The first and last names are not stored here: they travel
+     * in the event so that customer-service creates the customer profile.
      */
     User register(String username, String email, String rawPassword, String firstName, String lastName);
 
@@ -26,21 +26,21 @@ public interface UserService {
 
     PageResult<User> findAll(List<FilterCriterion> filters, PageQuery pageQuery, boolean includeInactive);
 
-    /** Actualiza el email y el estado; {@code version} es la que leyó el cliente (bloqueo optimista). */
+    /** Updates the email and status; {@code version} is the one the client read (optimistic locking). */
     User update(Long id, String email, boolean enabled, Long version);
 
-    /** Borrado lógico. */
+    /** Soft delete. */
     void delete(Long id);
 
     User assignRole(Long userId, Long roleId);
 
     User removeRole(Long userId, Long roleId);
 
-    /** Desbloqueo manual de una cuenta bloqueada por intentos fallidos. */
+    /** Manual unlock of an account locked by failed attempts. */
     User unlock(Long id);
 
     /**
-     * Cambio de contraseña del propio usuario: exige la actual e impide reutilizar las últimas.
+     * A user changing their own password: requires the current one and prevents reusing the latest ones.
      */
     void changePassword(String username, String currentPassword, String newPassword);
 }

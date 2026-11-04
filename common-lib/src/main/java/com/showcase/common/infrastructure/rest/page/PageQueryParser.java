@@ -9,9 +9,8 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 /**
- * Construye el {@link PageQuery} a partir de los parámetros de la URL y valida que el campo de
- * ordenación esté en la lista blanca del recurso. Así un {@code sort} inventado devuelve 400 en vez
- * de llegar a la base de datos.
+ * Builds the {@link PageQuery} from the URL parameters and validates that the sort field is on the
+ * resource's whitelist. This way an invented {@code sort} returns 400 instead of reaching the database.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class PageQueryParser {

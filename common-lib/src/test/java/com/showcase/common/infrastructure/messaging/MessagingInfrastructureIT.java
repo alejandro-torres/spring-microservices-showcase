@@ -41,8 +41,8 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Outbox, idempotencia y DLQ contra PostgreSQL y RabbitMQ reales. El publicador programado se retrasa una hora
- * para llamarlo a mano y que los tests sean deterministas.
+ * Outbox, idempotency and DLQ against real PostgreSQL and RabbitMQ. The scheduled publisher is delayed by an hour
+ * so it can be called by hand and the tests are deterministic.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = {
         "spring.sql.init.mode=always",
@@ -117,8 +117,9 @@ class MessagingInfrastructureIT {
     @BeforeEach
     void cleanUp() {
         jdbcClient.sql("TRUNCATE outbox_event, processed_event").update();
-        // Se libera el lock en lugar de borrar la fila: ShedLock recuerda las filas que ya ha creado y después
-        // solo hace UPDATE; sin la fila, creería que otra réplica tiene el lock.
+        // The lock is released rather than deleting the row: ShedLock remembers the rows it has already created and
+        // then
+        // only does an UPDATE; without the row, it would think another replica holds the lock.
         jdbcClient.sql("UPDATE shedlock SET lock_until = timezone('utc', now()) - interval '1 second'").update();
         amqpAdmin.purgeQueue(QUEUE, false);
         amqpAdmin.purgeQueue(DLQ, false);
@@ -129,14 +130,14 @@ class MessagingInfrastructureIT {
     class Outbox {
 
         @Test
-        @DisplayName("no se puede guardar un evento sin una transacción abierta (MANDATORY)")
+        @DisplayName("an event cannot be saved without an open transaction (MANDATORY)")
         void append_withoutTransaction_shouldFail() {
             assertThatThrownBy(() -> writer.append("Thing", 1L, "thing.happened", new ThingHappened(1L),
                     Instant.now())).isInstanceOf(IllegalTransactionStateException.class);
         }
 
         @Test
-        @DisplayName("la métrica outbox.events cuenta los eventos pendientes y deja de contarlos al enviarlos")
+        @DisplayName("the outbox.events metric counts pending events and stops counting them once sent")
         void outboxMetrics_shouldCountPendingEvents() {
             // given
             var registry = new SimpleMeterRegistry();
@@ -151,7 +152,7 @@ class MessagingInfrastructureIT {
         }
 
         @Test
-        @DisplayName("si la transacción hace rollback, el evento tampoco se guarda")
+        @DisplayName("if the transaction rolls back, the event is not saved either")
         void append_whenTransactionRollsBack_shouldNotKeepEvent() {
             // when
             transactionTemplate.executeWithoutResult(status -> {
@@ -164,7 +165,7 @@ class MessagingInfrastructureIT {
         }
 
         @Test
-        @DisplayName("publica el sobre en el exchange del servicio y marca el evento como SENT tras el confirm")
+        @DisplayName("publishes the envelope to the service's exchange and marks the event as SENT after the confirm")
         void publishPending_withRoutableEvent_shouldSendAndMarkSent() {
             // given
             UUID eventId = transactionTemplate.execute(status -> writer.append("Thing", 7L, "thing.happened",
@@ -187,7 +188,7 @@ class MessagingInfrastructureIT {
         }
 
         @Test
-        @DisplayName("un evento sin cola de destino se reintenta y, al llegar al máximo, queda UNROUTED")
+        @DisplayName("an event with no destination queue is retried and, on reaching the maximum, stays UNROUTED")
         void publishPending_withUnroutableEvent_shouldEndUnrouted() {
             // given
             transactionTemplate.executeWithoutResult(status -> writer.append("Thing", 8L, "thing.ignored",
@@ -210,11 +211,11 @@ class MessagingInfrastructureIT {
     }
 
     @Nested
-    @DisplayName("ShedLock con varias réplicas")
+    @DisplayName("ShedLock with several replicas")
     class SchedulerLocks {
 
         @Test
-        @DisplayName("el publicador del outbox coge el lock outboxPublisher en la tabla shedlock")
+        @DisplayName("the outbox publisher takes the outboxPublisher lock in the shedlock table")
         void publishPending_shouldTakeSchedulerLock() {
             // given
             LocalDateTime before = jdbcClient.sql("SELECT timezone('utc', now())")
@@ -223,16 +224,16 @@ class MessagingInfrastructureIT {
             // when
             publisher.publishPending();
 
-            // then: la fila del lock se ha actualizado en esta ejecución
+            // then: the lock row has been updated on this run
             LocalDateTime lockedAt = jdbcClient.sql("SELECT locked_at FROM shedlock WHERE name = 'outboxPublisher'")
                     .query(LocalDateTime.class).single();
             assertThat(lockedAt).isAfterOrEqualTo(before);
         }
 
         @Test
-        @DisplayName("si otra réplica tiene el lock, esta no publica nada en esa ejecución")
+        @DisplayName("if another replica holds the lock, this one publishes nothing on that run")
         void publishPending_whileOtherReplicaHoldsLock_shouldSkip() {
-            // given: otra réplica tiene el lock durante un minuto
+            // given: another replica holds the lock for a minute
             jdbcClient.sql("""
                     INSERT INTO shedlock (name, lock_until, locked_at, locked_by)
                     VALUES ('outboxPublisher', timezone('utc', now()) + interval '1 minute', timezone('utc', now()),
@@ -249,7 +250,7 @@ class MessagingInfrastructureIT {
         }
 
         @Test
-        @DisplayName("la limpieza borra los eventos procesados más antiguos que la retención")
+        @DisplayName("the cleanup deletes processed events older than the retention")
         void cleanup_shouldDeleteOnlyOldProcessedEvents() {
             // given
             UUID oldEvent = UUID.randomUUID();
@@ -270,11 +271,11 @@ class MessagingInfrastructureIT {
     }
 
     @Nested
-    @DisplayName("eventos procesados")
+    @DisplayName("processed events")
     class ProcessedEvents {
 
         @Test
-        @DisplayName("registra un evento nuevo e ignora el duplicado")
+        @DisplayName("registers a new event and ignores the duplicate")
         void registerIfAbsent_withDuplicate_shouldReturnFalse() {
             // given
             UUID eventId = UUID.randomUUID();
@@ -289,7 +290,7 @@ class MessagingInfrastructureIT {
         }
 
         @Test
-        @DisplayName("exige una transacción abierta (MANDATORY)")
+        @DisplayName("requires an open transaction (MANDATORY)")
         void registerIfAbsent_withoutTransaction_shouldFail() {
             assertThatThrownBy(() -> registry.registerIfAbsent(UUID.randomUUID(), "thing.happened"))
                     .isInstanceOf(IllegalTransactionStateException.class);
@@ -297,7 +298,7 @@ class MessagingInfrastructureIT {
     }
 
     @Nested
-    @DisplayName("administración de la DLQ")
+    @DisplayName("DLQ administration")
     class DeadLetters {
 
         private DeadLetterQueueAdmin admin;
@@ -311,7 +312,7 @@ class MessagingInfrastructureIT {
         }
 
         @Test
-        @DisplayName("consulta los mensajes sin sacarlos de la DLQ")
+        @DisplayName("views the messages without taking them out of the DLQ")
         void peek_shouldNotRemoveMessages() {
             // when
             var messages = admin.peek(DLQ, 10);
@@ -330,7 +331,7 @@ class MessagingInfrastructureIT {
         }
 
         @Test
-        @DisplayName("reenvía los mensajes a su cola original")
+        @DisplayName("re-sends the messages to their original queue")
         void replay_shouldMoveMessagesToSourceQueue() {
             // when
             int replayed = admin.replay(DLQ, 10);
@@ -344,7 +345,7 @@ class MessagingInfrastructureIT {
         }
 
         @Test
-        @DisplayName("una DLQ que no es de este servicio no existe (404)")
+        @DisplayName("a DLQ that does not belong to this service does not exist (404)")
         void peek_withUnknownQueue_shouldThrowNotFound() {
             assertThatThrownBy(() -> admin.peek("other.queue.dlq", 10))
                     .isInstanceOf(ResourceNotFoundException.class);

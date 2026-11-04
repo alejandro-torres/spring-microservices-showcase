@@ -13,7 +13,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
- * Obtiene IP, user-agent, traceId y usuario autenticado de la petición HTTP en curso.
+ * Gets the IP, user-agent, traceId and authenticated user from the current HTTP request.
  */
 @Component
 public class ServletRequestMetadataProviderImpl implements RequestMetadataProvider {
@@ -32,7 +32,7 @@ public class ServletRequestMetadataProviderImpl implements RequestMetadataProvid
                 MDC.get(TRACE_ID_KEY), actor);
     }
 
-    // Detrás del gateway la IP real llega en X-Forwarded-For (la primera de la lista es la del cliente).
+    // Behind the gateway the real IP arrives in X-Forwarded-For (the first in the list is the client's).
     private static String clientIp(HttpServletRequest request) {
         String forwarded = request.getHeader(FORWARDED_FOR);
         if (forwarded != null && !forwarded.isBlank()) {

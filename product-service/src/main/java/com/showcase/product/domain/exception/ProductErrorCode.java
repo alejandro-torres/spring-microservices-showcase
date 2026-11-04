@@ -4,7 +4,7 @@ import com.showcase.common.domain.exception.ErrorCategory;
 import com.showcase.common.domain.exception.ErrorCode;
 
 /**
- * Códigos de error propios de product-service.
+ * Error codes specific to product-service.
  */
 public enum ProductErrorCode implements ErrorCode {
 

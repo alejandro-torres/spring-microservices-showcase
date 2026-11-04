@@ -9,7 +9,7 @@ import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
-/** El stock no se cambia aquí: tiene su propio endpoint de ajuste. */
+/** The stock is not changed here: it has its own adjustment endpoint. */
 public record UpdateProductRequestDTO(
         @NotBlank @Size(min = 2, max = 120) String name,
         @Size(max = 1000) String description,

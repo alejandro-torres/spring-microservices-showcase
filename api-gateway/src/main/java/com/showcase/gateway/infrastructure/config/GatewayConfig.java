@@ -7,7 +7,7 @@ import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** Beans de common-lib que en los servicios MVC crea su autoconfiguración y que el gateway (WebFlux) necesita. */
+/** common-lib beans that its auto-configuration creates in MVC services and that the gateway (WebFlux) needs. */
 @Configuration(proxyBeanMethods = false)
 public class GatewayConfig {
 
@@ -17,7 +17,7 @@ public class GatewayConfig {
         return Clock.systemUTC();
     }
 
-    /** Mensajes de error comunes de common-lib en español e inglés. */
+    /** common-lib's common error messages in English and Spanish. */
     @Bean
     public ErrorMessageResolver errorMessageResolver(MessageSource messageSource) {
         return new ErrorMessageResolver(messageSource);

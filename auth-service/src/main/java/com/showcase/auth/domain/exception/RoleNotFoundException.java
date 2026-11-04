@@ -3,7 +3,7 @@ package com.showcase.auth.domain.exception;
 import com.showcase.common.domain.exception.ResourceNotFoundException;
 
 /**
- * No existe un rol activo con el id indicado.
+ * There is no active role with the given id.
  */
 public class RoleNotFoundException extends ResourceNotFoundException {
 

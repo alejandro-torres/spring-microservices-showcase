@@ -9,9 +9,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Contraseña segura: entre 8 y 72 caracteres (límite de BCrypt), sin espacios, con al menos una mayúscula,
- * una minúscula, un número y un símbolo. El mensaje traducido está en {@code messages*.properties}
- * con la clave {@code StrongPassword}.
+ * Strong password: between 8 and 72 characters (BCrypt limit), no spaces, with at least one uppercase letter,
+ * one lowercase letter, one number and one symbol. The translated message is in {@code messages*.properties}
+ * under the {@code StrongPassword} key.
  */
 @Documented
 @Constraint(validatedBy = StrongPasswordValidator.class)

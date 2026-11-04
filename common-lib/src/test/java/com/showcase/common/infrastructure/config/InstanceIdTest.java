@@ -22,7 +22,7 @@ class InstanceIdTest {
         private final InstanceIdEnvironmentPostProcessor postProcessor = new InstanceIdEnvironmentPostProcessor();
 
         @Test
-        @DisplayName("define un instance-id con el nombre del servicio que no cambia al leerlo varias veces")
+        @DisplayName("defines an instance-id with the service name that does not change when read several times")
         void postProcess_shouldDefineStableInstanceId() {
             // given
             var environment = new MockEnvironment().withProperty("spring.application.name", "order-service");
@@ -37,7 +37,7 @@ class InstanceIdTest {
         }
 
         @Test
-        @DisplayName("respeta un instance-id configurado explícitamente")
+        @DisplayName("respects an explicitly configured instance-id")
         void postProcess_withExplicitInstanceId_shouldKeepIt() {
             // given
             var environment = new MockEnvironment();
@@ -57,7 +57,7 @@ class InstanceIdTest {
     class Filter {
 
         @Test
-        @DisplayName("añade la cabecera X-Instance-Id a la respuesta")
+        @DisplayName("adds the X-Instance-Id header to the response")
         void doFilter_shouldAddHeader() throws Exception {
             // given
             var response = new MockHttpServletResponse();

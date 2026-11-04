@@ -7,8 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 /**
- * En los listados las líneas se cargan por lotes ({@code default_batch_fetch_size}): un fetch join de una
- * colección con paginación obligaría a Hibernate a paginar en memoria.
+ * In listings the lines are loaded in batches ({@code default_batch_fetch_size}): a fetch join of a
+ * collection with pagination would force Hibernate to paginate in memory.
  */
 public interface OrderJpaRepository extends JpaRepository<OrderEntity, Long>, JpaSpecificationExecutor<OrderEntity> {
 

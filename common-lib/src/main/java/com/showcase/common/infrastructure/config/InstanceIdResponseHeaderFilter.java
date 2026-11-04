@@ -9,8 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Añade a todas las respuestas la cabecera {@code X-Instance-Id} con la réplica que ha atendido la petición
- * (también a los errores). Sirve para ver cómo reparten el tráfico el gateway y el balanceador.
+ * Adds to every response the {@code X-Instance-Id} header with the replica that served the request
+ * (errors too). It shows how the gateway and the load balancer distribute the traffic.
  */
 @RequiredArgsConstructor
 public class InstanceIdResponseHeaderFilter extends OncePerRequestFilter {

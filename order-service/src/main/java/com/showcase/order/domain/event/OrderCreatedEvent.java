@@ -4,7 +4,7 @@ import com.showcase.order.domain.model.Order;
 import java.time.Instant;
 import java.util.List;
 
-/** Se ha creado un pedido PENDING: empieza la saga de reserva de stock. */
+/** A PENDING order has been created: the stock reservation saga starts. */
 public record OrderCreatedEvent(Long orderId, Long customerId, List<OrderEventLine> lines, Instant occurredAt) {
 
     public OrderCreatedEvent {

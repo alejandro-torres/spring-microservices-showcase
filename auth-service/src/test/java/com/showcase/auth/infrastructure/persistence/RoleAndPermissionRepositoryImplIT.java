@@ -33,11 +33,11 @@ class RoleAndPermissionRepositoryImplIT extends AbstractPersistenceIT {
     }
 
     @Nested
-    @DisplayName("permisos")
+    @DisplayName("permissions")
     class Permissions {
 
         @Test
-        @DisplayName("la migración crea los 12 permisos base y se pueden filtrar por prefijo")
+        @DisplayName("the migration creates the 12 base permissions and they can be filtered by prefix")
         void baseData_shouldContainPermissions() {
             assertThat(permissionRepository.findAll(List.of(), new PageQuery(0, 100, "id", SortDirection.ASC), false)
                     .totalElements()).isEqualTo(12);
@@ -45,10 +45,10 @@ class RoleAndPermissionRepositoryImplIT extends AbstractPersistenceIT {
         }
 
         @Test
-        @DisplayName("guarda, actualiza la descripción y busca por ids ignorando los inactivos")
+        @DisplayName("saves, updates the description and looks up by ids ignoring inactive ones")
         void saveUpdateAndFindAllById_shouldWork() {
-            var created = permissionRepository.save(Permission.create("report:read", "Ver informes"));
-            created.updateDescription("Consultar informes");
+            var created = permissionRepository.save(Permission.create("report:read", "View reports"));
+            created.updateDescription("Read reports");
             var updated = permissionRepository.save(created);
             var inactive = permissionRepository.save(Permission.create("report:write", null));
             inactive.deactivate();
@@ -66,10 +66,10 @@ class RoleAndPermissionRepositoryImplIT extends AbstractPersistenceIT {
     class Roles {
 
         @Test
-        @DisplayName("guarda un rol con permisos y filtra roles por permiso")
+        @DisplayName("saves a role with permissions and filters roles by permission")
         void saveAndFilterByPermission_shouldWork() {
             // given
-            var support = roleRepository.save(Role.create("SUPPORT", "Soporte", new HashSet<>(permissions("customer:"))));
+            var support = roleRepository.save(Role.create("SUPPORT", "Support", new HashSet<>(permissions("customer:"))));
 
             // when
             var withCustomerWrite = roleRepository.findAll(
@@ -82,11 +82,11 @@ class RoleAndPermissionRepositoryImplIT extends AbstractPersistenceIT {
         }
 
         @Test
-        @DisplayName("actualiza los permisos de un rol e incrementa la versión")
+        @DisplayName("updates a role's permissions and increments the version")
         void update_shouldReplacePermissions() {
             var support = roleRepository.save(Role.create("SUPPORT", null, new HashSet<>(permissions("customer:"))));
 
-            support.update("Soporte de pedidos", new HashSet<>(permissions("order:")));
+            support.update("Order support", new HashSet<>(permissions("order:")));
             var updated = roleRepository.save(support);
 
             assertThat(updated.getVersion()).isEqualTo(1L);
@@ -94,14 +94,14 @@ class RoleAndPermissionRepositoryImplIT extends AbstractPersistenceIT {
         }
 
         @Test
-        @DisplayName("cuenta los roles activos que incluyen un permiso")
+        @DisplayName("counts the active roles that include a permission")
         void countActiveByPermissionId_shouldCountActiveRoles() {
             var orderRead = permissions("order:read").getFirst();
             var support = roleRepository.save(Role.create("SUPPORT", null, Set.of(orderRead)));
             support.deactivate();
             roleRepository.save(support);
 
-            // ADMIN y USER lo tienen; SUPPORT está borrado
+            // ADMIN and USER have it; SUPPORT is deleted
             assertThat(roleRepository.countActiveByPermissionId(orderRead.getId())).isEqualTo(2);
         }
     }

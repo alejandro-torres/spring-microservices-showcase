@@ -28,20 +28,20 @@ class BearerTokenRelayInterceptorTest {
     class Apply {
 
         @Test
-        @DisplayName("reenvía el JWT del usuario en la cabecera Authorization")
+        @DisplayName("forwards the user's JWT in the Authorization header")
         void apply_withJwt_shouldAddBearerHeader() {
-            var jwt = Jwt.withTokenValue("token-del-usuario").header("alg", "RS256").subject("ana")
+            var jwt = Jwt.withTokenValue("user-token").header("alg", "RS256").subject("ana")
                     .issuedAt(Instant.now()).expiresAt(Instant.now().plusSeconds(60)).build();
             SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
             var template = new RequestTemplate();
 
             interceptor.apply(template);
 
-            assertThat(template.headers().get(HttpHeaders.AUTHORIZATION)).containsExactly("Bearer token-del-usuario");
+            assertThat(template.headers().get(HttpHeaders.AUTHORIZATION)).containsExactly("Bearer user-token");
         }
 
         @Test
-        @DisplayName("no añade nada si no hay un JWT en el contexto")
+        @DisplayName("adds nothing if there is no JWT in the context")
         void apply_withoutJwt_shouldNotAddHeader() {
             SecurityContextHolder.getContext().setAuthentication(
                     UsernamePasswordAuthenticationToken.authenticated("ana", null, java.util.List.of()));

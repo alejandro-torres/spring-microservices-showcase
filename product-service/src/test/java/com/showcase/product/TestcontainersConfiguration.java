@@ -11,8 +11,8 @@ import org.testcontainers.rabbitmq.RabbitMQContainer;
 import org.testcontainers.utility.DockerImageName;
 
 /**
- * Contenedores de Docker para los tests de integración (PostgreSQL, RabbitMQ y Redis) y para arrancar el servicio
- * en local sin instalar nada ({@link TestProductServiceApplication}).
+ * Docker containers for the integration tests (PostgreSQL, RabbitMQ and Redis) and to start the service
+ * locally without installing anything ({@link TestProductServiceApplication}).
  */
 @TestConfiguration(proxyBeanMethods = false)
 public class TestcontainersConfiguration {
@@ -24,8 +24,8 @@ public class TestcontainersConfiguration {
     }
 
     /**
-     * Solo en los tests de integración. Al arrancar el servicio en local se usa el RabbitMQ compartido de
-     * localhost:5672 ({@link TestProductServiceApplication}), para que los servicios se comuniquen entre sí.
+     * Integration tests only. When starting the service locally, the shared RabbitMQ on
+     * localhost:5672 is used ({@link TestProductServiceApplication}), so the services can talk to each other.
      */
     @Bean
     @ServiceConnection
@@ -34,15 +34,15 @@ public class TestcontainersConfiguration {
         return new RabbitMQContainer("rabbitmq:3-management");
     }
 
-    /** Redis para los locks distribuidos de Redisson. */
+    /** Redis for Redisson's distributed locks. */
     @Bean
     GenericContainer<?> redisContainer() {
         return new GenericContainer<>(DockerImageName.parse("redis:7-alpine")).withExposedPorts(6379);
     }
 
     /**
-     * product-service no usa Spring Data Redis, así que {@code @ServiceConnection} no le serviría: Redisson lee
-     * {@code spring.data.redis.host} y {@code port}, que se apuntan aquí al contenedor.
+     * product-service does not use Spring Data Redis, so {@code @ServiceConnection} would be of no use: Redisson reads
+     * {@code spring.data.redis.host} and {@code port}, which point to the container here.
      */
     @Bean
     DynamicPropertyRegistrar redisProperties(GenericContainer<?> redisContainer) {

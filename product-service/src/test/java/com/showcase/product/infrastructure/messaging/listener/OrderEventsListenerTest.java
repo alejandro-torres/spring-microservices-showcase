@@ -37,11 +37,11 @@ class OrderEventsListenerTest {
     }
 
     @Nested
-    @DisplayName("mensajes de order-service")
+    @DisplayName("order-service messages")
     class Messages {
 
         @Test
-        @DisplayName("order.created reserva el stock de sus líneas")
+        @DisplayName("order.created reserves the stock of its lines")
         void onOrderCreated_shouldReserve() {
             listener.onOrderCreated(envelope("order.created", new OrderCreatedMessageDTO(7L, 3L, LINES)));
 
@@ -49,7 +49,7 @@ class OrderEventsListenerTest {
         }
 
         @Test
-        @DisplayName("order.cancelled devuelve el stock de sus líneas")
+        @DisplayName("order.cancelled returns the stock of its lines")
         void onOrderCancelled_shouldRelease() {
             listener.onOrderCancelled(envelope("order.cancelled", new OrderCancelledMessageDTO(7L, LINES)));
 

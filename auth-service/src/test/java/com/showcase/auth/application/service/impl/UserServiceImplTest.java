@@ -98,33 +98,33 @@ class UserServiceImplTest {
     class Create {
 
         @Test
-        @DisplayName("normaliza los datos, cifra la contraseña y guarda el usuario con sus roles")
+        @DisplayName("normalizes the data, hashes the password and saves the user with their roles")
         void create_shouldHashPasswordAndSave() {
             // given
             given(roleRepository.findAllById(Set.of(2L))).willReturn(List.of(userRole()));
-            given(passwordHasher.hash("Secreta-123")).willReturn("{bcrypt}cifrada");
+            given(passwordHasher.hash("Secret-123")).willReturn("{bcrypt}hashed");
             givenSaveReturnsArgument();
 
             // when
-            var created = userService.create(" Ana ", "ANA@example.com", "Secreta-123", Set.of(2L));
+            var created = userService.create(" Ana ", "ANA@example.com", "Secret-123", Set.of(2L));
 
             // then
             verify(userRepository).save(userCaptor.capture());
             var saved = userCaptor.getValue();
             assertThat(saved.getUsername()).isEqualTo("ana");
             assertThat(saved.getEmail()).isEqualTo("ana@example.com");
-            assertThat(saved.getPasswordHash()).isEqualTo("{bcrypt}cifrada");
+            assertThat(saved.getPasswordHash()).isEqualTo("{bcrypt}hashed");
             assertThat(saved.getRoles()).extracting(Role::getName).containsExactly("USER");
             assertThat(created).isSameAs(saved);
-            verify(passwordHistoryRepository).save(null, "{bcrypt}cifrada", NOW);
+            verify(passwordHistoryRepository).save(null, "{bcrypt}hashed", NOW);
         }
 
         @Test
-        @DisplayName("rechaza un username ya existente sin cifrar ni guardar nada")
+        @DisplayName("rejects an existing username without hashing or saving anything")
         void create_withExistingUsername_shouldThrow() {
             given(userRepository.existsByUsername("ana")).willReturn(true);
 
-            assertThatThrownBy(() -> userService.create("ana", "ana@example.com", "Secreta-123", Set.of()))
+            assertThatThrownBy(() -> userService.create("ana", "ana@example.com", "Secret-123", Set.of()))
                     .isInstanceOf(UsernameAlreadyExistsException.class)
                     .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.USERNAME_ALREADY_EXISTS);
             verify(passwordHasher, never()).hash(anyString());
@@ -132,33 +132,33 @@ class UserServiceImplTest {
         }
 
         @Test
-        @DisplayName("rechaza un email ya existente")
+        @DisplayName("rejects an existing email")
         void create_withExistingEmail_shouldThrow() {
             given(userRepository.existsByEmail("ana@example.com")).willReturn(true);
 
-            assertThatThrownBy(() -> userService.create("ana", "ana@example.com", "Secreta-123", Set.of()))
+            assertThatThrownBy(() -> userService.create("ana", "ana@example.com", "Secret-123", Set.of()))
                     .isInstanceOf(EmailAlreadyExistsException.class);
             verify(userRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("rechaza roles inexistentes indicando cuáles faltan")
+        @DisplayName("rejects missing roles, stating which are missing")
         void create_withMissingRoles_shouldThrowWithMissingIds() {
             given(roleRepository.findAllById(Set.of(2L, 7L, 9L))).willReturn(List.of(userRole()));
 
-            assertThatThrownBy(() -> userService.create("ana", "ana@example.com", "Secreta-123", Set.of(2L, 7L, 9L)))
+            assertThatThrownBy(() -> userService.create("ana", "ana@example.com", "Secret-123", Set.of(2L, 7L, 9L)))
                     .isInstanceOf(RoleNotFoundException.class)
                     .satisfies(e -> assertThat(((RoleNotFoundException) e).getArgs()).containsExactly("7, 9"));
             verify(userRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("permite crear un usuario sin roles")
+        @DisplayName("allows creating a user without roles")
         void create_withoutRoles_shouldNotQueryRoles() {
-            given(passwordHasher.hash(anyString())).willReturn("{bcrypt}cifrada");
+            given(passwordHasher.hash(anyString())).willReturn("{bcrypt}hashed");
             givenSaveReturnsArgument();
 
-            var created = userService.create("ana", "ana@example.com", "Secreta-123", null);
+            var created = userService.create("ana", "ana@example.com", "Secret-123", null);
 
             assertThat(created.getRoles()).isEmpty();
             verify(roleRepository, never()).findAllById(any());
@@ -170,58 +170,58 @@ class UserServiceImplTest {
     class ChangePassword {
 
         @Test
-        @DisplayName("cifra la nueva contraseña, la guarda en el historial y lo audita")
+        @DisplayName("hashes the new password, stores it in the history and audits it")
         void changePassword_valid_shouldSaveHashAndHistory() {
             var ana = user(10L, "ana");
             given(userRepository.findByUsername("ana")).willReturn(Optional.of(ana));
-            given(passwordHasher.matches("Actual-123", ana.getPasswordHash())).willReturn(true);
+            given(passwordHasher.matches("Current-123", ana.getPasswordHash())).willReturn(true);
             given(passwordHistoryRepository.findRecentHashes(10L, 3)).willReturn(List.of("h1", "h2"));
-            given(passwordHasher.hash("Nueva-456!")).willReturn("{bcrypt}nueva");
+            given(passwordHasher.hash("New-456!")).willReturn("{bcrypt}new");
 
-            userService.changePassword("ana", "Actual-123", "Nueva-456!");
+            userService.changePassword("ana", "Current-123", "New-456!");
 
-            assertThat(ana.getPasswordHash()).isEqualTo("{bcrypt}nueva");
+            assertThat(ana.getPasswordHash()).isEqualTo("{bcrypt}new");
             verify(userRepository).save(ana);
-            verify(passwordHistoryRepository).save(10L, "{bcrypt}nueva", NOW);
+            verify(passwordHistoryRepository).save(10L, "{bcrypt}new", NOW);
             verify(auditService).record(SecurityEventType.PASSWORD_CHANGED, "ana", null);
             verify(tokenRevocationService).revokeAllForUser("ana", "password changed");
         }
 
         @Test
-        @DisplayName("rechaza una contraseña actual incorrecta con INVALID_CURRENT_PASSWORD (400)")
+        @DisplayName("rejects a wrong current password with INVALID_CURRENT_PASSWORD (400)")
         void changePassword_wrongCurrent_shouldThrow() {
             given(userRepository.findByUsername("ana")).willReturn(Optional.of(user(10L, "ana")));
 
-            assertThatThrownBy(() -> userService.changePassword("ana", "incorrecta", "Nueva-456!"))
+            assertThatThrownBy(() -> userService.changePassword("ana", "wrong", "New-456!"))
                     .isInstanceOf(com.showcase.common.domain.exception.InvalidRequestException.class)
                     .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.INVALID_CURRENT_PASSWORD);
             verify(userRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("rechaza reutilizar una de las últimas contraseñas con PASSWORD_RECENTLY_USED (422)")
+        @DisplayName("rejects reusing one of the latest passwords with PASSWORD_RECENTLY_USED (422)")
         void changePassword_recentlyUsed_shouldThrow() {
             var ana = user(10L, "ana");
             given(userRepository.findByUsername("ana")).willReturn(Optional.of(ana));
-            given(passwordHasher.matches("Actual-123", ana.getPasswordHash())).willReturn(true);
+            given(passwordHasher.matches("Current-123", ana.getPasswordHash())).willReturn(true);
             given(passwordHasher.matches("Vieja-789!", ana.getPasswordHash())).willReturn(false);
             given(passwordHistoryRepository.findRecentHashes(10L, 3)).willReturn(List.of("h-anterior"));
             given(passwordHasher.matches("Vieja-789!", "h-anterior")).willReturn(true);
 
-            assertThatThrownBy(() -> userService.changePassword("ana", "Actual-123", "Vieja-789!"))
+            assertThatThrownBy(() -> userService.changePassword("ana", "Current-123", "Vieja-789!"))
                     .isInstanceOf(BusinessRuleException.class)
                     .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.PASSWORD_RECENTLY_USED);
             verify(passwordHasher, never()).hash(anyString());
         }
 
         @Test
-        @DisplayName("rechaza repetir la contraseña actual aunque no haya historial")
+        @DisplayName("rejects repeating the current password even with no history")
         void changePassword_sameAsCurrent_shouldThrow() {
             var ana = user(10L, "ana");
             given(userRepository.findByUsername("ana")).willReturn(Optional.of(ana));
-            given(passwordHasher.matches("Actual-123", ana.getPasswordHash())).willReturn(true);
+            given(passwordHasher.matches("Current-123", ana.getPasswordHash())).willReturn(true);
 
-            assertThatThrownBy(() -> userService.changePassword("ana", "Actual-123", "Actual-123"))
+            assertThatThrownBy(() -> userService.changePassword("ana", "Current-123", "Current-123"))
                     .isInstanceOf(BusinessRuleException.class);
         }
     }
@@ -231,47 +231,47 @@ class UserServiceImplTest {
     class Register {
 
         @Test
-        @DisplayName("da de alta al usuario con el rol USER y publica user.registered con su nombre")
+        @DisplayName("registers the user with the USER role and publishes user.registered with their name")
         void register_shouldAssignUserRole() {
             given(roleRepository.findByName("USER")).willReturn(Optional.of(userRole()));
-            given(passwordHasher.hash("Secreta-123")).willReturn("{bcrypt}cifrada");
+            given(passwordHasher.hash("Secret-123")).willReturn("{bcrypt}hashed");
             givenSaveReturnsArgument();
 
-            var registered = userService.register("ana", "ana@example.com", "Secreta-123", "Ana", "García");
+            var registered = userService.register("ana", "ana@example.com", "Secret-123", "Ana", "García");
 
             assertThat(registered.getRoles()).extracting(Role::getName).containsExactly("USER");
-            assertThat(registered.getPasswordHash()).isEqualTo("{bcrypt}cifrada");
+            assertThat(registered.getPasswordHash()).isEqualTo("{bcrypt}hashed");
             verify(eventPublisher).publish(new UserRegisteredEvent(registered.getId(), "ana", "ana@example.com",
                     "Ana", "García", NOW));
             verify(metrics).userRegistered();
         }
 
         @Test
-        @DisplayName("comprueba la unicidad antes de buscar el rol o cifrar la contraseña")
+        @DisplayName("checks uniqueness before looking up the role or hashing the password")
         void register_withExistingUsername_shouldFailFast() {
             given(userRepository.existsByUsername("ana")).willReturn(true);
 
-            assertThatThrownBy(() -> userService.register("ana", "ana@example.com", "Secreta-123", "Ana", "García"))
+            assertThatThrownBy(() -> userService.register("ana", "ana@example.com", "Secret-123", "Ana", "García"))
                     .isInstanceOf(UsernameAlreadyExistsException.class);
             verify(roleRepository, never()).findByName(anyString());
             verify(passwordHasher, never()).hash(anyString());
         }
 
         @Test
-        @DisplayName("falla con ROLE_NOT_FOUND si el rol USER no existe")
+        @DisplayName("fails with ROLE_NOT_FOUND if the USER role does not exist")
         void register_withoutDefaultRole_shouldThrow() {
-            assertThatThrownBy(() -> userService.register("ana", "ana@example.com", "Secreta-123", "Ana", "García"))
+            assertThatThrownBy(() -> userService.register("ana", "ana@example.com", "Secret-123", "Ana", "García"))
                     .isInstanceOf(RoleNotFoundException.class);
             verify(userRepository, never()).save(any());
         }
     }
 
     @Nested
-    @DisplayName("findById y findAll")
+    @DisplayName("findById and findAll")
     class Find {
 
         @Test
-        @DisplayName("findByUsername normaliza el username y lanza USER_NOT_FOUND si no existe")
+        @DisplayName("findByUsername normalizes the username and throws USER_NOT_FOUND if it does not exist")
         void findByUsername_shouldNormalizeOrThrow() {
             var ana = user(10L, "ana");
             given(userRepository.findByUsername("ana")).willReturn(Optional.of(ana));
@@ -281,7 +281,7 @@ class UserServiceImplTest {
         }
 
         @Test
-        @DisplayName("devuelve el usuario o lanza USER_NOT_FOUND")
+        @DisplayName("returns the user or throws USER_NOT_FOUND")
         void findById_shouldReturnOrThrow() {
             var ana = user(10L, "ana");
             given(userRepository.findById(10L)).willReturn(Optional.of(ana));
@@ -293,7 +293,7 @@ class UserServiceImplTest {
         }
 
         @Test
-        @DisplayName("pasa los filtros y la paginación tal cual al repositorio")
+        @DisplayName("passes the filters and pagination as they are to the repository")
         void findAll_shouldDelegateToRepository() {
             var filters = List.of(FilterCriterion.of("role", FilterOperator.EQ, "ADMIN"));
             var query = PageQuery.firstPage();
@@ -309,30 +309,30 @@ class UserServiceImplTest {
     class Update {
 
         @Test
-        @DisplayName("actualiza email y estado cuando la versión coincide")
+        @DisplayName("updates email and status when the version matches")
         void update_withCurrentVersion_shouldSave() {
             given(userRepository.findById(10L)).willReturn(Optional.of(user(10L, "ana")));
             givenSaveReturnsArgument();
 
-            var updated = userService.update(10L, "Nueva@Example.com", false, 0L);
+            var updated = userService.update(10L, "New@Example.com", false, 0L);
 
-            assertThat(updated.getEmail()).isEqualTo("nueva@example.com");
+            assertThat(updated.getEmail()).isEqualTo("new@example.com");
             assertThat(updated.isEnabled()).isFalse();
         }
 
         @Test
-        @DisplayName("rechaza una versión desactualizada con CONCURRENT_MODIFICATION y no guarda")
+        @DisplayName("rejects a stale version with CONCURRENT_MODIFICATION and does not save")
         void update_withStaleVersion_shouldThrowConflict() {
             given(userRepository.findById(10L)).willReturn(Optional.of(user(10L, "ana")));
 
-            assertThatThrownBy(() -> userService.update(10L, "nueva@example.com", true, 3L))
+            assertThatThrownBy(() -> userService.update(10L, "new@example.com", true, 3L))
                     .isInstanceOf(ConflictException.class)
                     .hasFieldOrPropertyWithValue("errorCode", CommonErrorCode.CONCURRENT_MODIFICATION);
             verify(userRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("rechaza un email que ya usa otro usuario")
+        @DisplayName("rejects an email another user already uses")
         void update_withEmailOfAnotherUser_shouldThrow() {
             given(userRepository.findById(10L)).willReturn(Optional.of(user(10L, "ana")));
             given(userRepository.existsByEmailAndIdNot("bea@example.com", 10L)).willReturn(true);
@@ -347,7 +347,7 @@ class UserServiceImplTest {
     class Delete {
 
         @Test
-        @DisplayName("hace un borrado lógico: desactiva y deshabilita el usuario")
+        @DisplayName("does a soft delete: deactivates and disables the user")
         void delete_shouldDeactivate() {
             given(userRepository.findById(10L)).willReturn(Optional.of(user(10L, "ana")));
 
@@ -362,7 +362,7 @@ class UserServiceImplTest {
         }
 
         @Test
-        @DisplayName("audita la desactivación al poner enabled = false y publica user.disabled")
+        @DisplayName("audits the deactivation when setting enabled = false and publishes user.disabled")
         void update_disablingUser_shouldAudit() {
             given(userRepository.findById(10L)).willReturn(Optional.of(user(10L, "ana")));
             givenSaveReturnsArgument();
@@ -374,7 +374,7 @@ class UserServiceImplTest {
         }
 
         @Test
-        @DisplayName("lanza USER_NOT_FOUND si el usuario no existe o ya está borrado")
+        @DisplayName("throws USER_NOT_FOUND if the user does not exist or is already deleted")
         void delete_missingUser_shouldThrow() {
             assertThatThrownBy(() -> userService.delete(10L)).isInstanceOf(UserNotFoundException.class);
             verify(userRepository, never()).save(any());
@@ -382,11 +382,11 @@ class UserServiceImplTest {
     }
 
     @Nested
-    @DisplayName("assignRole y removeRole")
+    @DisplayName("assignRole and removeRole")
     class RolesManagement {
 
         @Test
-        @DisplayName("asigna un rol existente")
+        @DisplayName("assigns an existing role")
         void assignRole_shouldAddRole() {
             given(userRepository.findById(10L)).willReturn(Optional.of(user(10L, "ana", userRole())));
             given(roleRepository.findById(1L)).willReturn(Optional.of(adminRole()));
@@ -399,7 +399,7 @@ class UserServiceImplTest {
         }
 
         @Test
-        @DisplayName("lanza ROLE_NOT_FOUND si el rol no existe")
+        @DisplayName("throws ROLE_NOT_FOUND if the role does not exist")
         void assignRole_missingRole_shouldThrow() {
             given(userRepository.findById(10L)).willReturn(Optional.of(user(10L, "ana")));
 
@@ -407,7 +407,7 @@ class UserServiceImplTest {
         }
 
         @Test
-        @DisplayName("quita un rol asignado y rechaza quitar uno que no tiene")
+        @DisplayName("removes an assigned role and rejects removing one the user does not have")
         void removeRole_shouldRemoveOrThrow() {
             given(userRepository.findById(10L)).willReturn(Optional.of(user(10L, "ana", userRole(), adminRole())));
             givenSaveReturnsArgument();

@@ -9,16 +9,16 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Puerto de salida para persistir permisos.
+ * Outbound port to persist permissions.
  */
 public interface PermissionRepository {
 
     Permission save(Permission permission);
 
-    /** Solo permisos activos. */
+    /** Active permissions only. */
     Optional<Permission> findById(Long id);
 
-    /** Permisos activos con esos ids; los que no existan no aparecen en el resultado. */
+    /** Active permissions with those ids; those that do not exist do not appear in the result. */
     List<Permission> findAllById(Collection<Long> ids);
 
     PageResult<Permission> findAll(List<FilterCriterion> filters, PageQuery pageQuery, boolean includeInactive);

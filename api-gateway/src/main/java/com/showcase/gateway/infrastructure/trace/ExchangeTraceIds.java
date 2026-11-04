@@ -9,9 +9,9 @@ import org.springframework.http.server.reactive.observation.ServerRequestObserva
 import org.springframework.web.server.ServerWebExchange;
 
 /**
- * traceId de la petición en curso. En WebFlux no se puede confiar en un ThreadLocal (la petición cambia de hilo),
- * así que se lee del contexto de la observación HTTP, que Spring guarda en los atributos del exchange. Es el mismo
- * traceId que llega a los servicios en la cabecera {@code traceparent} y el que se busca en Zipkin.
+ * traceId of the current request. In WebFlux a ThreadLocal cannot be trusted (the request changes threads),
+ * so it is read from the HTTP observation's context, which Spring stores in the exchange's attributes. It is the
+ * same traceId that reaches the services in the {@code traceparent} header and the one searched for in Zipkin.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ExchangeTraceIds {

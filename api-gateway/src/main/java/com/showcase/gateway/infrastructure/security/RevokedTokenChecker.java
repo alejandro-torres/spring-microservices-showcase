@@ -8,14 +8,14 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 /**
- * Consulta en Redis la misma lista de tokens revocados que mantiene auth-service (logout, cambio de contraseña,
- * usuario desactivado...). Un token está revocado si:
+ * Checks in Redis the same list of revoked tokens that auth-service maintains (logout, password change,
+ * deactivated user...). A token is revoked if:
  * <ul>
- *   <li>su {@code jti} está en {@code auth:revoked:token:{jti}}, o</li>
- *   <li>se emitió no después del instante guardado en {@code auth:revoked:user:{username}} (revocación de todos
- *       los tokens del usuario).</li>
+ *   <li>its {@code jti} is in {@code auth:revoked:token:{jti}}, or</li>
+ *   <li>it was issued no later than the instant stored in {@code auth:revoked:user:{username}} (revocation of all
+ *       the user's tokens).</li>
  * </ul>
- * Las claves son las de {@code RedisRevokedTokenRepositoryImpl} de auth-service: si cambian allí, cambian aquí.
+ * The keys are those of auth-service's {@code RedisRevokedTokenRepositoryImpl}: if they change there, they change here.
  */
 @Component
 @RequiredArgsConstructor

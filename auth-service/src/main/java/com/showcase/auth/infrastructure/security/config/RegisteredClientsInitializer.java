@@ -16,9 +16,9 @@ import org.springframework.security.oauth2.server.authorization.settings.TokenSe
 import org.springframework.stereotype.Component;
 
 /**
- * Registra al arrancar los clientes OAuth2 de {@code showcase.security.clients} que aún no existen.
- * De los existentes solo se sincronizan las redirect URIs con la configuración (es la que decide a dónde se puede
- * enviar un código de autorización); el resto no se toca, para no pisar cambios hechos en la base de datos.
+ * Registers at startup the OAuth2 clients in {@code showcase.security.clients} that do not exist yet.
+ * For existing ones, only the redirect URIs are synchronized with the configuration (it decides where an
+ * authorization code can be sent); the rest is left alone, so as not to overwrite changes made in the database.
  */
 @Component
 @RequiredArgsConstructor
@@ -40,12 +40,12 @@ public class RegisteredClientsInitializer implements ApplicationRunner {
             }
             boolean confidential = client.grantTypes().contains(AuthorizationGrantType.CLIENT_CREDENTIALS.getValue());
             if (confidential && client.isPublic()) {
-                log.warn("El cliente {} usa client_credentials pero no tiene secreto configurado: no se registra",
+                log.warn("Client {} uses client_credentials but has no secret configured: it is not registered",
                         client.clientId());
                 continue;
             }
             repository.save(toRegisteredClient(client));
-            log.info("Cliente OAuth2 registrado: {}", client.clientId());
+            log.info("OAuth2 client registered: {}", client.clientId());
         }
     }
 
@@ -59,7 +59,7 @@ public class RegisteredClientsInitializer implements ApplicationRunner {
                     uris.addAll(client.redirectUris());
                 })
                 .build());
-        log.info("Redirect URIs del cliente OAuth2 {} actualizadas: {}", client.clientId(), client.redirectUris());
+        log.info("Redirect URIs of OAuth2 client {} updated: {}", client.clientId(), client.redirectUris());
     }
 
     RegisteredClient toRegisteredClient(AuthSecurityProperties.Client client) {
@@ -69,12 +69,12 @@ public class RegisteredClientsInitializer implements ApplicationRunner {
                 .tokenSettings(TokenSettings.builder()
                         .accessTokenTimeToLive(properties.accessTokenTtl())
                         .refreshTokenTimeToLive(properties.refreshTokenTtl())
-                        // Rotación: cada uso del refresh token devuelve uno nuevo e invalida el anterior.
+                        // Rotation: each use of the refresh token returns a new one and invalidates the previous one.
                         .reuseRefreshTokens(false)
                         .build());
 
         if (client.isPublic()) {
-            // Aplicaciones de navegador: sin secreto y con PKCE obligatorio.
+            // Browser applications: no secret and mandatory PKCE.
             builder.clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
                     .clientSettings(ClientSettings.builder().requireProofKey(true).requireAuthorizationConsent(false).build());
         } else {

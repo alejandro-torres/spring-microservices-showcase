@@ -14,8 +14,8 @@ import java.util.Locale;
 import java.util.Objects;
 
 /**
- * Cliente de la tienda con sus direcciones. Siempre tiene como mucho una dirección principal, y si tiene
- * direcciones, exactamente una.
+ * Store customer with their addresses. They always have at most one primary address, and if they have
+ * addresses, exactly one.
  */
 public class Customer extends AuditedModel {
 
@@ -39,7 +39,7 @@ public class Customer extends AuditedModel {
         this.addresses = new ArrayList<>(addresses == null ? List.of() : addresses);
     }
 
-    /** {@code userId} es el usuario de auth-service; puede ser null para clientes dados de alta por un gestor. */
+    /** {@code userId} is the auth-service user; it can be null for customers created by a manager. */
     public static Customer create(Long userId, String firstName, String lastName, String email, String phone) {
         return new Customer(null, userId, required(firstName, "firstName"), required(lastName, "lastName"),
                 normalizeEmail(email), phone, List.of(), true, null, null, null);
@@ -52,7 +52,7 @@ public class Customer extends AuditedModel {
         this.phone = newPhone;
     }
 
-    /** La primera dirección pasa a ser la principal. */
+    /** The first address becomes the primary one. */
     public void addAddress(Address address) {
         if (addresses.size() >= MAX_ADDRESSES) {
             throw new BusinessRuleException(CustomerErrorCode.TOO_MANY_ADDRESSES, MAX_ADDRESSES);
@@ -61,7 +61,7 @@ public class Customer extends AuditedModel {
         addresses.add(address);
     }
 
-    /** Si se borra la principal, la siguiente pasa a serlo. */
+    /** If the primary is deleted, the next one takes over. */
     public void removeAddress(Long addressId) {
         Address address = findAddress(addressId);
         addresses.remove(address);

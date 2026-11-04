@@ -3,7 +3,7 @@ package com.showcase.product.domain.exception;
 import com.showcase.common.domain.exception.ResourceNotFoundException;
 
 /**
- * No existe una categoría activa con el id indicado.
+ * There is no active category with the given id.
  */
 public class CategoryNotFoundException extends ResourceNotFoundException {
 

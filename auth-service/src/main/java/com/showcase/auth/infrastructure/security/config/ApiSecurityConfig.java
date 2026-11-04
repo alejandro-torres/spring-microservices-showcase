@@ -10,8 +10,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * La API REST ({@code /api/**}) funciona como resource server: sin sesión, con un JWT en la cabecera
- * {@code Authorization: Bearer} y permisos comprobados con {@code @PreAuthorize} en los controllers.
+ * The REST API ({@code /api/**}) works as a resource server: no session, with a JWT in the
+ * {@code Authorization: Bearer} header and permissions checked with {@code @PreAuthorize} in the controllers.
  */
 @Configuration(proxyBeanMethods = false)
 @EnableMethodSecurity

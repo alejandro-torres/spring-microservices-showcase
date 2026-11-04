@@ -10,9 +10,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
- * No envía nada a RabbitMQ: guarda el mensaje en el outbox dentro de la transacción en curso
- * ({@code Propagation.MANDATORY}). El envío real lo hace el {@code OutboxPublisher} cuando la transacción se
- * ha confirmado.
+ * Sends nothing to RabbitMQ: it stores the message in the outbox within the current transaction
+ * ({@code Propagation.MANDATORY}). The actual send is done by the {@code OutboxPublisher} once the transaction
+ * has committed.
  */
 @Component
 @RequiredArgsConstructor

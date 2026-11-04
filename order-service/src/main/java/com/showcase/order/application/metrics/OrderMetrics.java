@@ -1,8 +1,8 @@
 package com.showcase.order.application.metrics;
 
 /**
- * Métricas de negocio de los pedidos (puerto de salida). Los {@code *ServiceImpl} solo conocen esta interfaz; la
- * implementación con Micrometer está en la infraestructura y solo cuenta lo que llega a confirmarse.
+ * Business metrics of orders (outbound port). The {@code *ServiceImpl} classes only know this interface; the
+ * Micrometer implementation is in the infrastructure and only counts what actually commits.
  */
 public interface OrderMetrics {
 
@@ -10,7 +10,7 @@ public interface OrderMetrics {
 
     void orderConfirmed();
 
-    /** @param reason motivo del rechazo que da product-service (INSUFFICIENT_STOCK, PRODUCT_NOT_FOUND) */
+    /** @param reason rejection reason given by product-service (INSUFFICIENT_STOCK, PRODUCT_NOT_FOUND) */
     void orderRejected(String reason);
 
     void orderCancelled();

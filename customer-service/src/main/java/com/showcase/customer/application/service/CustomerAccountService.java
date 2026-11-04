@@ -4,20 +4,20 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Reacciones a los eventos de usuarios de auth-service (puerto de entrada de los listeners). {@code eventId} hace
- * idempotente cada operación: un mensaje repetido no tiene efecto.
+ * Reactions to auth-service's user events (inbound port of the listeners). {@code eventId} makes each
+ * operation idempotent: a repeated message has no effect.
  */
 public interface CustomerAccountService {
 
-    /** Crea el perfil de cliente de un usuario recién registrado (sin direcciones). */
+    /** Creates the customer profile of a newly registered user (no addresses). */
     void createForUser(UUID eventId, Long userId, String email, String firstName, String lastName);
 
-    /** Marca como inactivo el cliente de un usuario desactivado o borrado. */
+    /** Marks as inactive the customer of a deactivated or deleted user. */
     void deactivateForUser(UUID eventId, Long userId);
 
     /**
-     * Registra que la cuenta del usuario se ha bloqueado. No cambia el cliente: el bloqueo es temporal y se
-     * levanta solo, pero queda constancia en el log del servicio.
+     * Records that the user's account has been locked. It does not change the customer: the lock is temporary and
+     * lifts on its own, but it remains on record in the service's log.
      */
     void recordAccountLocked(UUID eventId, Long userId, Instant lockedUntil);
 }

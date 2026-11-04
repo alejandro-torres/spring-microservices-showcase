@@ -12,8 +12,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Cliente de Redisson con el mismo Redis que usan el gateway y auth-service ({@code spring.data.redis.*}).
- * Los tiempos del lock se configuran en {@code showcase.lock}.
+ * Redisson client using the same Redis as the gateway and auth-service ({@code spring.data.redis.*}).
+ * The lock timings are configured in {@code showcase.lock}.
  */
 @Configuration(proxyBeanMethods = false)
 public class LockConfig {
@@ -27,8 +27,8 @@ public class LockConfig {
     }
 
     /**
-     * @param waitTime  cuánto se espera a que otra réplica suelte el lock antes de rendirse
-     * @param leaseTime caducidad del lock por si la réplica que lo tiene muere sin soltarlo
+     * @param waitTime  how long to wait for another replica to release the lock before giving up
+     * @param leaseTime lock expiry in case the replica holding it dies without releasing it
      */
     @Bean
     public DistributedLockManager distributedLockManager(RedissonClient redisson, MeterRegistry meterRegistry,

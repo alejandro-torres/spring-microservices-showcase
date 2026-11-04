@@ -14,7 +14,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-/** Firma JWT como lo haría auth-service, con una clave RSA generada para el test y publicada en un JWKS. */
+/** Signs a JWT as auth-service would, with an RSA key generated for the test and published in a JWKS. */
 public final class TestTokens {
 
     private final RSAKey key;

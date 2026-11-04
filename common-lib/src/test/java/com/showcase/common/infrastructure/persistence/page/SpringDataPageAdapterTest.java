@@ -21,7 +21,7 @@ class SpringDataPageAdapterTest {
     class ToPageable {
 
         @Test
-        @DisplayName("convierte página, tamaño y orden, traduciendo el campo y desempatando por id")
+        @DisplayName("converts page, size and sort, translating the field and breaking ties by id")
         void toPageable_shouldMapSortAndAddIdTieBreaker() {
             // given
             var mapping = FilterMapping.of(Map.of("categoryName", "category.name"));
@@ -36,7 +36,7 @@ class SpringDataPageAdapterTest {
         }
 
         @Test
-        @DisplayName("no duplica el id cuando ya se ordena por id")
+        @DisplayName("does not duplicate the id when already sorting by id")
         void toPageable_sortedById_shouldNotDuplicateId() {
             var pageable = SpringDataPageAdapter.toPageable(PageQuery.firstPage(), FilterMapping.identity());
             assertThat(pageable.getSort()).isEqualTo(Sort.by(Sort.Order.asc("id")));
@@ -48,7 +48,7 @@ class SpringDataPageAdapterTest {
     class ToPageResult {
 
         @Test
-        @DisplayName("convierte el contenido y copia los totales del Page")
+        @DisplayName("converts the content and copies the totals of the Page")
         void toPageResult_shouldMapContentAndTotals() {
             // given
             var page = new PageImpl<>(List.of(1, 2), PageRequest.of(1, 2), 7);

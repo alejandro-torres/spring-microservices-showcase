@@ -52,7 +52,7 @@ class CustomerServiceImplTest {
     class Create {
 
         @Test
-        @DisplayName("guarda el cliente con sus direcciones")
+        @DisplayName("saves the customer with their addresses")
         void create_shouldSaveWithAddresses() {
             given(customerRepository.existsByUserId(7L)).willReturn(false);
             given(customerRepository.existsByEmail("ana@example.com")).willReturn(false);
@@ -66,7 +66,7 @@ class CustomerServiceImplTest {
         }
 
         @Test
-        @DisplayName("sin userId no comprueba el usuario")
+        @DisplayName("without userId it does not check the user")
         void create_withoutUser_shouldSkipUserCheck() {
             given(customerRepository.existsByEmail("ana@example.com")).willReturn(false);
             givenSaveReturnsArgument();
@@ -78,7 +78,7 @@ class CustomerServiceImplTest {
         }
 
         @Test
-        @DisplayName("lanza USER_ALREADY_HAS_CUSTOMER si el usuario ya tiene perfil")
+        @DisplayName("throws USER_ALREADY_HAS_CUSTOMER if the user already has a profile")
         void create_withUserTaken_shouldThrow() {
             given(customerRepository.existsByUserId(7L)).willReturn(true);
 
@@ -89,7 +89,7 @@ class CustomerServiceImplTest {
         }
 
         @Test
-        @DisplayName("lanza EMAIL_ALREADY_EXISTS si el email está repetido")
+        @DisplayName("throws EMAIL_ALREADY_EXISTS if the email is repeated")
         void create_withEmailTaken_shouldThrow() {
             given(customerRepository.existsByEmail("ana@example.com")).willReturn(true);
 
@@ -100,11 +100,11 @@ class CustomerServiceImplTest {
     }
 
     @Nested
-    @DisplayName("consultas")
+    @DisplayName("queries")
     class Queries {
 
         @Test
-        @DisplayName("findById lanza CUSTOMER_NOT_FOUND si no existe")
+        @DisplayName("findById throws CUSTOMER_NOT_FOUND if it does not exist")
         void findById_missing_shouldThrow() {
             assertThatThrownBy(() -> customerService.findById(9L))
                     .isInstanceOf(ResourceNotFoundException.class)
@@ -112,7 +112,7 @@ class CustomerServiceImplTest {
         }
 
         @Test
-        @DisplayName("findByUserId devuelve el cliente del usuario")
+        @DisplayName("findByUserId returns the user's customer")
         void findByUserId_shouldReturnCustomer() {
             given(customerRepository.findByUserId(7L)).willReturn(Optional.of(ana()));
 
@@ -120,14 +120,14 @@ class CustomerServiceImplTest {
         }
 
         @Test
-        @DisplayName("findByUserId lanza CUSTOMER_NOT_FOUND si el usuario no tiene perfil")
+        @DisplayName("findByUserId throws CUSTOMER_NOT_FOUND if the user has no profile")
         void findByUserId_missing_shouldThrow() {
             assertThatThrownBy(() -> customerService.findByUserId(8L))
                     .isInstanceOf(ResourceNotFoundException.class);
         }
 
         @Test
-        @DisplayName("findAll delega en el repositorio con filtros y página")
+        @DisplayName("findAll delegates to the repository with filters and page")
         void findAll_shouldDelegate() {
             var query = new PageQuery(0, 10, "id", SortDirection.ASC);
             var page = PageResult.of(List.of(ana()), 0, 10, 1);
@@ -138,23 +138,23 @@ class CustomerServiceImplTest {
     }
 
     @Nested
-    @DisplayName("update y delete")
+    @DisplayName("update and delete")
     class UpdateAndDelete {
 
         @Test
-        @DisplayName("update cambia los datos si la versión coincide")
+        @DisplayName("update changes the data if the version matches")
         void update_shouldSave() {
             givenAna();
-            given(customerRepository.existsByEmailAndIdNot("nueva@example.com", 1L)).willReturn(false);
+            given(customerRepository.existsByEmailAndIdNot("new@example.com", 1L)).willReturn(false);
             givenSaveReturnsArgument();
 
-            var updated = customerService.update(1L, "Ana", "Pérez", "nueva@example.com", null, 0L);
+            var updated = customerService.update(1L, "Ana", "Pérez", "new@example.com", null, 0L);
 
             assertThat(updated.getLastName()).isEqualTo("Pérez");
         }
 
         @Test
-        @DisplayName("update lanza CONCURRENT_MODIFICATION con una versión antigua")
+        @DisplayName("update throws CONCURRENT_MODIFICATION with an old version")
         void update_withStaleVersion_shouldThrow() {
             givenAna();
 
@@ -164,18 +164,18 @@ class CustomerServiceImplTest {
         }
 
         @Test
-        @DisplayName("update lanza EMAIL_ALREADY_EXISTS si el email es de otro cliente")
+        @DisplayName("update throws EMAIL_ALREADY_EXISTS if the email belongs to another customer")
         void update_withEmailTaken_shouldThrow() {
             givenAna();
-            given(customerRepository.existsByEmailAndIdNot("otro@example.com", 1L)).willReturn(true);
+            given(customerRepository.existsByEmailAndIdNot("other@example.com", 1L)).willReturn(true);
 
-            assertThatThrownBy(() -> customerService.update(1L, "Ana", "García", "otro@example.com", null, 0L))
+            assertThatThrownBy(() -> customerService.update(1L, "Ana", "García", "other@example.com", null, 0L))
                     .hasFieldOrPropertyWithValue("errorCode", CustomerErrorCode.EMAIL_ALREADY_EXISTS);
             verify(customerRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("delete hace un borrado lógico")
+        @DisplayName("delete does a soft delete")
         void delete_shouldDeactivate() {
             givenAna();
             givenSaveReturnsArgument();
@@ -187,11 +187,11 @@ class CustomerServiceImplTest {
     }
 
     @Nested
-    @DisplayName("direcciones")
+    @DisplayName("addresses")
     class Addresses {
 
         @Test
-        @DisplayName("addAddress añade la dirección y guarda")
+        @DisplayName("addAddress adds the address and saves")
         void addAddress_shouldSave() {
             givenAna();
             givenSaveReturnsArgument();
@@ -200,7 +200,7 @@ class CustomerServiceImplTest {
         }
 
         @Test
-        @DisplayName("removeAddress quita la dirección y guarda")
+        @DisplayName("removeAddress removes the address and saves")
         void removeAddress_shouldSave() {
             givenAna();
             givenSaveReturnsArgument();
@@ -209,7 +209,7 @@ class CustomerServiceImplTest {
         }
 
         @Test
-        @DisplayName("setMainAddress cambia la principal y guarda")
+        @DisplayName("setMainAddress changes the primary and saves")
         void setMainAddress_shouldSave() {
             givenAna();
             givenSaveReturnsArgument();

@@ -3,19 +3,19 @@ package com.showcase.auth.application.security;
 import java.time.Duration;
 
 /**
- * Política de bloqueo de cuentas.
+ * Account lockout policy.
  *
- * @param maxFailedAttempts intentos fallidos seguidos que bloquean la cuenta
- * @param lockDuration      tiempo que dura el bloqueo; después caduca solo
+ * @param maxFailedAttempts consecutive failed attempts that lock the account
+ * @param lockDuration      how long the lock lasts; it then expires on its own
  */
 public record LoginPolicy(int maxFailedAttempts, Duration lockDuration) {
 
     public LoginPolicy {
         if (maxFailedAttempts < 1) {
-            throw new IllegalArgumentException("maxFailedAttempts debe ser al menos 1");
+            throw new IllegalArgumentException("maxFailedAttempts must be at least 1");
         }
         if (lockDuration == null || lockDuration.isNegative() || lockDuration.isZero()) {
-            throw new IllegalArgumentException("lockDuration debe ser positiva");
+            throw new IllegalArgumentException("lockDuration must be positive");
         }
     }
 }

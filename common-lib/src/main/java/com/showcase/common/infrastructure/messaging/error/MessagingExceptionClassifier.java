@@ -9,12 +9,12 @@ import lombok.NoArgsConstructor;
 import org.springframework.amqp.support.converter.MessageConversionException;
 
 /**
- * Decide si merece la pena reintentar un mensaje que ha fallado.
+ * Decides whether a failed message is worth retrying.
  * <ul>
- *   <li>No se reintenta lo que va a fallar siempre: un mensaje mal formado o una {@link DomainException} de
- *       negocio (datos no válidos, recurso inexistente, regla incumplida). Va directo a la DLQ.</li>
- *   <li>Sí se reintenta lo pasajero: base de datos caída, conflictos de bloqueo optimista, lock no conseguido,
- *       otro servicio no disponible y cualquier error inesperado.</li>
+ *   <li>What will always fail is not retried: a malformed message or a business {@link DomainException}
+ *       (invalid data, missing resource, broken rule). It goes straight to the DLQ.</li>
+ *   <li>What is transient is retried: database down, optimistic locking conflicts, lock not acquired,
+ *       another service unavailable and any unexpected error.</li>
  * </ul>
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)

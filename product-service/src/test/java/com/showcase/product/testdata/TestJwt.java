@@ -6,14 +6,14 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor;
 
 /**
- * Tokens JWT de prueba con las mismas autoridades que produce el JwtAuthoritiesConverter.
+ * Test JWT tokens with the same authorities the JwtAuthoritiesConverter produces.
  */
 public final class TestJwt {
 
     private TestJwt() {
     }
 
-    /** ADMIN con lectura y escritura del catálogo. */
+    /** ADMIN with read and write access to the catalog. */
     public static JwtRequestPostProcessor admin() {
         return jwt().jwt(token -> token.subject("admin")).authorities(
                 new SimpleGrantedAuthority("ROLE_ADMIN"),
@@ -21,16 +21,16 @@ public final class TestJwt {
                 new SimpleGrantedAuthority("product:write"));
     }
 
-    /** Cliente de la tienda (rol USER): solo puede consultar el catálogo. */
+    /** Store customer (USER role): can only browse the catalog. */
     public static JwtRequestPostProcessor customer() {
-        return jwt().jwt(token -> token.subject("cliente")).authorities(
+        return jwt().jwt(token -> token.subject("customer")).authorities(
                 new SimpleGrantedAuthority("ROLE_USER"),
                 new SimpleGrantedAuthority("product:read"));
     }
 
-    /** Gestor del catálogo sin rol ADMIN. */
+    /** Catalog manager without the ADMIN role. */
     public static JwtRequestPostProcessor catalogManager() {
-        return jwt().jwt(token -> token.subject("gestor")).authorities(
+        return jwt().jwt(token -> token.subject("manager")).authorities(
                 new SimpleGrantedAuthority("ROLE_USER"),
                 new SimpleGrantedAuthority("product:read"),
                 new SimpleGrantedAuthority("product:write"));

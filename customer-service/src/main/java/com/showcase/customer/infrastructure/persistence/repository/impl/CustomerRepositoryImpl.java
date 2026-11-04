@@ -29,7 +29,7 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class CustomerRepositoryImpl implements CustomerRepository {
 
-    /** {@code city} filtra por la ciudad de cualquiera de sus direcciones (join con la colección). */
+    /** {@code city} filters by the city of any of their addresses (join with the collection). */
     static final FilterMapping MAPPING = FilterMapping.of(Map.of("city", "addresses.city"));
 
     private final CustomerJpaRepository jpaRepository;
@@ -51,8 +51,8 @@ public class CustomerRepositoryImpl implements CustomerRepository {
     }
 
     /**
-     * Conserva las direcciones existentes (mismo id), borra las que ya no están (orphanRemoval) y añade
-     * las nuevas. Volcar la lista entera borraría y reinsertaría todas, cambiando sus ids.
+     * Keeps the existing addresses (same id), deletes those no longer present (orphanRemoval) and adds
+     * the new ones. Replacing the whole list would delete and reinsert them all, changing their ids.
      */
     private static void syncAddresses(List<Address> addresses, CustomerEntity entity) {
         Set<Long> keptIds = addresses.stream().map(Address::getId).filter(Objects::nonNull).collect(Collectors.toSet());

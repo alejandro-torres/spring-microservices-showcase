@@ -11,8 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
- * Guarda las respuestas de la saga en el outbox dentro de la transacción en curso; el {@code OutboxPublisher}
- * las envía después. El agregado es el pedido, porque las tres respuestas hablan de él.
+ * Stores the saga responses in the outbox within the current transaction; the {@code OutboxPublisher}
+ * sends them later. The aggregate is the order, because all three responses are about it.
  */
 @Component
 @RequiredArgsConstructor

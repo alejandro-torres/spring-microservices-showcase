@@ -20,7 +20,7 @@ class PageQueryTest {
     class Constructor {
 
         @Test
-        @DisplayName("crea la consulta con los valores indicados")
+        @DisplayName("creates the query with the given values")
         void constructor_withValidValues_shouldKeepThem() {
             // when
             var query = new PageQuery(2, 25, "price", SortDirection.DESC);
@@ -34,14 +34,14 @@ class PageQueryTest {
 
         @ParameterizedTest
         @ValueSource(ints = {1, 100})
-        @DisplayName("acepta los tamaños límite 1 y 100")
+        @DisplayName("accepts the boundary sizes 1 and 100")
         void constructor_withBoundarySize_shouldAcceptIt(int size) {
             assertThat(new PageQuery(0, size, "id", SortDirection.ASC).size()).isEqualTo(size);
         }
 
         @ParameterizedTest
         @CsvSource({"-1, 10, page", "0, 0, size", "0, 101, size", "0, -5, size"})
-        @DisplayName("rechaza una página negativa o un tamaño fuera de 1..100 con INVALID_PAGINATION")
+        @DisplayName("rejects a negative page or a size outside 1..100 with INVALID_PAGINATION")
         void constructor_withInvalidValues_shouldThrowInvalidPagination(int page, int size, String field) {
             assertThatThrownBy(() -> new PageQuery(page, size, "id", SortDirection.ASC))
                     .isInstanceOf(InvalidRequestException.class)
@@ -52,30 +52,30 @@ class PageQueryTest {
         @ParameterizedTest
         @NullAndEmptySource
         @ValueSource(strings = "   ")
-        @DisplayName("usa id como orden por defecto si no se indica")
+        @DisplayName("uses id as the default sort if not specified")
         void constructor_withoutSort_shouldUseDefault(String sort) {
             assertThat(new PageQuery(0, 10, sort, SortDirection.ASC).sort()).isEqualTo(PageQuery.DEFAULT_SORT);
         }
 
         @Test
-        @DisplayName("usa orden ascendente si no se indica la dirección")
+        @DisplayName("uses ascending order if the direction is not specified")
         void constructor_withoutDirection_shouldUseAsc() {
             assertThat(new PageQuery(0, 10, "id", null).direction()).isEqualTo(SortDirection.ASC);
         }
     }
 
     @Nested
-    @DisplayName("firstPage y offset")
+    @DisplayName("firstPage and offset")
     class FirstPageAndOffset {
 
         @Test
-        @DisplayName("firstPage devuelve la página 0 de 10 elementos ordenada por id")
+        @DisplayName("firstPage returns page 0 with 10 elements sorted by id")
         void firstPage_shouldUseDefaults() {
             assertThat(PageQuery.firstPage()).isEqualTo(new PageQuery(0, 10, "id", SortDirection.ASC));
         }
 
         @Test
-        @DisplayName("offset multiplica la página por el tamaño sin desbordar int")
+        @DisplayName("offset multiplies the page by the size without overflowing int")
         void offset_shouldMultiplyPageBySize() {
             assertThat(new PageQuery(3, 20, "id", SortDirection.ASC).offset()).isEqualTo(60);
             assertThat(new PageQuery(Integer.MAX_VALUE, 100, "id", SortDirection.ASC).offset())

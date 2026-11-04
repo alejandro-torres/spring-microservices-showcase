@@ -8,13 +8,13 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
 
 /**
- * Calcula UNA vez al arrancar el identificador de esta réplica, {@code showcase.instance-id}, con el formato
- * {@code <servicio>:<id>}. Es el mismo valor que se registra en Eureka y el que devuelve la cabecera
- * {@code X-Instance-Id}, para ver qué réplica atendió cada petición.
+ * Computes ONCE at startup the identifier of this replica, {@code showcase.instance-id}, in the format
+ * {@code <service>:<id>}. It is the same value registered in Eureka and returned by the
+ * {@code X-Instance-Id} header, to see which replica served each request.
  * <p>
- * Hace falta porque {@code ${random.uuid}} da un valor distinto cada vez que se resuelve: usado en dos sitios,
- * Eureka y la cabecera mostrarían ids diferentes. El id es el {@code HOSTNAME} (en Docker, el id del contenedor)
- * o, si no existe, un UUID corto.
+ * It is needed because {@code ${random.uuid}} gives a different value each time it is resolved: used in two places,
+ * Eureka and the header would show different ids. The id is the {@code HOSTNAME} (in Docker, the container id)
+ * or, if missing, a short UUID.
  */
 public class InstanceIdEnvironmentPostProcessor implements EnvironmentPostProcessor {
 
@@ -28,7 +28,7 @@ public class InstanceIdEnvironmentPostProcessor implements EnvironmentPostProces
         String hostname = System.getenv("HOSTNAME");
         String suffix = hostname != null && !hostname.isBlank() ? hostname
                 : UUID.randomUUID().toString().substring(0, 8);
-        // El nombre del servicio se resuelve después, cuando ya se ha leído application.yml.
+        // The service name is resolved later, once application.yml has been read.
         environment.getPropertySources().addLast(new MapPropertySource("showcaseInstanceId",
                 Map.of(PROPERTY, "${spring.application.name:app}:" + suffix)));
     }

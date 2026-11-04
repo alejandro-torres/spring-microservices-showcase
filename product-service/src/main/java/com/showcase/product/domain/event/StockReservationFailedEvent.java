@@ -3,8 +3,8 @@ package com.showcase.product.domain.event;
 import java.time.Instant;
 
 /**
- * No se ha podido reservar el stock del pedido y no se ha modificado nada. {@code reason} es el código del
- * error ({@code INSUFFICIENT_STOCK}, {@code PRODUCT_NOT_FOUND}) y {@code productId} el producto que falló.
+ * The order's stock could not be reserved and nothing was modified. {@code reason} is the error code
+ * ({@code INSUFFICIENT_STOCK}, {@code PRODUCT_NOT_FOUND}) and {@code productId} the product that failed.
  */
 public record StockReservationFailedEvent(Long orderId, String reason, Long productId, Instant occurredAt) {
 }

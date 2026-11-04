@@ -13,11 +13,11 @@ import java.util.List;
 import reactor.core.publisher.Mono;
 
 /**
- * Decodifica y valida el JWT (firma con el JWKS de auth-service, caducidad) y después comprueba que no esté
- * revocado. Los validadores de Spring Security son síncronos; esta comprobación usa Redis reactivo, por eso va en
- * el decoder y no en un {@code OAuth2TokenValidator}.
+ * Decodes and validates the JWT (signature with auth-service's JWKS, expiry) and then checks it is not
+ * revoked. Spring Security's validators are synchronous; this check uses reactive Redis, which is why it lives in
+ * the decoder and not in an {@code OAuth2TokenValidator}.
  * <p>
- * Si Redis no responde, el token se rechaza: es preferible un 401 a dejar pasar un token que quizá esté revocado.
+ * If Redis does not respond, the token is rejected: a 401 is preferable to letting through a token that may be revoked.
  */
 @RequiredArgsConstructor
 public class RevocationCheckingJwtDecoder implements ReactiveJwtDecoder {
@@ -32,7 +32,7 @@ public class RevocationCheckingJwtDecoder implements ReactiveJwtDecoder {
     public Mono<Jwt> decode(String token) {
         return delegate.decode(token).flatMap(jwt -> revokedTokenChecker.isRevoked(jwt)
                 .onErrorMap(error -> {
-                    log.error("No se pudo comprobar si el token está revocado; se rechaza", error);
+                    log.error("Could not check whether the token is revoked; rejecting it", error);
                     return new BadJwtException("Revocation check unavailable", error);
                 })
                 .flatMap(revoked -> revoked

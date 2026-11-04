@@ -44,7 +44,7 @@ class CustomerControllerTest {
 
     private static final String CREATE_BODY = """
             {"userId":7,"firstName":"Ana","lastName":"García","email":"ana@example.com",
-             "addresses":[{"street":"Gran Vía 1","city":"Madrid","postalCode":"28013","country":"ES"}]}
+             "addresses":[{"street":"Main Street 1","city":"Madrid","postalCode":"28013","country":"ES"}]}
             """;
 
     @Autowired
@@ -61,7 +61,7 @@ class CustomerControllerTest {
     class Create {
 
         @Test
-        @DisplayName("devuelve 201 con la ubicación y las direcciones")
+        @DisplayName("returns 201 with the location and the addresses")
         void create_shouldReturn201() throws Exception {
             given(customerService.create(eq(7L), eq("Ana"), eq("García"), eq("ana@example.com"), eq(null), anyList()))
                     .willReturn(ana());
@@ -75,17 +75,17 @@ class CustomerControllerTest {
         }
 
         @Test
-        @DisplayName("devuelve 400 si el email no es válido y no llama al servicio")
+        @DisplayName("returns 400 if the email is invalid and does not call the service")
         void create_withInvalidEmail_shouldReturn400() throws Exception {
             mockMvc.perform(post("/api/v1/customers").with(TestJwt.manager())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(CREATE_BODY.replace("ana@example.com", "no-es-email")))
+                            .content(CREATE_BODY.replace("ana@example.com", "not-an-email")))
                     .andExpect(status().isBadRequest());
             verify(customerService, never()).create(any(), any(), any(), any(), any(), any());
         }
 
         @Test
-        @DisplayName("devuelve 403 sin el permiso customer:write")
+        @DisplayName("returns 403 without the customer:write permission")
         void create_withoutWritePermission_shouldReturn403() throws Exception {
             mockMvc.perform(post("/api/v1/customers").with(TestJwt.reader())
                             .contentType(MediaType.APPLICATION_JSON).content(CREATE_BODY))
@@ -93,7 +93,7 @@ class CustomerControllerTest {
         }
 
         @Test
-        @DisplayName("devuelve 401 sin token")
+        @DisplayName("returns 401 without a token")
         void create_withoutToken_shouldReturn401() throws Exception {
             mockMvc.perform(post("/api/v1/customers").contentType(MediaType.APPLICATION_JSON).content(CREATE_BODY))
                     .andExpect(status().isUnauthorized());
@@ -105,20 +105,20 @@ class CustomerControllerTest {
     class Read {
 
         @Test
-        @DisplayName("devuelve 404 con el mensaje en inglés si se pide así")
+        @DisplayName("returns 404 with the message in Spanish if requested")
         void findById_missing_shouldReturn404() throws Exception {
             given(customerService.findById(9L))
                     .willThrow(new ResourceNotFoundException(CustomerErrorCode.CUSTOMER_NOT_FOUND, 9L));
 
             mockMvc.perform(get("/api/v1/customers/9").with(TestJwt.reader())
-                            .header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
+                            .header(HttpHeaders.ACCEPT_LANGUAGE, "es"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.code").value("CUSTOMER_NOT_FOUND"))
-                    .andExpect(jsonPath("$.message").value("No active customer with id 9 was found."));
+                    .andExpect(jsonPath("$.message").value("No existe ningún cliente activo con id 9."));
         }
 
         @Test
-        @DisplayName("busca por usuario de auth-service")
+        @DisplayName("looks up by auth-service user")
         void findByUserId_shouldReturnCustomer() throws Exception {
             given(customerService.findByUserId(7L)).willReturn(ana());
 
@@ -128,7 +128,7 @@ class CustomerControllerTest {
         }
 
         @Test
-        @DisplayName("lista con filtros de la lista blanca")
+        @DisplayName("lists with whitelisted filters")
         void findAll_withFilter_shouldReturnPage() throws Exception {
             given(customerService.findAll(anyList(), any(), eq(false)))
                     .willReturn(PageResult.of(List.of(ana()), 0, 10, 1));
@@ -139,7 +139,7 @@ class CustomerControllerTest {
         }
 
         @Test
-        @DisplayName("devuelve 400 con un campo de filtro no permitido")
+        @DisplayName("returns 400 with a filter field that is not allowed")
         void findAll_withUnknownFilter_shouldReturn400() throws Exception {
             mockMvc.perform(get("/api/v1/customers").with(TestJwt.reader()).param("filter", "phone:eq:600"))
                     .andExpect(status().isBadRequest());
@@ -147,7 +147,7 @@ class CustomerControllerTest {
         }
 
         @Test
-        @DisplayName("solo ADMIN puede incluir clientes inactivos")
+        @DisplayName("only ADMIN can include inactive customers")
         void findAll_includeInactiveWithoutAdmin_shouldReturn403() throws Exception {
             mockMvc.perform(get("/api/v1/customers").with(TestJwt.manager()).param("includeInactive", "true"))
                     .andExpect(status().isForbidden());
@@ -155,11 +155,11 @@ class CustomerControllerTest {
     }
 
     @Nested
-    @DisplayName("PUT, DELETE y direcciones")
+    @DisplayName("PUT, DELETE and addresses")
     class Write {
 
         @Test
-        @DisplayName("PUT actualiza con la versión enviada")
+        @DisplayName("PUT updates with the version sent")
         void update_shouldReturn200() throws Exception {
             given(customerService.update(1L, "Ana", "García", "ana@example.com", null, 0L)).willReturn(ana());
 
@@ -179,19 +179,19 @@ class CustomerControllerTest {
         }
 
         @Test
-        @DisplayName("POST de dirección devuelve el cliente actualizado")
+        @DisplayName("Address POST returns the updated customer")
         void addAddress_shouldReturnCustomer() throws Exception {
             given(customerService.addAddress(eq(1L), any())).willReturn(ana());
 
             mockMvc.perform(post("/api/v1/customers/1/addresses").with(TestJwt.manager())
                             .contentType(MediaType.APPLICATION_JSON).content("""
-                                    {"street":"Calle Mayor 3","city":"Sevilla","postalCode":"41001","country":"ES"}
+                                    {"street":"High Street 3","city":"Sevilla","postalCode":"41001","country":"ES"}
                                     """))
                     .andExpect(status().isOk());
         }
 
         @Test
-        @DisplayName("DELETE y PUT main de dirección delegan en el servicio")
+        @DisplayName("DELETE and PUT main of an address delegate to the service")
         void removeAndSetMain_shouldDelegate() throws Exception {
             given(customerService.removeAddress(1L, 11L)).willReturn(ana());
             given(customerService.setMainAddress(1L, 10L)).willReturn(ana());

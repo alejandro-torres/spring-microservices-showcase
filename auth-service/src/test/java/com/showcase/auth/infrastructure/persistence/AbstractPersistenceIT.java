@@ -19,8 +19,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 
 /**
- * Base de los tests de persistencia: PostgreSQL real con Testcontainers, las migraciones de Flyway
- * aplicadas (el esquema se valida con ddl-auto=validate) y los adaptadores del servicio.
+ * Base for persistence tests: real PostgreSQL with Testcontainers, Flyway migrations applied
+ * (the schema is validated with ddl-auto=validate) and the service's adapters.
  */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)

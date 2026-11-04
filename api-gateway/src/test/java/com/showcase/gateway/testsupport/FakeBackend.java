@@ -10,8 +10,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Servidor HTTP mínimo que hace de servicio detrás del gateway: sirve el JWKS de auth-service y, en cualquier otra
- * ruta, devuelve en JSON la ruta y las cabeceras que le han llegado (para comprobar qué reenvía el gateway).
+ * Minimal HTTP server that plays a service behind the gateway: it serves auth-service's JWKS and, on any other
+ * path, returns as JSON the path and headers it received (to check what the gateway forwards).
  */
 public final class FakeBackend implements AutoCloseable {
 

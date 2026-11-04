@@ -15,12 +15,12 @@ import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 
 /**
- * Locks en Redis con Redisson, compartidos por todas las réplicas.
+ * Locks in Redis with Redisson, shared by all replicas.
  * <ul>
- *   <li>Varias claves → {@link RedissonMultiLock}: se cogen todas o ninguna, siempre en orden alfabético.</li>
- *   <li>{@code tryLock} con espera y con expiración: nunca se espera indefinidamente, y si la réplica muere con el
- *       lock cogido, Redis lo suelta al expirar.</li>
- *   <li>Se suelta en un {@code finally}, solo si lo tiene este hilo.</li>
+ *   <li>Several keys → {@link RedissonMultiLock}: all or none are taken, always in alphabetical order.</li>
+ *   <li>{@code tryLock} with wait and expiry: it never waits indefinitely, and if the replica dies holding the
+ *       lock, Redis releases it on expiry.</li>
+ *   <li>It is released in a {@code finally}, only if this thread holds it.</li>
  * </ul>
  */
 @RequiredArgsConstructor
@@ -32,15 +32,15 @@ public class RedissonDistributedLockManagerImpl implements DistributedLockManage
     private final Duration waitTime;
     private final Duration leaseTime;
     /**
-     * Métrica {@code distributed.lock.wait}: cuánto se espera por los locks, separando los que se consiguen
-     * ({@code outcome=acquired}) de los que se rinden ({@code outcome=busy}).
+     * {@code distributed.lock.wait} metric: how long is spent waiting for locks, separating those acquired
+     * ({@code outcome=acquired}) from those given up on ({@code outcome=busy}).
      */
     private final MeterRegistry meterRegistry;
 
-    /** Micrometer devuelve el mismo timer si ya está registrado con ese nombre y etiquetas. */
+    /** Micrometer returns the same timer if already registered with that name and tags. */
     private Timer waitTimer(String outcome) {
         return Timer.builder(WAIT_METRIC)
-                .description("Tiempo de espera por los locks distribuidos")
+                .description("Wait time for distributed locks")
                 .tag("outcome", outcome)
                 .publishPercentileHistogram()
                 .register(meterRegistry);
@@ -81,7 +81,7 @@ public class RedissonDistributedLockManagerImpl implements DistributedLockManage
         }
     }
 
-    /** RESOURCE_BUSY: 423 en la API y reintento si llega por un mensaje (ver MessagingExceptionClassifier). */
+    /** RESOURCE_BUSY: 423 in the API and a retry if it comes from a message (see MessagingExceptionClassifier). */
     static class ResourceBusyException extends DomainException {
 
         ResourceBusyException(String resource, Throwable cause) {

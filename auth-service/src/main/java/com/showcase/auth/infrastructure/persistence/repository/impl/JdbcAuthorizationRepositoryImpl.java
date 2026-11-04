@@ -8,9 +8,9 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 /**
- * La tabla {@code oauth2_authorization} es de Spring Authorization Server (no tiene entidad JPA), así que se
- * limpia con JDBC. {@code GREATEST} ignora los NULL de PostgreSQL: se toma la última fecha de caducidad de lo que
- * contenga cada fila, y solo se borra si ya ha pasado.
+ * The {@code oauth2_authorization} table belongs to Spring Authorization Server (it has no JPA entity), so it is
+ * cleaned with JDBC. {@code GREATEST} ignores PostgreSQL NULLs: it takes the latest expiry date of what each
+ * row contains, and deletes only if it has passed.
  */
 @Repository
 @RequiredArgsConstructor

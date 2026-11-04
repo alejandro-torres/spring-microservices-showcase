@@ -4,17 +4,17 @@ import java.util.Collection;
 import java.util.function.Supplier;
 
 /**
- * Locks compartidos por todas las réplicas del servicio (puerto de salida). Los {@code *ServiceImpl} solo conocen
- * esta interfaz; la implementación con Redisson está en la infraestructura.
+ * Locks shared by all replicas of the service (outbound port). The {@code *ServiceImpl} classes only know
+ * this interface; the Redisson implementation is in the infrastructure.
  */
 public interface DistributedLockManager {
 
     /**
-     * Coge todos los locks (ordenados, para que dos peticiones nunca los pidan en orden distinto y se bloqueen
-     * mutuamente), ejecuta la acción y los suelta siempre, también si la acción falla.
+     * Takes all the locks (sorted, so that two requests never request them in a different order and deadlock each
+     * other), runs the action and always releases them, even if the action fails.
      *
-     * @throws com.showcase.common.domain.exception.DomainException con {@code RESOURCE_BUSY} si no se consiguen
-     *                                                               a tiempo
+     * @throws com.showcase.common.domain.exception.DomainException with {@code RESOURCE_BUSY} if they cannot be
+     *                                                               acquired in time
      */
     <T> T executeWithLocks(Collection<String> keys, Supplier<T> action);
 }

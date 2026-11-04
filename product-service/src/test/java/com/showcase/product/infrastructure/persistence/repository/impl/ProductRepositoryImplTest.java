@@ -36,9 +36,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.util.ReflectionTestUtils;
 
 /**
- * El adaptador de persistencia sin base de datos: convierte {@code PageQuery} → {@code Pageable} y
- * {@code Page<ProductEntity>} → {@code PageResult<Product>}. El repositorio de Spring Data se simula y devuelve un
- * {@link PageImpl} real.
+ * The persistence adapter without a database: converts {@code PageQuery} → {@code Pageable} and
+ * {@code Page<ProductEntity>} → {@code PageResult<Product>}. The Spring Data repository is mocked and returns a
+ * real {@link PageImpl}.
  */
 @ExtendWith(MockitoExtension.class)
 class ProductRepositoryImplTest {
@@ -62,7 +62,7 @@ class ProductRepositoryImplTest {
     private static ProductEntity entity(long id, String name) {
         var category = new CategoryEntity();
         category.setId(1L);
-        category.setName("Portátiles");
+        category.setName("Laptops");
         var entity = new ProductEntity();
         entity.setId(id);
         entity.setName(name);
@@ -77,7 +77,7 @@ class ProductRepositoryImplTest {
     class FindAll {
 
         @Test
-        @DisplayName("convierte la página pedida en Pageable (con el orden y su desempate por id) y el resultado en "
+        @DisplayName("converts the requested page to Pageable (with the sort and its tie-break by id) and the result to "
                 + "PageResult")
         @SuppressWarnings("unchecked")
         void findAll_shouldConvertPageQueryAndPage() {
@@ -85,7 +85,7 @@ class ProductRepositoryImplTest {
             var query = new PageQuery(1, 2, "price", SortDirection.DESC);
             var captor = ArgumentCaptor.forClass(Pageable.class);
             given(productJpaRepository.findAll(any(Specification.class), captor.capture()))
-                    .willAnswer(invocation -> new PageImpl<>(List.of(entity(3L, "Ratón"), entity(4L, "Teclado")),
+                    .willAnswer(invocation -> new PageImpl<>(List.of(entity(3L, "Mouse"), entity(4L, "Keyboard")),
                             invocation.getArgument(1), 5));
 
             // when
@@ -98,7 +98,7 @@ class ProductRepositoryImplTest {
             assertThat(pageable.getPageSize()).isEqualTo(2);
             assertThat(pageable.getSort().getOrderFor("price").getDirection()).isEqualTo(Sort.Direction.DESC);
             assertThat(pageable.getSort().getOrderFor("id").getDirection()).isEqualTo(Sort.Direction.ASC);
-            assertThat(result.content()).extracting(Product::getName).containsExactly("Ratón", "Teclado");
+            assertThat(result.content()).extracting(Product::getName).containsExactly("Mouse", "Keyboard");
             assertThat(result.totalElements()).isEqualTo(5);
             assertThat(result.totalPages()).isEqualTo(3);
             assertThat(result.first()).isFalse();
@@ -106,7 +106,7 @@ class ProductRepositoryImplTest {
         }
 
         @Test
-        @DisplayName("una página vacía devuelve un PageResult vacío")
+        @DisplayName("an empty page returns an empty PageResult")
         void findActiveByCategory_withNoResults_shouldReturnEmptyPage() {
             // given
             given(productJpaRepository.findActiveByCategoryId(eq(9L), any(Pageable.class)))
@@ -127,16 +127,16 @@ class ProductRepositoryImplTest {
     class FindById {
 
         @Test
-        @DisplayName("convierte la entidad con su categoría, o devuelve vacío si no existe o está borrado")
+        @DisplayName("converts the entity with its category, or returns empty if missing or deleted")
         void findById_shouldMapEntityOrReturnEmpty() {
             // given
-            given(productJpaRepository.findByIdAndActiveTrue(3L)).willReturn(Optional.of(entity(3L, "Ratón")));
+            given(productJpaRepository.findByIdAndActiveTrue(3L)).willReturn(Optional.of(entity(3L, "Mouse")));
             given(productJpaRepository.findByIdAndActiveTrue(99L)).willReturn(Optional.empty());
 
             // when / then
             assertThat(repository.findById(3L)).hasValueSatisfying(product -> {
-                assertThat(product.getName()).isEqualTo("Ratón");
-                assertThat(product.getCategory().getName()).isEqualTo("Portátiles");
+                assertThat(product.getName()).isEqualTo("Mouse");
+                assertThat(product.getCategory().getName()).isEqualTo("Laptops");
             });
             assertThat(repository.findById(99L)).isEmpty();
         }

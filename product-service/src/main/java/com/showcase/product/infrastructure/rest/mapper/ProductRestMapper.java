@@ -8,8 +8,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 /**
- * Modelos de dominio → DTOs de respuesta. Las peticiones no se mapean a modelos: los controllers pasan
- * sus campos a los servicios, que crean los modelos con sus reglas.
+ * Domain models → response DTOs. Requests are not mapped to models: the controllers pass their
+ * fields to the services, which create the models with their rules.
  */
 @Mapper(componentModel = "spring")
 public interface ProductRestMapper {

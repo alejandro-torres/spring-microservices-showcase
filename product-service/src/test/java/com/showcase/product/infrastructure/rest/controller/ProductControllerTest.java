@@ -52,7 +52,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class ProductControllerTest {
 
     private static final String CREATE_BODY = """
-            {"name":"Portátil Air 13","description":"Ligero","price":999.00,"stock":3,"categoryId":1}
+            {"name":"Laptop Air 13","description":"Light","price":999.00,"stock":3,"categoryId":1}
             """;
 
     @Autowired
@@ -65,13 +65,13 @@ class ProductControllerTest {
     private JwtDecoder jwtDecoder;
 
     @Nested
-    @DisplayName("POST y GET")
+    @DisplayName("POST and GET")
     class CreateAndRead {
 
         @Test
-        @DisplayName("POST devuelve 201 con la ubicación y la categoría del producto")
+        @DisplayName("POST returns 201 with the location and the product's category")
         void create_shouldReturn201() throws Exception {
-            given(productService.create("Portátil Air 13", "Ligero", new BigDecimal("999.00"), 3, 1L))
+            given(productService.create("Laptop Air 13", "Light", new BigDecimal("999.00"), 3, 1L))
                     .willReturn(laptop());
 
             mockMvc.perform(post("/api/v1/products").with(TestJwt.catalogManager())
@@ -79,12 +79,12 @@ class ProductControllerTest {
                     .andExpect(status().isCreated())
                     .andExpect(header().string(HttpHeaders.LOCATION, endsWith("/api/v1/products/10")))
                     .andExpect(jsonPath("$.categoryId").value(1))
-                    .andExpect(jsonPath("$.categoryName").value("Portátiles"))
+                    .andExpect(jsonPath("$.categoryName").value("Laptops"))
                     .andExpect(jsonPath("$.price").value(1499.00));
         }
 
         @Test
-        @DisplayName("POST valida precio, stock y categoría")
+        @DisplayName("POST validates price, stock and category")
         void create_withInvalidBody_shouldReturn400() throws Exception {
             mockMvc.perform(post("/api/v1/products").with(TestJwt.catalogManager())
                             .contentType(MediaType.APPLICATION_JSON)
@@ -96,22 +96,22 @@ class ProductControllerTest {
         }
 
         @Test
-        @DisplayName("GET por id devuelve 404 traducido si el producto no existe")
+        @DisplayName("GET by id returns a translated 404 if the product does not exist")
         void findById_missing_shouldReturn404() throws Exception {
             given(productService.findById(99L)).willThrow(new ProductNotFoundException(99L));
 
             mockMvc.perform(get("/api/v1/products/99").with(TestJwt.customer()))
                     .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.message").value("No existe ningún producto activo con id 99."));
+                    .andExpect(jsonPath("$.message").value("No active product with id 99 was found."));
         }
     }
 
     @Nested
-    @DisplayName("GET paginado con filtros")
+    @DisplayName("Paginated GET with filters")
     class FindAll {
 
         @Test
-        @DisplayName("convierte los filtros (también in y between con comas) y la ordenación")
+        @DisplayName("converts the filters (including in and between with commas) and the sort")
         void findAll_shouldParseFilters() throws Exception {
             given(productService.findAll(anyList(), any(PageQuery.class), anyBoolean()))
                     .willReturn(PageResult.of(List.of(laptop()), 0, 10, 1));
@@ -121,7 +121,7 @@ class ProductControllerTest {
                             .param("filter", "categoryId:in:1,2")
                             .param("sort", "price").param("direction", "desc"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.content[0].name").value("Portátil Pro 15"))
+                    .andExpect(jsonPath("$.content[0].name").value("Laptop Pro 15"))
                     .andExpect(jsonPath("$.totalElements").value(1));
 
             @SuppressWarnings("unchecked")
@@ -134,7 +134,7 @@ class ProductControllerTest {
         }
 
         @Test
-        @DisplayName("rechaza un operador no permitido y un includeInactive sin rol ADMIN")
+        @DisplayName("rejects an operator not allowed and an includeInactive without the ADMIN role")
         void findAll_invalidRequests_shouldBeRejected() throws Exception {
             mockMvc.perform(get("/api/v1/products").with(TestJwt.customer()).param("filter", "price:like:10"))
                     .andExpect(status().isBadRequest())
@@ -145,11 +145,11 @@ class ProductControllerTest {
     }
 
     @Nested
-    @DisplayName("permisos, modificación y stock")
+    @DisplayName("permissions, modification and stock")
     class WriteOperations {
 
         @Test
-        @DisplayName("sin token devuelve 401 y un cliente (solo product:read) no puede crear")
+        @DisplayName("without a token it returns 401 and a customer (product:read only) cannot create")
         void permissions_shouldBeEnforced() throws Exception {
             mockMvc.perform(get("/api/v1/products/10")).andExpect(status().isUnauthorized());
             mockMvc.perform(post("/api/v1/products").with(TestJwt.customer())
@@ -159,15 +159,15 @@ class ProductControllerTest {
         }
 
         @Test
-        @DisplayName("PUT actualiza con la versión y DELETE devuelve 204")
+        @DisplayName("PUT updates with the version and DELETE returns 204")
         void updateAndDelete_shouldWork() throws Exception {
-            given(productService.update(10L, "Portátil Pro 16", null, new BigDecimal("1599.99"), 1L, 0L))
+            given(productService.update(10L, "Laptop Pro 16", null, new BigDecimal("1599.99"), 1L, 0L))
                     .willReturn(laptop());
 
             mockMvc.perform(put("/api/v1/products/10").with(TestJwt.catalogManager())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
-                                    {"name":"Portátil Pro 16","price":1599.99,"categoryId":1,"version":0}
+                                    {"name":"Laptop Pro 16","price":1599.99,"categoryId":1,"version":0}
                                     """))
                     .andExpect(status().isOk());
             mockMvc.perform(delete("/api/v1/products/10").with(TestJwt.catalogManager()))
@@ -176,9 +176,9 @@ class ProductControllerTest {
         }
 
         @Test
-        @DisplayName("el ajuste de stock es solo para ADMIN y un ajuste imposible devuelve 422")
+        @DisplayName("the stock adjustment is ADMIN only and an impossible adjustment returns 422")
         void adjustStock_onlyAdmin() throws Exception {
-            given(productService.adjustStock(10L, -50)).willThrow(new InsufficientStockException("Portátil Pro 15", 5, 50));
+            given(productService.adjustStock(10L, -50)).willThrow(new InsufficientStockException("Laptop Pro 15", 5, 50));
             String body = """
                     {"delta":-50}
                     """;
@@ -191,7 +191,7 @@ class ProductControllerTest {
                     .andExpect(status().isUnprocessableContent())
                     .andExpect(jsonPath("$.code").value("INSUFFICIENT_STOCK"))
                     .andExpect(jsonPath("$.message")
-                            .value("No hay stock suficiente de 'Portátil Pro 15': disponibles 5, solicitadas 50."));
+                            .value("Not enough stock of 'Laptop Pro 15': 5 available, 50 requested."));
         }
     }
 }

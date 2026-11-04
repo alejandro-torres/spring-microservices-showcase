@@ -3,7 +3,7 @@ package com.showcase.product.domain.exception;
 import com.showcase.common.domain.exception.ResourceNotFoundException;
 
 /**
- * No existe un producto activo con el id indicado.
+ * There is no active product with the given id.
  */
 public class ProductNotFoundException extends ResourceNotFoundException {
 

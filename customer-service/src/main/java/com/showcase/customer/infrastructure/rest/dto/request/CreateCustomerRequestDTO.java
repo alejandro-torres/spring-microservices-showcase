@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 
-/** {@code userId}: usuario de auth-service al que pertenece el cliente (opcional). */
+/** {@code userId}: auth-service user the customer belongs to (optional). */
 public record CreateCustomerRequestDTO(
         @Positive Long userId,
         @NotBlank @Size(max = 80) String firstName,

@@ -33,12 +33,12 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * El gateway de verdad (Netty, Spring Security, rate limiting en Redis, circuit breaker) delante de un servidor
- * HTTP falso. Las réplicas se dan con el SimpleDiscoveryClient en lugar de Eureka:
+ * The real gateway (Netty, Spring Security, rate limiting in Redis, circuit breaker) in front of a fake HTTP
+ * server. Replicas come from the SimpleDiscoveryClient instead of Eureka:
  * <ul>
- *   <li>auth-service y product-service → el servidor falso.</li>
- *   <li>customer-service → un puerto cerrado (servicio caído).</li>
- *   <li>order-service → sin réplicas registradas.</li>
+ *   <li>auth-service and product-service → the fake server.</li>
+ *   <li>customer-service → a closed port (service down).</li>
+ *   <li>order-service → no registered replicas.</li>
  * </ul>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
@@ -48,7 +48,7 @@ import tools.jackson.databind.json.JsonMapper;
         "RATE_LIMIT_REPLENISH_RATE=1",
         "RATE_LIMIT_BURST_CAPACITY=5",
         "LOGIN_RATE_LIMIT_BURST_CAPACITY=36",
-        // El test simula clientes distintos con X-Forwarded-For, como si hubiera un proxy delante.
+        // The test simulates different clients with X-Forwarded-For, as if there were a proxy in front.
         "showcase.rate-limit.trusted-proxy-hops=1"})
 @Testcontainers
 class GatewayIT {
@@ -93,7 +93,7 @@ class GatewayIT {
                 .responseTimeout(Duration.ofSeconds(15)).build();
     }
 
-    /** Un usuario distinto por test: el límite de peticiones se cuenta por usuario. */
+    /** A different user per test: the request limit is counted per user. */
     private static String newUser() {
         return "user-" + UUID.randomUUID();
     }
@@ -103,11 +103,11 @@ class GatewayIT {
     }
 
     @Nested
-    @DisplayName("autenticación")
+    @DisplayName("authentication")
     class Authentication {
 
         @Test
-        @DisplayName("el registro es público y llega a auth-service sin token")
+        @DisplayName("registration is public and reaches auth-service without a token")
         void register_withoutToken_shouldBeRouted() {
             // when
             var result = client.post().uri("/api/v1/auth/register").exchange()
@@ -118,8 +118,8 @@ class GatewayIT {
         }
 
         @Test
-        @DisplayName("usa la política Referrer strict-origin-when-cross-origin: con no-referrer el navegador enviaría "
-                + "Origin: null en el POST del login y el filtro CORS lo rechazaría")
+        @DisplayName("uses the strict-origin-when-cross-origin Referrer policy: with no-referrer the browser would send "
+                + "Origin: null in the login POST and the CORS filter would reject it")
         void responses_shouldUseReferrerPolicyThatKeepsTheOrigin() {
             // when / then
             client.post().uri("/api/v1/auth/register").exchange()
@@ -127,7 +127,7 @@ class GatewayIT {
         }
 
         @Test
-        @DisplayName("sin token responde 401 en el formato común, con el traceId en el cuerpo y en X-Trace-Id")
+        @DisplayName("without a token it responds 401 in the common format, with the traceId in the body and in X-Trace-Id")
         void protectedRoute_withoutToken_shouldReturn401() {
             // when
             var result = client.get().uri("/api/v1/products").exchange()
@@ -144,7 +144,7 @@ class GatewayIT {
         }
 
         @Test
-        @DisplayName("con un token válido reenvía la petición con el token y la traza (traceparent)")
+        @DisplayName("with a valid token it forwards the request with the token and the trace (traceparent)")
         void protectedRoute_withValidToken_shouldForwardTokenAndTrace() {
             // given
             String token = TOKENS.token(newUser());
@@ -160,12 +160,12 @@ class GatewayIT {
             assertThat(body.get("authorization").asString()).isEqualTo("Bearer " + token);
             assertThat(traceId).isNotBlank();
             assertThat(body.get("traceparent").asString()).contains(traceId);
-            // El servicio recibe el host público (para sus redirecciones y URLs), no el suyo interno.
+            // The service receives the public host (for its redirects and URLs), not its internal one.
             assertThat(body.get("forwardedHost").asString()).startsWith("localhost:");
         }
 
         @Test
-        @DisplayName("un token firmado con otra clave responde 401 INVALID_TOKEN")
+        @DisplayName("a token signed with another key responds 401 INVALID_TOKEN")
         void protectedRoute_withForeignToken_shouldReturn401InvalidToken() {
             // given
             String foreignToken = new TestTokens().token(newUser());
@@ -180,11 +180,11 @@ class GatewayIT {
     }
 
     @Nested
-    @DisplayName("tokens revocados")
+    @DisplayName("revoked tokens")
     class Revocation {
 
         @Test
-        @DisplayName("rechaza un token cuyo jti está revocado (logout)")
+        @DisplayName("rejects a token whose jti is revoked (logout)")
         void revokedJti_shouldReturn401() {
             // given
             String jti = UUID.randomUUID().toString();
@@ -200,7 +200,7 @@ class GatewayIT {
         }
 
         @Test
-        @DisplayName("rechaza los tokens emitidos antes de revocar los del usuario, pero no los posteriores")
+        @DisplayName("rejects tokens issued before revoking the user's, but not later ones")
         void userRevocation_shouldOnlyAffectOlderTokens() {
             // given
             String user = newUser();
@@ -223,9 +223,9 @@ class GatewayIT {
     class RateLimiting {
 
         @Test
-        @DisplayName("al superar el límite responde 429 con Retry-After y el mensaje en el idioma pedido")
+        @DisplayName("on exceeding the limit it responds 429 with Retry-After and the message in the requested language")
         void tooManyRequests_shouldReturn429WithRetryAfter() {
-            // given: ráfaga de 5 peticiones y 1 por segundo
+            // given: a burst of 5 requests and 1 per second
             String token = TOKENS.token(newUser());
             List<EntityExchangeResult<byte[]>> results = new ArrayList<>();
 
@@ -233,30 +233,30 @@ class GatewayIT {
             for (int i = 0; i < 8; i++) {
                 results.add(client.get().uri("/api/v1/products").headers(h -> {
                     h.setBearerAuth(token);
-                    h.set(HttpHeaders.ACCEPT_LANGUAGE, "en");
+                    h.set(HttpHeaders.ACCEPT_LANGUAGE, "es");
                 }).exchange().expectBody().returnResult());
             }
 
             // then
             var limited = results.stream()
                     .filter(result -> result.getStatus().value() == HttpStatus.TOO_MANY_REQUESTS.value())
-                    .findFirst().orElseThrow(() -> new AssertionError("Ninguna petición ha recibido 429"));
+                    .findFirst().orElseThrow(() -> new AssertionError("No request received a 429"));
             JsonNode body = json(limited);
             assertThat(limited.getResponseHeaders().getFirst(HttpHeaders.RETRY_AFTER)).isEqualTo("1");
             assertThat(limited.getResponseHeaders().getFirst("X-RateLimit-Remaining")).isEqualTo("0");
             assertThat(body.get("code").asString()).isEqualTo("RATE_LIMIT_EXCEEDED");
-            assertThat(body.get("message").asString()).startsWith("You have exceeded");
+            assertThat(body.get("message").asString()).startsWith("Has superado");
         }
     }
 
     @Nested
-    @DisplayName("rate limiting del login")
+    @DisplayName("login rate limiting")
     class LoginRateLimiting {
 
         @Test
-        @DisplayName("el login tiene su propio límite por IP, independiente del general, y pide esperar 12 s")
+        @DisplayName("the login has its own per-IP limit, independent of the general one, and asks to wait 12 s")
         void login_shouldHaveItsOwnStricterLimit() {
-            // given: 12 fichas por intento y capacidad 36 → 3 intentos seguidos; el límite general deja 5
+            // given: 12 tokens per attempt and capacity 36 → 3 attempts in a row; the general limit allows 5
             String clientIp = "203.0.113." + (int) (Math.random() * 200 + 1);
             List<Integer> statuses = new ArrayList<>();
             EntityExchangeResult<byte[]> last = null;
@@ -276,11 +276,11 @@ class GatewayIT {
     }
 
     @Nested
-    @DisplayName("servicios no disponibles")
+    @DisplayName("unavailable services")
     class Unavailable {
 
         @Test
-        @DisplayName("un servicio caído responde 503 del circuit breaker en el formato común")
+        @DisplayName("a downed service responds 503 from the circuit breaker in the common format")
         void serviceDown_shouldReturn503() {
             // given
             String token = TOKENS.token(newUser());
@@ -296,7 +296,7 @@ class GatewayIT {
         }
 
         @Test
-        @DisplayName("un servicio sin réplicas registradas también responde 503")
+        @DisplayName("a service with no registered replicas also responds 503")
         void serviceWithoutInstances_shouldReturn503() {
             String token = TOKENS.token(newUser());
 
@@ -306,7 +306,7 @@ class GatewayIT {
         }
 
         @Test
-        @DisplayName("una ruta que no existe responde 404 ENDPOINT_NOT_FOUND")
+        @DisplayName("a path that does not exist responds 404 ENDPOINT_NOT_FOUND")
         void unknownRoute_shouldReturn404() {
             String token = TOKENS.token(newUser());
 
@@ -317,11 +317,11 @@ class GatewayIT {
     }
 
     @Nested
-    @DisplayName("enrutado")
+    @DisplayName("routing")
     class Routing {
 
         @Test
-        @DisplayName("la DLQ de cada servicio se distingue por un prefijo que el gateway quita")
+        @DisplayName("each service's DLQ is told apart by a prefix the gateway strips")
         void deadLetters_shouldBeRewrittenPerService() {
             String token = TOKENS.token(newUser());
 
@@ -331,7 +331,7 @@ class GatewayIT {
         }
 
         @Test
-        @DisplayName("responde las peticiones CORS de comprobación del origen permitido")
+        @DisplayName("answers CORS preflight requests from the allowed origin")
         void corsPreflight_fromAllowedOrigin_shouldBeAllowed() {
             client.options().uri("/api/v1/products")
                     .header(HttpHeaders.ORIGIN, "http://localhost:3000")
@@ -342,7 +342,7 @@ class GatewayIT {
         }
 
         @Test
-        @DisplayName("el Swagger UI agrega la documentación de cada servicio, que es pública")
+        @DisplayName("the Swagger UI aggregates each service's documentation, which is public")
         void swagger_shouldAggregateServiceDocs() {
             client.get().uri("/v3/api-docs/swagger-config").exchange()
                     .expectStatus().isOk()

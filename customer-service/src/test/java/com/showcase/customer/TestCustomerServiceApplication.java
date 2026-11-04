@@ -5,9 +5,9 @@ import java.util.stream.Stream;
 import org.springframework.boot.SpringApplication;
 
 /**
- * Arranca customer-service en local con un PostgreSQL en Docker y el perfil dev (clientes de ejemplo):
+ * Starts customer-service locally with PostgreSQL in Docker and the dev profile (sample customers):
  * {@code ./mvnw -pl customer-service spring-boot:test-run -Dspring-boot.run.profiles=dev}.
- * Para llamar a la API hace falta un token de auth-service (que debe estar arrancado en el puerto 9000).
+ * Calling the API requires a token from auth-service (which must be running on port 9000).
  */
 public class TestCustomerServiceApplication {
 
@@ -17,8 +17,8 @@ public class TestCustomerServiceApplication {
                 .run(localArguments(args));
     }
 
-    // En local se usan el RabbitMQ compartido (localhost:5672) y el Eureka de discovery-service (localhost:8761),
-    // para que los servicios arrancados se encuentren y se comuniquen entre sí.
+    // Locally, the shared RabbitMQ (localhost:5672) and discovery-service's Eureka (localhost:8761) are used,
+    // so the started services can find and talk to each other.
     private static String[] localArguments(String[] args) {
         return Stream.concat(Stream.of("--showcase.test.rabbitmq-container=false", "--eureka.client.enabled=true"),
                         Arrays.stream(args))

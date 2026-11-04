@@ -8,9 +8,9 @@ import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
 /**
- * Devuelve el traceId en la cabecera {@code X-Trace-Id} de todas las respuestas, también las de error (401, 429,
- * 503...). Micrometer Tracing ya genera el traceId o continúa el que llega en {@code traceparent}; este filtro
- * solo lo hace visible al cliente para que pueda buscar su petición en Zipkin o en los logs.
+ * Returns the traceId in the {@code X-Trace-Id} header of every response, including errors (401, 429,
+ * 503...). Micrometer Tracing already generates the traceId or continues the one arriving in {@code traceparent};
+ * this filter only makes it visible to the client so they can look up their request in Zipkin or the logs.
  */
 @Component
 public class TraceIdResponseHeaderFilter implements WebFilter, Ordered {
@@ -27,7 +27,7 @@ public class TraceIdResponseHeaderFilter implements WebFilter, Ordered {
         return chain.filter(exchange);
     }
 
-    /** Antes que Spring Security, para que también las respuestas 401 y 403 lleven la cabecera. */
+    /** Before Spring Security, so that 401 and 403 responses also carry the header. */
     @Override
     public int getOrder() {
         return Ordered.HIGHEST_PRECEDENCE;

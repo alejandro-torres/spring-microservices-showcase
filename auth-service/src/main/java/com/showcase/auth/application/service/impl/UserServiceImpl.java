@@ -37,8 +37,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Las lecturas van en transacciones de solo lectura (readOnly a nivel de clase) y cada escritura
- * abre su propia transacción: si algo falla a mitad, se deshace todo.
+ * Reads run in read-only transactions (readOnly at class level) and each write opens its own
+ * transaction: if something fails halfway, everything is undone.
  */
 @Service
 @Transactional(readOnly = true)
@@ -46,7 +46,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserServiceImpl implements UserService {
 
     static final String DEFAULT_ROLE = "USER";
-    /** Número de contraseñas anteriores que no se pueden reutilizar (incluida la actual). */
+    /** Number of previous passwords that cannot be reused (including the current one). */
     static final int PASSWORD_HISTORY_SIZE = 3;
 
     private final UserRepository userRepository;
@@ -65,10 +65,10 @@ public class UserServiceImpl implements UserService {
         return createUser(username, email, rawPassword, () -> findRoles(roleIds));
     }
 
-    /** El usuario, sus roles, su historial de contraseñas y el evento del outbox se guardan juntos. */
+    /** The user, their roles, their password history and the outbox event are saved together. */
     @Override
     @Transactional
-    @Observed(name = "user.register", contextualName = "registrar usuario")
+    @Observed(name = "user.register", contextualName = "register user")
     public User register(String username, String email, String rawPassword, String firstName, String lastName) {
         User user = createUser(username, email, rawPassword, () -> Set.of(roleRepository.findByName(DEFAULT_ROLE)
                 .orElseThrow(() -> new RoleNotFoundException(DEFAULT_ROLE))));
@@ -89,7 +89,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new UserNotFoundException(username));
     }
 
-    // Las comprobaciones de unicidad van antes de resolver los roles y de cifrar la contraseña (BCrypt es lento).
+    // Uniqueness checks come before resolving the roles and hashing the password (BCrypt is slow).
     private User createUser(String username, String email, String rawPassword, Supplier<Set<Role>> roles) {
         String normalizedUsername = User.normalizeUsername(username);
         String normalizedEmail = User.normalizeEmail(email);
@@ -119,11 +119,11 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
         passwordHistoryRepository.save(user.getId(), user.getPasswordHash(), Instant.now(clock));
         auditService.record(SecurityEventType.PASSWORD_CHANGED, user.getUsername(), null);
-        // Si alguien tenía un token robado, deja de valer al cambiar la contraseña.
+        // If someone had a stolen token, it stops being valid when the password changes.
         tokenRevocationService.revokeAllForUser(user.getUsername(), "password changed");
     }
 
-    // La actual siempre cuenta, aunque el usuario venga de antes de existir el historial (datos de ejemplo).
+    // The current one always counts, even if the user predates the history (sample data).
     private boolean isRecentlyUsed(User user, String newPassword) {
         if (passwordHasher.matches(newPassword, user.getPasswordHash())) {
             return true;
@@ -188,7 +188,7 @@ public class UserServiceImpl implements UserService {
         user.removeRole(roleId);
         User saved = userRepository.save(user);
         auditService.record(SecurityEventType.ROLE_REMOVED, saved.getUsername(), "role=" + roleName);
-        // Los tokens ya emitidos llevan el rol en sus claims: se revocan para que el cambio sea inmediato.
+        // Tokens already issued carry the role in their claims: they are revoked so the change is immediate.
         tokenRevocationService.revokeAllForUser(saved.getUsername(), "role removed");
         return saved;
     }
@@ -203,7 +203,7 @@ public class UserServiceImpl implements UserService {
         return saved;
     }
 
-    // Todos los roles pedidos tienen que existir y estar activos; si falta alguno se indica cuál.
+    // All the requested roles must exist and be active; if any is missing, it says which.
     private Set<Role> findRoles(Set<Long> roleIds) {
         if (roleIds == null || roleIds.isEmpty()) {
             return Set.of();

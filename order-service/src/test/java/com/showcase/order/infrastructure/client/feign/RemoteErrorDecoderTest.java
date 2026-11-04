@@ -23,7 +23,7 @@ class RemoteErrorDecoderTest {
         var request = Request.create(Request.HttpMethod.GET, "http://product-service/api/v1/products/1", Map.of(),
                 null, StandardCharsets.UTF_8, null);
         var response = Response.builder().status(status).request(request).headers(Map.of())
-                .body("{\"detalle\":\"interno\"}", StandardCharsets.UTF_8).build();
+                .body("{\"detail\":\"interno\"}", StandardCharsets.UTF_8).build();
         return decoder.decode("ProductFeignClient#findById(Long)", response);
     }
 
@@ -33,14 +33,14 @@ class RemoteErrorDecoderTest {
 
         @ParameterizedTest
         @ValueSource(ints = 404)
-        @DisplayName("404 es un recurso que no existe")
+        @DisplayName("404 is a resource that does not exist")
         void decode_404_shouldBeNotFound(int status) {
             assertThat(decode(status)).isInstanceOf(RemoteResourceNotFoundException.class);
         }
 
         @ParameterizedTest
         @ValueSource(ints = 401)
-        @DisplayName("401 es un token no válido")
+        @DisplayName("401 is an invalid token")
         void decode_401_shouldBeUnauthorized(int status) {
             assertThat(decode(status)).isInstanceOf(UnauthorizedException.class)
                     .hasFieldOrPropertyWithValue("errorCode", CommonErrorCode.INVALID_TOKEN);
@@ -48,18 +48,18 @@ class RemoteErrorDecoderTest {
 
         @ParameterizedTest
         @ValueSource(ints = 403)
-        @DisplayName("403 es falta de permisos del usuario")
+        @DisplayName("403 means the user lacks permissions")
         void decode_403_shouldBeForbidden(int status) {
             assertThat(decode(status)).isInstanceOf(ForbiddenException.class);
         }
 
         @ParameterizedTest
         @ValueSource(ints = {400, 409, 422, 500, 502, 503})
-        @DisplayName("el resto es un servicio no disponible, sin reenviar el cuerpo remoto")
+        @DisplayName("the rest is a service unavailable, without forwarding the remote body")
         void decode_other_shouldBeServiceUnavailable(int status) {
             assertThat(decode(status)).isInstanceOf(ExternalServiceException.class)
                     .hasFieldOrPropertyWithValue("errorCode", CommonErrorCode.SERVICE_UNAVAILABLE)
-                    .hasMessageNotContaining("interno");
+                    .hasMessageNotContaining("internal");
         }
     }
 }

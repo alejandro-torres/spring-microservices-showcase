@@ -22,7 +22,7 @@ class MessagingTopologyTest {
     class DeclarablesTest {
 
         @Test
-        @DisplayName("declara el exchange propio y el de cada evento consumido, de tipo topic y duraderos")
+        @DisplayName("declares its own exchange and that of each consumed event, of type topic and durable")
         void declarables_shouldDeclareTopicExchanges() {
             // given
             var properties = new MessagingProperties("product-service", "product.events",
@@ -39,7 +39,7 @@ class MessagingTopologyTest {
         }
 
         @Test
-        @DisplayName("cada cola es duradera, manda sus mensajes fallidos al DLX y tiene su DLQ")
+        @DisplayName("each queue is durable, sends its failed messages to the DLX and has its DLQ")
         void declarables_shouldDeclareQueueWithDeadLetterQueue() {
             // given
             var properties = new MessagingProperties("product-service", "product.events",
@@ -72,7 +72,7 @@ class MessagingTopologyTest {
         }
 
         @Test
-        @DisplayName("un servicio que solo publica no declara colas ni DLX")
+        @DisplayName("a service that only publishes declares no queues or DLX")
         void declarables_withoutConsumers_shouldOnlyDeclareOwnExchange() {
             // given
             var properties = new MessagingProperties("auth-service", "auth.events", null, null);
@@ -88,11 +88,11 @@ class MessagingTopologyTest {
     }
 
     @Nested
-    @DisplayName("valores por defecto")
+    @DisplayName("default values")
     class Defaults {
 
         @Test
-        @DisplayName("el outbox envía lotes de 100, espera 5 s el confirm y aparta un evento sin destino tras 5 intentos")
+        @DisplayName("the outbox sends batches of 100, waits 5 s for the confirm and sets aside an unrouted event after 5 attempts")
         void outbox_withoutSettings_shouldUseDefaults() {
             // when
             var properties = new MessagingProperties("order-service", "order.events", null, null);

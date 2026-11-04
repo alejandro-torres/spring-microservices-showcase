@@ -7,7 +7,7 @@ import com.showcase.common.domain.page.PageResult;
 import java.util.List;
 
 /**
- * Puerto de salida para la auditoría de seguridad. Solo se añaden registros: nunca se modifican ni se borran.
+ * Outbound port for the security audit log. Records are only added: never modified or deleted.
  */
 public interface SecurityAuditRepository {
 

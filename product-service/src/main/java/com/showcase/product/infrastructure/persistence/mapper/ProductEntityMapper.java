@@ -11,7 +11,7 @@ public interface ProductEntityMapper {
 
     Product toDomain(ProductEntity entity);
 
-    /** La categoría la asigna el repositorio con una referencia a la entidad existente. */
+    /** The repository assigns the category with a reference to the existing entity. */
     @Mapping(target = "category", ignore = true)
     ProductEntity toEntity(Product product);
 

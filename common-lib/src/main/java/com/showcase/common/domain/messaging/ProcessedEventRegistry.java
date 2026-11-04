@@ -3,14 +3,14 @@ package com.showcase.common.domain.messaging;
 import java.util.UUID;
 
 /**
- * Registro de los eventos ya procesados por un consumidor (puerto de salida). RabbitMQ entrega "al menos una
- * vez", así que el mismo mensaje puede llegar dos veces; los servicios lo registran en la MISMA transacción que
- * su cambio de negocio y lo ignoran si ya estaba.
+ * Registry of the events already processed by a consumer (outbound port). RabbitMQ delivers "at least once",
+ * so the same message can arrive twice; the services register it in the SAME transaction as their
+ * business change and ignore it if already there.
  */
 public interface ProcessedEventRegistry {
 
     /**
-     * @return {@code true} si el evento es nuevo y queda registrado; {@code false} si ya se había procesado
+     * @return {@code true} if the event is new and is now registered; {@code false} if it was already processed
      */
     boolean registerIfAbsent(UUID eventId, String eventType);
 }

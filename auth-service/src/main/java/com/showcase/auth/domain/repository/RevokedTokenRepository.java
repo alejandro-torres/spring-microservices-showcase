@@ -5,17 +5,17 @@ import java.time.Instant;
 import java.util.Optional;
 
 /**
- * Puerto de salida para los tokens revocados. Los registros caducan solos cuando ya no hacen falta
- * (un token caducado se rechaza igualmente por su fecha de expiración).
+ * Outbound port for revoked tokens. Records expire on their own when no longer needed
+ * (an expired token is rejected anyway by its expiry date).
  */
 public interface RevokedTokenRepository {
 
-    /** Revoca un token concreto (claim jti) durante el tiempo que le queda de vida. */
+    /** Revokes a specific token (jti claim) for the rest of its lifetime. */
     void revoke(String tokenId, Duration ttl);
 
     boolean isRevoked(String tokenId);
 
-    /** Revoca todos los tokens del usuario emitidos hasta {@code instant}. */
+    /** Revokes all the user's tokens issued up to {@code instant}. */
     void revokeIssuedBefore(String username, Instant instant, Duration ttl);
 
     Optional<Instant> revokedBefore(String username);

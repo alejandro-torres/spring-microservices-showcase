@@ -18,14 +18,14 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 /**
- * Convierte cualquier error del propio gateway al formato común, sin detalles internos:
+ * Converts any error of the gateway itself to the common format, with no internal details:
  * <ul>
- *   <li>Límite de peticiones superado → 429 con {@code Retry-After} y las cabeceras {@code X-RateLimit-*}.</li>
- *   <li>Ninguna ruta coincide → 404.</li>
- *   <li>El servicio no tiene réplicas, no responde o tarda demasiado → 503.</li>
- *   <li>Cualquier otra cosa → 500, con el detalle solo en el log.</li>
+ *   <li>Request limit exceeded → 429 with {@code Retry-After} and the {@code X-RateLimit-*} headers.</li>
+ *   <li>No route matches → 404.</li>
+ *   <li>The service has no replicas, does not respond or takes too long → 503.</li>
+ *   <li>Anything else → 500, with the detail only in the log.</li>
  * </ul>
- * Order -2: antes que el handler por defecto de Spring Boot.
+ * Order -2: before Spring Boot's default handler.
  */
 @Component
 @Order(-2)
@@ -45,10 +45,10 @@ public class GatewayErrorWebExceptionHandler implements ErrorWebExceptionHandler
             return fromStatus(exchange, statusException.getStatusCode(), error);
         }
         if (isUnavailable(error)) {
-            log.warn("Servicio no disponible para {}: {}", exchange.getRequest().getPath(), error.toString());
+            log.warn("Service unavailable for {}: {}", exchange.getRequest().getPath(), error.toString());
             return errorWriter.write(exchange, HttpStatus.SERVICE_UNAVAILABLE, CommonErrorCode.SERVICE_UNAVAILABLE);
         }
-        log.error("Error inesperado en el gateway en {}", exchange.getRequest().getPath(), error);
+        log.error("Unexpected error in the gateway at {}", exchange.getRequest().getPath(), error);
         return errorWriter.write(exchange, HttpStatus.INTERNAL_SERVER_ERROR, CommonErrorCode.INTERNAL_ERROR);
     }
 
@@ -72,13 +72,13 @@ public class GatewayErrorWebExceptionHandler implements ErrorWebExceptionHandler
         }
         if (status == HttpStatus.SERVICE_UNAVAILABLE || status == HttpStatus.GATEWAY_TIMEOUT
                 || status == HttpStatus.BAD_GATEWAY) {
-            log.warn("Servicio no disponible para {}: {}", exchange.getRequest().getPath(), error.toString());
+            log.warn("Service unavailable for {}: {}", exchange.getRequest().getPath(), error.toString());
             return errorWriter.write(exchange, HttpStatus.SERVICE_UNAVAILABLE, CommonErrorCode.SERVICE_UNAVAILABLE);
         }
         if (status != null && status.is4xxClientError()) {
             return errorWriter.write(exchange, HttpStatus.BAD_REQUEST, CommonErrorCode.MALFORMED_REQUEST);
         }
-        log.error("Error inesperado en el gateway en {}", exchange.getRequest().getPath(), error);
+        log.error("Unexpected error in the gateway at {}", exchange.getRequest().getPath(), error);
         return errorWriter.write(exchange, HttpStatus.INTERNAL_SERVER_ERROR, CommonErrorCode.INTERNAL_ERROR);
     }
 

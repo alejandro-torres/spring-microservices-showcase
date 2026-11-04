@@ -8,7 +8,7 @@ public enum SortDirection {
     ASC,
     DESC;
 
-    /** Convierte el parámetro de la URL sin distinguir mayúsculas; si no es válido lanza INVALID_PAGINATION. */
+    /** Converts the URL parameter case-insensitively; if invalid it throws INVALID_PAGINATION. */
     public static SortDirection from(String value) {
         if (value == null || value.isBlank()) {
             return ASC;

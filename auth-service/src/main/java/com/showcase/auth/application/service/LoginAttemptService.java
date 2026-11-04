@@ -1,17 +1,17 @@
 package com.showcase.auth.application.service;
 
 /**
- * Seguimiento de los intentos de login para bloquear cuentas atacadas por fuerza bruta.
+ * Tracking of login attempts to lock accounts under brute-force attack.
  */
 public interface LoginAttemptService {
 
-    /** Login correcto: reinicia el contador y lo audita. */
+    /** Successful login: resets the counter and audits it. */
     void onSuccess(String username);
 
     /**
-     * Login fallido por contraseña incorrecta: incrementa el contador y, al llegar al máximo, bloquea la cuenta.
+     * Failed login due to a wrong password: increments the counter and, on reaching the maximum, locks the account.
      *
-     * @throws com.showcase.auth.domain.exception.AccountLockedException si este intento bloquea la cuenta
+     * @throws com.showcase.auth.domain.exception.AccountLockedException if this attempt locks the account
      */
     void onFailure(String username);
 }

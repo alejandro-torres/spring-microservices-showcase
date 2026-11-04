@@ -31,8 +31,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 /**
- * Revocación real con Redis (Testcontainers): los tokens se firman con la misma clave que usa auth-service,
- * así que pasan por toda la validación del JwtDecoder, incluida la comprobación en Redis.
+ * Real revocation with Redis (Testcontainers): tokens are signed with the same key auth-service uses,
+ * so they go through the JwtDecoder's whole validation, including the check in Redis.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -55,7 +55,7 @@ class TokenRevocationIT {
         encoder = new NimbusJwtEncoder(jwkSource);
     }
 
-    /** Token como el que emite auth-service para un usuario con rol USER. */
+    /** A token like the one auth-service issues for a user with the USER role. */
     private String tokenFor(String username) {
         Instant now = Instant.now();
         var claims = JwtClaimsSet.builder()
@@ -72,10 +72,10 @@ class TokenRevocationIT {
     }
 
     @Test
-    @DisplayName("tras el logout, el mismo token se rechaza con 401 INVALID_TOKEN")
+    @DisplayName("after logout, the same token is rejected with 401 INVALID_TOKEN")
     void logout_shouldRevokeCurrentToken() throws Exception {
-        userService.create("revoca.logout", "logout@example.com", "Secreta-123!", Set.of());
-        String token = tokenFor("revoca.logout");
+        userService.create("revokes.logout", "logout@example.com", "Secret-123!", Set.of());
+        String token = tokenFor("revokes.logout");
 
         me(token).andExpect(status().isOk());
         mockMvc.perform(post("/api/v1/auth/logout").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
@@ -85,18 +85,18 @@ class TokenRevocationIT {
     }
 
     @Test
-    @DisplayName("al cambiar la contraseña se revocan todos los tokens anteriores del usuario, no los de otros")
+    @DisplayName("changing the password revokes all the user's previous tokens, not those of others")
     void passwordChange_shouldRevokeAllPreviousTokens() throws Exception {
-        userService.create("revoca.todos", "todos@example.com", "Secreta-123!", Set.of());
-        userService.create("revoca.otro", "otro@example.com", "Secreta-123!", Set.of());
-        String first = tokenFor("revoca.todos");
-        String second = tokenFor("revoca.todos");
-        String otherUser = tokenFor("revoca.otro");
+        userService.create("revokes.all", "all@example.com", "Secret-123!", Set.of());
+        userService.create("revokes.other", "other@example.com", "Secret-123!", Set.of());
+        String first = tokenFor("revokes.all");
+        String second = tokenFor("revokes.all");
+        String otherUser = tokenFor("revokes.other");
 
         mockMvc.perform(put("/api/v1/users/me/password").header(HttpHeaders.AUTHORIZATION, "Bearer " + first)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"currentPassword":"Secreta-123!","newPassword":"Nueva-456!"}
+                                {"currentPassword":"Secret-123!","newPassword":"New-456!"}
                                 """))
                 .andExpect(status().isNoContent());
 
@@ -104,8 +104,8 @@ class TokenRevocationIT {
         me(second).andExpect(status().isUnauthorized());
         me(otherUser).andExpect(status().isOk());
 
-        // El claim iat tiene precisión de segundos: un token emitido un segundo después ya es válido.
+        // The iat claim has second precision: a token issued one second later is valid.
         Thread.sleep(1_100);
-        me(tokenFor("revoca.todos")).andExpect(status().isOk());
+        me(tokenFor("revokes.all")).andExpect(status().isOk());
     }
 }

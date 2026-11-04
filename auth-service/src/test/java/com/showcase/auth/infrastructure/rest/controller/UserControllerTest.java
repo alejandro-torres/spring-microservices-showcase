@@ -65,42 +65,42 @@ class UserControllerTest {
     @MockitoBean
     private JwtDecoder jwtDecoder;
 
-    /** Por defecto las peticiones van con un token de ADMIN; los tests de permisos usan su propio token. */
+    /** By default requests go with an ADMIN token; permission tests use their own token. */
     private ResultActions perform(MockHttpServletRequestBuilder request) throws Exception {
         return mockMvc.perform(request.with(TestJwt.admin()));
     }
 
     @Nested
-    @DisplayName("autenticación")
+    @DisplayName("authentication")
     class Authentication {
 
         @Test
-        @DisplayName("sin token devuelve 401 en el formato común y no llama al servicio")
+        @DisplayName("without a token it returns 401 in the common format and does not call the service")
         void withoutToken_shouldReturn401() throws Exception {
             mockMvc.perform(get("/api/v1/users/10"))
                     .andExpect(status().isUnauthorized())
                     .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, "Bearer"))
                     .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
-                    .andExpect(jsonPath("$.message").value("Es necesario autenticarse para acceder a este recurso."));
+                    .andExpect(jsonPath("$.message").value("Authentication is required to access this resource."));
             verify(userService, never()).findById(any());
         }
     }
 
     @Nested
-    @DisplayName("permisos (@PreAuthorize)")
+    @DisplayName("permissions (@PreAuthorize)")
     class Permissions {
 
         @Test
-        @DisplayName("con user:read puede consultar, pero no crear (403 en el formato común)")
+        @DisplayName("with user:read it can view, but not create (403 in the common format)")
         void readOnlyUser_canReadButNotWrite() throws Exception {
             given(userService.findById(10L)).willReturn(user(10L, "ana"));
-            var reader = TestJwt.withPermissions("lector", "user:read");
+            var reader = TestJwt.withPermissions("reader", "user:read");
 
             mockMvc.perform(get("/api/v1/users/10").with(reader)).andExpect(status().isOk());
             mockMvc.perform(post("/api/v1/users").with(reader)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
-                                    {"username":"ana","email":"ana@example.com","password":"Secreta-123"}
+                                    {"username":"ana","email":"ana@example.com","password":"Secret-123"}
                                     """))
                     .andExpect(status().isForbidden())
                     .andExpect(jsonPath("$.code").value("FORBIDDEN"));
@@ -108,7 +108,7 @@ class UserControllerTest {
         }
 
         @Test
-        @DisplayName("GET /me devuelve el usuario del token aunque no tenga user:read")
+        @DisplayName("GET /me returns the token's user even without user:read")
         void me_shouldReturnAuthenticatedUser() throws Exception {
             given(userService.findByUsername("ana")).willReturn(user(10L, "ana", userRole()));
 
@@ -118,45 +118,45 @@ class UserControllerTest {
         }
 
         @Test
-        @DisplayName("PUT /me/password cambia la contraseña del usuario del token y devuelve 204")
+        @DisplayName("PUT /me/password changes the password of the token's user and returns 204")
         void changePassword_shouldUseTokenSubject() throws Exception {
             mockMvc.perform(put("/api/v1/users/me/password").with(TestJwt.withPermissions("ana"))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
-                                    {"currentPassword":"Actual-123","newPassword":"Nueva-456!"}
+                                    {"currentPassword":"Current-123","newPassword":"New-456!"}
                                     """))
                     .andExpect(status().isNoContent());
-            verify(userService).changePassword("ana", "Actual-123", "Nueva-456!");
+            verify(userService).changePassword("ana", "Current-123", "New-456!");
         }
 
         @Test
-        @DisplayName("PUT /me/password rechaza una contraseña débil con el mensaje traducido")
+        @DisplayName("PUT /me/password rejects a weak password with the translated message")
         void changePassword_weakPassword_shouldReturn400() throws Exception {
             mockMvc.perform(put("/api/v1/users/me/password").with(TestJwt.withPermissions("ana"))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
-                                    {"currentPassword":"Actual-123","newPassword":"debil"}
+                                    {"currentPassword":"Current-123","newPassword":"weak"}
                                     """))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.errors[0].field").value("newPassword"))
                     .andExpect(jsonPath("$.errors[0].message").value(
-                            "debe tener entre 8 y 72 caracteres, sin espacios, e incluir mayúsculas, minúsculas, números y símbolos"));
+                            "must be 8 to 72 characters long, without spaces, and include uppercase, lowercase, digits and symbols"));
             verify(userService, never()).changePassword(any(), any(), any());
         }
 
         @Test
-        @DisplayName("sin user:read no puede consultar usuarios")
+        @DisplayName("without user:read it cannot view users")
         void withoutPermission_shouldReturn403() throws Exception {
-            mockMvc.perform(get("/api/v1/users/10").with(TestJwt.withPermissions("cliente", "order:read")))
+            mockMvc.perform(get("/api/v1/users/10").with(TestJwt.withPermissions("customer", "order:read")))
                     .andExpect(status().isForbidden());
         }
 
         @Test
-        @DisplayName("includeInactive solo está permitido al rol ADMIN")
+        @DisplayName("includeInactive is only allowed for the ADMIN role")
         void includeInactive_onlyForAdmin() throws Exception {
             given(userService.findAll(anyList(), any(PageQuery.class), anyBoolean()))
                     .willReturn(PageResult.of(List.of(), 0, 10, 0));
-            var reader = TestJwt.withPermissions("lector", "user:read");
+            var reader = TestJwt.withPermissions("reader", "user:read");
 
             mockMvc.perform(get("/api/v1/users").with(reader)).andExpect(status().isOk());
             mockMvc.perform(get("/api/v1/users").param("includeInactive", "true").with(reader))
@@ -170,15 +170,15 @@ class UserControllerTest {
     class Create {
 
         @Test
-        @DisplayName("devuelve 201 con la cabecera Location y el usuario sin datos de la contraseña")
+        @DisplayName("returns 201 with the Location header and the user without password data")
         void create_shouldReturn201WithLocation() throws Exception {
-            given(userService.create("ana", "ana@example.com", "Secreta-123", Set.of(2L)))
+            given(userService.create("ana", "ana@example.com", "Secret-123", Set.of(2L)))
                     .willReturn(user(10L, "ana", userRole()));
 
             perform(post("/api/v1/users")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
-                                    {"username":"ana","email":"ana@example.com","password":"Secreta-123","roleIds":[2]}
+                                    {"username":"ana","email":"ana@example.com","password":"Secret-123","roleIds":[2]}
                                     """))
                     .andExpect(status().isCreated())
                     .andExpect(header().string(HttpHeaders.LOCATION, endsWith("/api/v1/users/10")))
@@ -191,12 +191,12 @@ class UserControllerTest {
         }
 
         @Test
-        @DisplayName("devuelve 400 con los errores de cada campo y no llama al servicio")
+        @DisplayName("returns 400 with each field's errors and does not call the service")
         void create_withInvalidBody_shouldReturn400() throws Exception {
             perform(post("/api/v1/users")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
-                                    {"username":"a","email":"no-es-email","password":"corta"}
+                                    {"username":"a","email":"not-an-email","password":"short"}
                                     """))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
@@ -210,7 +210,7 @@ class UserControllerTest {
     class FindById {
 
         @Test
-        @DisplayName("devuelve 200 con el usuario y sus roles ordenados")
+        @DisplayName("returns 200 with the user and their sorted roles")
         void findById_shouldReturnUser() throws Exception {
             given(userService.findById(10L)).willReturn(user(10L, "ana", userRole(), adminRole()));
 
@@ -221,20 +221,20 @@ class UserControllerTest {
         }
 
         @Test
-        @DisplayName("devuelve 404 con el mensaje del servicio en español o en inglés")
+        @DisplayName("returns 404 with the service's message in English or Spanish")
         void findById_missing_shouldReturn404Translated() throws Exception {
             given(userService.findById(99L)).willThrow(new UserNotFoundException(99L));
 
             perform(get("/api/v1/users/99"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.code").value("USER_NOT_FOUND"))
-                    .andExpect(jsonPath("$.message").value("No existe ningún usuario activo con id 99."));
-            perform(get("/api/v1/users/99").header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
                     .andExpect(jsonPath("$.message").value("No active user with id 99 was found."));
+            perform(get("/api/v1/users/99").header(HttpHeaders.ACCEPT_LANGUAGE, "es"))
+                    .andExpect(jsonPath("$.message").value("No existe ningún usuario activo con id 99."));
         }
 
         @Test
-        @DisplayName("devuelve 400 si el id no es positivo")
+        @DisplayName("returns 400 if the id is not positive")
         void findById_withNegativeId_shouldReturn400() throws Exception {
             perform(get("/api/v1/users/-1"))
                     .andExpect(status().isBadRequest())
@@ -243,11 +243,11 @@ class UserControllerTest {
     }
 
     @Nested
-    @DisplayName("GET /api/v1/users (paginado con filtros)")
+    @DisplayName("GET /api/v1/users (paginated with filters)")
     class FindAll {
 
         @Test
-        @DisplayName("convierte los filtros y la paginación y devuelve la página con sus totales")
+        @DisplayName("converts the filters and pagination and returns the page with its totals")
         void findAll_shouldParseFiltersAndReturnPage() throws Exception {
             // given
             given(userService.findAll(anyList(), any(PageQuery.class), anyBoolean()))
@@ -277,7 +277,7 @@ class UserControllerTest {
         }
 
         @Test
-        @DisplayName("rechaza filtrar por un campo fuera de la lista blanca, como el hash de la contraseña")
+        @DisplayName("rejects filtering by a field outside the whitelist, such as the password hash")
         void findAll_withForbiddenField_shouldReturn400() throws Exception {
             perform(get("/api/v1/users").param("filter", "passwordHash:eq:x"))
                     .andExpect(status().isBadRequest())
@@ -286,7 +286,7 @@ class UserControllerTest {
         }
 
         @Test
-        @DisplayName("rechaza un campo de ordenación no permitido y un tamaño de página excesivo")
+        @DisplayName("rejects a sort field that is not allowed and an excessive page size")
         void findAll_withInvalidPagination_shouldReturn400() throws Exception {
             perform(get("/api/v1/users").param("sort", "passwordHash"))
                     .andExpect(status().isBadRequest())
@@ -298,52 +298,52 @@ class UserControllerTest {
     }
 
     @Nested
-    @DisplayName("PUT, DELETE y gestión de roles")
+    @DisplayName("PUT, DELETE and role management")
     class Modify {
 
         @Test
-        @DisplayName("PUT devuelve 200 con el usuario actualizado")
+        @DisplayName("PUT returns 200 with the updated user")
         void update_shouldReturn200() throws Exception {
-            given(userService.update(10L, "nueva@example.com", false, 0L)).willReturn(user(10L, "ana"));
+            given(userService.update(10L, "new@example.com", false, 0L)).willReturn(user(10L, "ana"));
 
             perform(put("/api/v1/users/10")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
-                                    {"email":"nueva@example.com","enabled":false,"version":0}
+                                    {"email":"new@example.com","enabled":false,"version":0}
                                     """))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(10));
         }
 
         @Test
-        @DisplayName("PUT devuelve 409 si otro usuario modificó el registro")
+        @DisplayName("PUT returns 409 if another user modified the record")
         void update_withStaleVersion_shouldReturn409() throws Exception {
-            given(userService.update(10L, "nueva@example.com", true, 0L))
+            given(userService.update(10L, "new@example.com", true, 0L))
                     .willThrow(new ConflictException(CommonErrorCode.CONCURRENT_MODIFICATION, "User", 10L));
 
             perform(put("/api/v1/users/10")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
-                                    {"email":"nueva@example.com","enabled":true,"version":0}
+                                    {"email":"new@example.com","enabled":true,"version":0}
                                     """))
                     .andExpect(status().isConflict())
                     .andExpect(jsonPath("$.code").value("CONCURRENT_MODIFICATION"));
         }
 
         @Test
-        @DisplayName("PUT exige la versión para el bloqueo optimista")
+        @DisplayName("PUT requires the version for optimistic locking")
         void update_withoutVersion_shouldReturn400() throws Exception {
             perform(put("/api/v1/users/10")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
-                                    {"email":"nueva@example.com","enabled":true}
+                                    {"email":"new@example.com","enabled":true}
                                     """))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.errors[0].field").value("version"));
         }
 
         @Test
-        @DisplayName("DELETE devuelve 204 sin cuerpo, y 404 si el usuario no existe")
+        @DisplayName("DELETE returns 204 with no body, and 404 if the user does not exist")
         void delete_shouldReturn204Or404() throws Exception {
             perform(delete("/api/v1/users/10")).andExpect(status().isNoContent());
             verify(userService).delete(10L);
@@ -353,7 +353,7 @@ class UserControllerTest {
         }
 
         @Test
-        @DisplayName("asigna y quita roles devolviendo el usuario actualizado")
+        @DisplayName("assigns and removes roles, returning the updated user")
         void roles_shouldReturnUpdatedUser() throws Exception {
             given(userService.assignRole(10L, 1L)).willReturn(user(10L, "ana", userRole(), adminRole()));
             given(userService.removeRole(10L, 1L)).willReturn(user(10L, "ana", userRole()));

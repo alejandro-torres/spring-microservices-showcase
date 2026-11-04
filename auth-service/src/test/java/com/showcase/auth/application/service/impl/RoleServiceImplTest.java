@@ -57,19 +57,19 @@ class RoleServiceImplTest {
     class Create {
 
         @Test
-        @DisplayName("crea el rol con el nombre normalizado y sus permisos")
+        @DisplayName("creates the role with the normalized name and its permissions")
         void create_shouldSaveRoleWithPermissions() {
             given(permissionRepository.findAllById(Set.of(1L))).willReturn(List.of(permission(1L, "user:read")));
             given(roleRepository.save(any(Role.class))).willAnswer(invocation -> invocation.getArgument(0));
 
-            var created = roleService.create("support", "Soporte", Set.of(1L));
+            var created = roleService.create("support", "Support", Set.of(1L));
 
             assertThat(created.getName()).isEqualTo("SUPPORT");
             assertThat(created.permissionNames()).containsExactly("user:read");
         }
 
         @Test
-        @DisplayName("rechaza un nombre de rol ya existente")
+        @DisplayName("rejects an existing role name")
         void create_withExistingName_shouldThrow() {
             given(roleRepository.existsByName("ADMIN")).willReturn(true);
 
@@ -80,7 +80,7 @@ class RoleServiceImplTest {
         }
 
         @Test
-        @DisplayName("rechaza permisos inexistentes")
+        @DisplayName("rejects missing permissions")
         void create_withMissingPermission_shouldThrow() {
             given(permissionRepository.findAllById(Set.of(1L, 50L))).willReturn(List.of(permission(1L, "user:read")));
 
@@ -91,11 +91,11 @@ class RoleServiceImplTest {
     }
 
     @Nested
-    @DisplayName("findById, findAll y update")
+    @DisplayName("findById, findAll and update")
     class FindAndUpdate {
 
         @Test
-        @DisplayName("findById lanza ROLE_NOT_FOUND si no existe y findAll delega en el repositorio")
+        @DisplayName("findById throws ROLE_NOT_FOUND if it does not exist and findAll delegates to the repository")
         void find_shouldThrowOrDelegate() {
             var page = PageResult.of(List.of(adminRole()), 0, 10, 1);
             given(roleRepository.findAll(List.of(), PageQuery.firstPage(), false)).willReturn(page);
@@ -105,20 +105,20 @@ class RoleServiceImplTest {
         }
 
         @Test
-        @DisplayName("update sustituye descripción y permisos si la versión coincide")
+        @DisplayName("update replaces description and permissions if the version matches")
         void update_shouldReplacePermissions() {
             given(roleRepository.findById(1L)).willReturn(Optional.of(adminRole()));
             given(permissionRepository.findAllById(Set.of(3L))).willReturn(List.of(permission(3L, "role:read")));
             given(roleRepository.save(any(Role.class))).willAnswer(invocation -> invocation.getArgument(0));
 
-            var updated = roleService.update(1L, "Solo lectura", Set.of(3L), 0L);
+            var updated = roleService.update(1L, "Read-only", Set.of(3L), 0L);
 
-            assertThat(updated.getDescription()).isEqualTo("Solo lectura");
+            assertThat(updated.getDescription()).isEqualTo("Read-only");
             assertThat(updated.permissionNames()).containsExactly("role:read");
         }
 
         @Test
-        @DisplayName("update rechaza una versión desactualizada")
+        @DisplayName("update rejects a stale version")
         void update_withStaleVersion_shouldThrow() {
             given(roleRepository.findById(1L)).willReturn(Optional.of(adminRole()));
 
@@ -132,7 +132,7 @@ class RoleServiceImplTest {
     class Delete {
 
         @Test
-        @DisplayName("hace el borrado lógico si ningún usuario activo tiene el rol")
+        @DisplayName("does the soft delete if no active user has the role")
         void delete_unusedRole_shouldDeactivate() {
             given(roleRepository.findById(1L)).willReturn(Optional.of(adminRole()));
             given(userRepository.countActiveByRoleId(1L)).willReturn(0L);
@@ -144,7 +144,7 @@ class RoleServiceImplTest {
         }
 
         @Test
-        @DisplayName("rechaza borrar un rol asignado con ROLE_IN_USE (409)")
+        @DisplayName("rejects deleting an assigned role with ROLE_IN_USE (409)")
         void delete_roleInUse_shouldThrow() {
             given(roleRepository.findById(1L)).willReturn(Optional.of(adminRole()));
             given(userRepository.countActiveByRoleId(1L)).willReturn(3L);

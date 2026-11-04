@@ -46,7 +46,7 @@ class LoginAttemptServiceImplTest {
     class OnFailure {
 
         @Test
-        @DisplayName("incrementa el contador, lo guarda y audita el fallo")
+        @DisplayName("increments the counter, saves it and audits the failure")
         void onFailure_shouldIncrementAndAudit() {
             var ana = user(10L, "ana");
             given(userRepository.findByUsername("ana")).willReturn(Optional.of(ana));
@@ -59,7 +59,7 @@ class LoginAttemptServiceImplTest {
         }
 
         @Test
-        @DisplayName("al llegar al máximo guarda el bloqueo ANTES de lanzar AccountLockedException")
+        @DisplayName("on reaching the maximum it saves the lock BEFORE throwing AccountLockedException")
         void onFailure_atMaxAttempts_shouldSaveLockThenThrow() {
             var ana = user(10L, "ana");
             given(userRepository.findByUsername("ana")).willReturn(Optional.of(ana));
@@ -79,11 +79,11 @@ class LoginAttemptServiceImplTest {
         }
 
         @Test
-        @DisplayName("audita los intentos con usuarios inexistentes sin guardar nada")
+        @DisplayName("audits attempts with unknown users without saving anything")
         void onFailure_unknownUser_shouldOnlyAudit() {
-            service.onFailure("no.existe");
+            service.onFailure("does.not.exist");
 
-            verify(auditService).record(SecurityEventType.LOGIN_FAILURE, "no.existe", "unknown user");
+            verify(auditService).record(SecurityEventType.LOGIN_FAILURE, "does.not.exist", "unknown user");
             verify(userRepository, never()).save(any());
         }
     }
@@ -93,7 +93,7 @@ class LoginAttemptServiceImplTest {
     class OnSuccess {
 
         @Test
-        @DisplayName("reinicia el contador si había fallos y audita el login")
+        @DisplayName("resets the counter if there were failures and audits the login")
         void onSuccess_withPreviousFailures_shouldReset() {
             var ana = user(10L, "ana");
             ana.registerFailedLogin(3, Duration.ofMinutes(15), NOW);
@@ -107,7 +107,7 @@ class LoginAttemptServiceImplTest {
         }
 
         @Test
-        @DisplayName("no guarda nada si no había fallos")
+        @DisplayName("saves nothing if there were no failures")
         void onSuccess_withoutFailures_shouldNotSave() {
             given(userRepository.findByUsername("ana")).willReturn(Optional.of(user(10L, "ana")));
 

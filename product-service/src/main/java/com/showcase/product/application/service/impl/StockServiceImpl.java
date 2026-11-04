@@ -29,17 +29,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Lado de product-service de la saga de pedidos. Cada operación registra el evento procesado, cambia el stock y
- * guarda su evento de respuesta en el outbox en UNA transacción: o pasa todo o nada.
+ * product-service's side of the order saga. Each operation registers the processed event, changes the stock and
+ * stores its response event in the outbox in ONE transaction: all or nothing.
  * <p>
- * Que falte stock no es un error técnico sino un resultado de negocio: no se lanza ninguna excepción, se publica
- * {@code stock.reservation-failed} y la transacción hace commit (con el evento procesado registrado, para no
- * repetir la respuesta si el mensaje llega dos veces).
+ * A lack of stock is not a technical error but a business result: no exception is thrown,
+ * {@code stock.reservation-failed} is published and the transaction commits (with the processed event registered,
+ * so the response is not repeated if the message arrives twice).
  * <p>
- * Con varias réplicas, el orden es <b>lock → transacción → commit → unlock</b>: el lock distribuido de cada
- * producto se coge antes de abrir la transacción y se suelta después del commit, para que otra réplica nunca lea
- * un stock que todavía no se ha confirmado. Por eso aquí no hay {@code @Transactional} (la transacción se abriría
- * antes que el lock) sino un {@link TransactionTemplate}, que delimita exactamente dónde empieza y acaba.
+ * With several replicas, the order is <b>lock → transaction → commit → unlock</b>: each product's distributed lock
+ * is taken before opening the transaction and released after the commit, so another replica never reads
+ * stock that has not yet been committed. That is why there is no {@code @Transactional} here (the transaction would
+ * open before the lock) but a {@link TransactionTemplate}, which marks exactly where it starts and ends.
  */
 @Service
 @RequiredArgsConstructor
@@ -53,7 +53,7 @@ public class StockServiceImpl implements StockService {
     private final StockEventPublisher eventPublisher;
     private final DistributedLockManager lockManager;
     private final StockMetrics metrics;
-    /** REPEATABLE_READ y timeout de 5 s (definida en la infraestructura, {@code StockTransactionConfig}). */
+    /** REPEATABLE_READ and a 5 s timeout (defined in the infrastructure, {@code StockTransactionConfig}). */
     @Qualifier("reserveStockTransaction")
     private final TransactionTemplate reserveTransaction;
     @Qualifier("releaseStockTransaction")
@@ -61,20 +61,20 @@ public class StockServiceImpl implements StockService {
     private final Clock clock;
 
     /**
-     * Todas las líneas o ninguna: primero se comprueba que todas tienen stock y solo entonces se descuentan.
+     * All the lines or none: first it checks that all have stock and only then deducts it.
      * <p>
-     * Concurrencia, de más a menos importante:
+     * Concurrency, from most to least important:
      * <ul>
-     *   <li>Lock distribuido por producto con Redisson ({@code lock:product:{id}}): dos réplicas nunca modifican el
-     *       mismo producto a la vez. Evita los conflictos en lugar de detectarlos.</li>
-     *   <li>{@code @Version} (bloqueo optimista): segunda red de seguridad; si aun así otra escritura cambió el
-     *       producto (p. ej. un ajuste manual de stock), el UPDATE falla y el mensaje se reintenta.</li>
-     *   <li>{@code REPEATABLE_READ}: en PostgreSQL, actualizar una fila que otra transacción confirmada ha
-     *       modificado falla con un error de serialización, aunque la escritura no pasara por la versión.</li>
+     *   <li>Distributed per-product lock with Redisson ({@code lock:product:{id}}): two replicas never modify the
+     *       same product at once. It avoids conflicts rather than detecting them.</li>
+     *   <li>{@code @Version} (optimistic locking): second safety net; if another write still changed the
+     *       product (e.g. a manual stock adjustment), the UPDATE fails and the message is retried.</li>
+     *   <li>{@code REPEATABLE_READ}: in PostgreSQL, updating a row that another committed transaction has
+     *       modified fails with a serialization error, even if the write did not go through the version.</li>
      * </ul>
      */
     @Override
-    @Observed(name = "stock.reserve", contextualName = "reservar stock")
+    @Observed(name = "stock.reserve", contextualName = "reserve stock")
     public void reserve(UUID eventId, Long orderId, List<StockLine> lines) {
         lockManager.executeWithLocks(lockKeys(lines), () -> reserveTransaction.execute(status -> {
             doReserve(eventId, orderId, lines);
@@ -82,9 +82,9 @@ public class StockServiceImpl implements StockService {
         }));
     }
 
-    /** Compensación: devuelve las unidades aunque el producto se haya borrado después de la compra. */
+    /** Compensation: returns the units even if the product was deleted after the purchase. */
     @Override
-    @Observed(name = "stock.release", contextualName = "devolver stock")
+    @Observed(name = "stock.release", contextualName = "return stock")
     public void release(UUID eventId, Long orderId, List<StockLine> lines) {
         lockManager.executeWithLocks(lockKeys(lines), () -> releaseTransaction.execute(status -> {
             doRelease(eventId, orderId, lines);
@@ -94,7 +94,7 @@ public class StockServiceImpl implements StockService {
 
     private void doReserve(UUID eventId, Long orderId, List<StockLine> lines) {
         if (!processedEvents.registerIfAbsent(eventId, EventTypes.ORDER_CREATED)) {
-            log.info("Evento {} (order.created) ya procesado; se ignora el duplicado", eventId);
+            log.info("Event {} (order.created) already processed; ignoring the duplicate", eventId);
             return;
         }
         Instant now = Instant.now(clock);
@@ -117,33 +117,33 @@ public class StockServiceImpl implements StockService {
         }
         eventPublisher.publish(new StockReservedEvent(orderId, now));
         metrics.stockReserved();
-        log.info("Stock reservado para el pedido {} ({} líneas)", orderId, reservations.size());
+        log.info("Stock reserved for order {} ({} lines)", orderId, reservations.size());
     }
 
     private void doRelease(UUID eventId, Long orderId, List<StockLine> lines) {
         if (!processedEvents.registerIfAbsent(eventId, EventTypes.ORDER_CANCELLED)) {
-            log.info("Evento {} (order.cancelled) ya procesado; se ignora el duplicado", eventId);
+            log.info("Event {} (order.cancelled) already processed; ignoring the duplicate", eventId);
             return;
         }
         for (StockLine line : sortedByProduct(lines)) {
             productRepository.findByIdIncludingInactive(line.productId()).ifPresentOrElse(product -> {
                 product.releaseStock(line.quantity());
                 productRepository.save(product);
-            }, () -> log.warn("Pedido {}: el producto {} ya no existe y no se le pueden devolver {} unidades",
+            }, () -> log.warn("Order {}: product {} no longer exists and {} units cannot be returned to it",
                     orderId, line.productId(), line.quantity()));
         }
         eventPublisher.publish(new StockReleasedEvent(orderId, Instant.now(clock)));
         metrics.stockReleased();
-        log.info("Stock devuelto del pedido cancelado {}", orderId);
+        log.info("Stock returned from cancelled order {}", orderId);
     }
 
     private void fail(Long orderId, ProductErrorCode reason, Long productId, Instant now) {
         eventPublisher.publish(new StockReservationFailedEvent(orderId, reason.code(), productId, now));
         metrics.reservationFailed(reason.code());
-        log.info("No se reserva el stock del pedido {}: {} en el producto {}", orderId, reason, productId);
+        log.info("Not reserving the stock of order {}: {} on product {}", orderId, reason, productId);
     }
 
-    /** Un lock por producto; el gestor los ordena para cogerlos siempre en el mismo orden. */
+    /** One lock per product; the manager sorts them to always take them in the same order. */
     static List<String> lockKeys(List<StockLine> lines) {
         return lines.stream().map(line -> LOCK_PREFIX + line.productId()).distinct().toList();
     }

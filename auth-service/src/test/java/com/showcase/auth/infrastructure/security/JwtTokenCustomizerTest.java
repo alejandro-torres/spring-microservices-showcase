@@ -27,7 +27,7 @@ class JwtTokenCustomizerTest {
     }
 
     @Test
-    @DisplayName("añade roles sin prefijo y permisos ordenados, ignorando las autoridades FACTOR_*")
+    @DisplayName("adds roles without prefix and sorted permissions, ignoring the FACTOR_* authorities")
     void customize_userAccessToken_shouldAddRolesAndPermissions() {
         var context = context(OAuth2TokenType.ACCESS_TOKEN, AuthorizationGrantType.AUTHORIZATION_CODE,
                 "user:write", "ROLE_USER", "FACTOR_PASSWORD", "ROLE_ADMIN", "user:read");
@@ -40,7 +40,7 @@ class JwtTokenCustomizerTest {
     }
 
     @Test
-    @DisplayName("no añade nada a los tokens entre servicios (client_credentials)")
+    @DisplayName("adds nothing to service-to-service tokens (client_credentials)")
     void customize_clientCredentials_shouldNotAddClaims() {
         var context = context(OAuth2TokenType.ACCESS_TOKEN, AuthorizationGrantType.CLIENT_CREDENTIALS, "SCOPE_internal");
 
@@ -50,7 +50,7 @@ class JwtTokenCustomizerTest {
     }
 
     @Test
-    @DisplayName("no modifica los refresh tokens")
+    @DisplayName("does not modify the refresh tokens")
     void customize_refreshToken_shouldNotAddClaims() {
         var context = context(OAuth2TokenType.REFRESH_TOKEN, AuthorizationGrantType.AUTHORIZATION_CODE, "ROLE_USER");
 

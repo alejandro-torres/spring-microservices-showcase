@@ -29,7 +29,7 @@ public class CustomerEntity extends AuditedEntity {
     @Column(length = 30)
     private String phone;
 
-    /** Composición: las direcciones se guardan y se borran (orphanRemoval) junto con el cliente. */
+    /** Composition: addresses are saved and deleted (orphanRemoval) together with the customer. */
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("id")
     private List<AddressEntity> addresses = new ArrayList<>();

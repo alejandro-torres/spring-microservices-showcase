@@ -1,9 +1,9 @@
 package com.showcase.order.domain.model;
 
 /**
- * Ciclo de vida de un pedido. PENDING espera la reserva de stock (saga con product-service), que lo pasa a
- * CONFIRMED o REJECTED. Solo un pedido confirmado (con el stock ya reservado) se puede cancelar; mientras está
- * PENDING la saga sigue en curso.
+ * Lifecycle of an order. PENDING awaits the stock reservation (saga with product-service), which moves it to
+ * CONFIRMED or REJECTED. Only a confirmed order (with its stock already reserved) can be cancelled; while it is
+ * PENDING the saga is still running.
  */
 public enum OrderStatus {
 
@@ -20,7 +20,7 @@ public enum OrderStatus {
         };
     }
 
-    /** Estados finales: el pedido ya no cambia y se puede borrar. */
+    /** Final statuses: the order no longer changes and can be deleted. */
     public boolean isFinal() {
         return this == REJECTED || this == CANCELLED;
     }

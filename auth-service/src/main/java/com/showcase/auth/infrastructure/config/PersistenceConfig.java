@@ -9,8 +9,7 @@ import org.springframework.data.auditing.DateTimeProvider;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 /**
- * Auditoría JPA: rellena created_at y updated_at con el Clock inyectado, para que los tests
- * puedan fijar la fecha.
+ * JPA auditing: fills created_at and updated_at with the injected Clock, so tests can fix the date.
  */
 @Configuration(proxyBeanMethods = false)
 @EnableJpaAuditing(dateTimeProviderRef = "auditingDateTimeProvider")

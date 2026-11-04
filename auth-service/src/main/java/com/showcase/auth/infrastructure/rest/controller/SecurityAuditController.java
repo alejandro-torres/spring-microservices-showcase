@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Consulta de la auditoría de seguridad. Solo lectura y solo para ADMIN.
+ * Security audit lookup. Read-only and for ADMIN only.
  */
 @RestController
 @RequestMapping("/api/v1/security-audit")
@@ -30,7 +30,8 @@ public class SecurityAuditController {
     private final FilterCriteriaParser filterParser;
 
     /**
-     * P. ej. {@code ?filter=eventType:in:LOGIN_FAILURE,ACCOUNT_LOCKED&filter=username:eq:ana&sort=occurredAt&direction=DESC}.
+     * P. ej. {@code
+     * ?filter=eventType:in:LOGIN_FAILURE,ACCOUNT_LOCKED&filter=username:eq:ana&sort=occurredAt&direction=DESC}.
      */
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping

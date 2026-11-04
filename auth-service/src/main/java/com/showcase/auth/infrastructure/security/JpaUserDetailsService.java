@@ -17,8 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Adaptador entre el login de Spring Security y el dominio: carga el usuario con sus roles
- * ({@code ROLE_*}) y los permisos de esos roles como autoridades.
+ * Adapter between the Spring Security login and the domain: loads the user with their roles
+ * ({@code ROLE_*}) and those roles' permissions as authorities.
  */
 @Service
 @RequiredArgsConstructor
@@ -32,12 +32,12 @@ public class JpaUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) {
         String normalized = username == null ? "" : username.trim().toLowerCase(java.util.Locale.ROOT);
         User user = userRepository.findByUsername(normalized)
-                // Mismo mensaje para cualquier fallo de login: no se revela si el usuario existe.
-                .orElseThrow(() -> new UsernameNotFoundException("Credenciales no válidas"));
+                // Same message for any login failure: it does not reveal whether the user exists.
+                .orElseThrow(() -> new UsernameNotFoundException("Invalid credentials"));
         return org.springframework.security.core.userdetails.User.withUsername(user.getUsername())
                 .password(user.getPasswordHash())
                 .disabled(!user.isEnabled())
-                // Spring Security comprueba el bloqueo antes que la contraseña (LockedException).
+                // Spring Security checks the lock before the password (LockedException).
                 .accountLocked(user.isLocked(Instant.now(clock)))
                 .authorities(authorities(user))
                 .build();

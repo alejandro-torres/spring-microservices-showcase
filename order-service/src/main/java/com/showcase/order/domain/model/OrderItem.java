@@ -6,8 +6,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 /**
- * Línea de un pedido. Guarda el nombre y el precio del producto en el momento de la compra: si después
- * cambian en el catálogo, el pedido no se altera.
+ * An order line. It stores the product's name and price at the time of purchase: if they later change
+ * in the catalog, the order is not altered.
  */
 public record OrderItem(Long id, Long productId, String productName, BigDecimal unitPrice, int quantity) {
 

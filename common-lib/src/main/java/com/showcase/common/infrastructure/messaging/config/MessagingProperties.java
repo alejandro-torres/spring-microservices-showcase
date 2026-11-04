@@ -6,8 +6,8 @@ import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Nombres de la topología de RabbitMQ de un servicio, en {@code application.yml} en lugar de repartidos por el
- * código. Ejemplo:
+ * Names of a service's RabbitMQ topology, in {@code application.yml} rather than scattered through the
+ * code. Example:
  * <pre>
  * showcase:
  *   messaging:
@@ -20,10 +20,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *         routing-key: stock.reserved
  * </pre>
  *
- * @param source    nombre del servicio, que va en el campo {@code source} del sobre y da nombre a su DLX
- * @param exchange  exchange {@code topic} donde publica el servicio (null si no publica)
- * @param consumers colas que consume el servicio, por nombre lógico
- * @param outbox    ajustes del publicador del outbox
+ * @param source    name of the service, which goes in the envelope's {@code source} field and names its DLX
+ * @param exchange  {@code topic} exchange where the service publishes (null if it does not publish)
+ * @param consumers queues the service consumes, by logical name
+ * @param outbox    settings of the outbox publisher
  */
 @ConfigurationProperties(prefix = "showcase.messaging")
 public record MessagingProperties(
@@ -37,7 +37,7 @@ public record MessagingProperties(
         outbox = outbox == null ? new Outbox(null, null, null, null) : outbox;
     }
 
-    /** Exchange de mensajes muertos del servicio: cada cola le manda los mensajes rechazados. */
+    /** The service's dead-letter exchange: each queue sends it the rejected messages. */
     public String deadLetterExchange() {
         return source + ".dlx";
     }
@@ -47,18 +47,18 @@ public record MessagingProperties(
     }
 
     /**
-     * @param queue      cola duradera con el formato {@code <servicio-consumidor>.<evento>}
-     * @param exchange   exchange del servicio que publica el evento
-     * @param routingKey routing key del evento ({@code <entidad>.<acción>})
+     * @param queue      durable queue in the format {@code <consumer-service>.<event>}
+     * @param exchange   exchange of the service that publishes the event
+     * @param routingKey routing key of the event ({@code <entity>.<action>})
      */
     public record Consumer(String queue, String exchange, String routingKey) {
     }
 
     /**
-     * @param batchSize            eventos por ejecución del publicador
-     * @param confirmTimeout       espera máxima del publisher confirm de cada mensaje
-     * @param maxUnroutedAttempts  intentos antes de dar por imposible un evento que no llega a ninguna cola
-     * @param enabled              permite desactivar el publicador (p. ej. en algunos tests)
+     * @param batchSize            events per publisher run
+     * @param confirmTimeout       maximum wait for the publisher confirm of each message
+     * @param maxUnroutedAttempts  attempts before giving up on an event that reaches no queue
+     * @param enabled              allows disabling the publisher (e.g. in some tests)
      */
     public record Outbox(Integer batchSize, Duration confirmTimeout, Integer maxUnroutedAttempts, Boolean enabled) {
 

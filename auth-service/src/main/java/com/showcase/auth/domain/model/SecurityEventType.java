@@ -1,7 +1,7 @@
 package com.showcase.auth.domain.model;
 
 /**
- * Eventos de seguridad que se registran en la auditoría.
+ * Security events recorded in the audit log.
  */
 public enum SecurityEventType {
     LOGIN_SUCCESS,

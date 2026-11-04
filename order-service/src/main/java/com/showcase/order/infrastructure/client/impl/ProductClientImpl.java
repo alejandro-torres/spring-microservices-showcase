@@ -16,7 +16,7 @@ public class ProductClientImpl implements ProductClient {
     static final String CIRCUIT_BREAKER = "product-service";
 
     private final ProductFeignClient feignClient;
-    /** El circuit breaker se pide al registro en cada llamada (lo guarda en caché por nombre). */
+    /** The circuit breaker is requested from the registry on each call (it caches it by name). */
     private final CircuitBreakerRegistry circuitBreakerRegistry;
 
     @Override

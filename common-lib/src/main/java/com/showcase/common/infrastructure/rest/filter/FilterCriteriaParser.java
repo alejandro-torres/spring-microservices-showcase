@@ -12,12 +12,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Convierte los parámetros {@code filter=campo:operador:valor} de la URL en {@link FilterCriterion}
- * validados contra la lista blanca del recurso y con los valores ya tipados.
+ * Converts the URL's {@code filter=field:operator:value} parameters into {@link FilterCriterion}
+ * validated against the resource's whitelist and with the values already typed.
  *
- * <p>Formato: {@code campo:operador:valor}; para {@code in} y {@code between} los valores van
- * separados por comas, y {@code isNull} / {@code isNotNull} no llevan valor ({@code campo:isNull}).
- * Solo se parte por los dos primeros {@code :}, así que el valor puede contener {@code :} (fechas con hora).
+ * <p>Format: {@code field:operator:value}; for {@code in} and {@code between} the values are
+ * comma-separated, and {@code isNull} / {@code isNotNull} take no value ({@code field:isNull}).
+ * It only splits on the first two {@code :}, so the value may contain {@code :} (dates with time).
  */
 public class FilterCriteriaParser {
 
@@ -31,7 +31,7 @@ public class FilterCriteriaParser {
 
     public FilterCriteriaParser(int maxFilters) {
         if (maxFilters < 1) {
-            throw new IllegalArgumentException("maxFilters debe ser al menos 1");
+            throw new IllegalArgumentException("maxFilters must be at least 1");
         }
         this.maxFilters = maxFilters;
     }

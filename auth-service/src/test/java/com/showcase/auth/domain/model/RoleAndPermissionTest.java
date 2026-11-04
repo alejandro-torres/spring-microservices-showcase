@@ -22,9 +22,9 @@ class RoleAndPermissionTest {
     class RoleTests {
 
         @Test
-        @DisplayName("crea un rol activo con el nombre en mayúsculas")
+        @DisplayName("creates an active role with the name in uppercase")
         void create_shouldUppercaseName() {
-            var role = Role.create(" support ", "Soporte", Set.of(permission(1L, "user:read")));
+            var role = Role.create(" support ", "Support", Set.of(permission(1L, "user:read")));
             assertThat(role.getName()).isEqualTo("SUPPORT");
             assertThat(role.isActive()).isTrue();
             assertThat(role.permissionNames()).containsExactly("user:read");
@@ -32,8 +32,8 @@ class RoleAndPermissionTest {
 
         @ParameterizedTest
         @NullAndEmptySource
-        @ValueSource(strings = {"A", "ROL-CON-GUION", "ROL 1", "1ADMIN"})
-        @DisplayName("rechaza nombres con formato inválido con INVALID_ROLE_NAME")
+        @ValueSource(strings = {"A", "ROLE-WITH-HYPHEN", "ROL 1", "1ADMIN"})
+        @DisplayName("rejects names with an invalid format with INVALID_ROLE_NAME")
         void create_withInvalidName_shouldThrow(String name) {
             assertThatThrownBy(() -> Role.create(name, null, Set.of()))
                     .isInstanceOf(InvalidRequestException.class)
@@ -41,11 +41,11 @@ class RoleAndPermissionTest {
         }
 
         @Test
-        @DisplayName("update sustituye la descripción y el conjunto de permisos")
+        @DisplayName("update replaces the description and the set of permissions")
         void update_shouldReplacePermissions() {
             var role = role(1L, "ADMIN", permission(1L, "user:read"));
-            role.update("Administración", Set.of(permission(2L, "user:write"), permission(3L, "role:write")));
-            assertThat(role.getDescription()).isEqualTo("Administración");
+            role.update("Administration", Set.of(permission(2L, "user:write"), permission(3L, "role:write")));
+            assertThat(role.getDescription()).isEqualTo("Administration");
             assertThat(role.permissionNames()).containsExactlyInAnyOrder("user:write", "role:write");
         }
     }
@@ -55,9 +55,9 @@ class RoleAndPermissionTest {
     class PermissionTests {
 
         @Test
-        @DisplayName("crea un permiso con el formato recurso:accion en minúsculas")
+        @DisplayName("creates a permission in resource:action format in lowercase")
         void create_shouldLowercaseName() {
-            var permission = Permission.create("Product:Write", "Crear y editar productos");
+            var permission = Permission.create("Product:Write", "Create and edit products");
             assertThat(permission.getName()).isEqualTo("product:write");
             assertThat(permission.isActive()).isTrue();
         }
@@ -65,7 +65,7 @@ class RoleAndPermissionTest {
         @ParameterizedTest
         @NullAndEmptySource
         @ValueSource(strings = {"product", "product:", ":write", "product:write:all", "product write"})
-        @DisplayName("rechaza nombres que no siguen recurso:accion con INVALID_PERMISSION_NAME")
+        @DisplayName("rejects names not following resource:action with INVALID_PERMISSION_NAME")
         void create_withInvalidName_shouldThrow(String name) {
             assertThatThrownBy(() -> Permission.create(name, null))
                     .isInstanceOf(InvalidRequestException.class)
@@ -73,12 +73,12 @@ class RoleAndPermissionTest {
         }
 
         @Test
-        @DisplayName("actualiza la descripción y permite el borrado lógico")
+        @DisplayName("updates the description and allows soft delete")
         void updateAndDeactivate_shouldWork() {
             var permission = permission(1L, "user:read");
-            permission.updateDescription("Ver usuarios");
+            permission.updateDescription("View users");
             permission.deactivate();
-            assertThat(permission.getDescription()).isEqualTo("Ver usuarios");
+            assertThat(permission.getDescription()).isEqualTo("View users");
             assertThat(permission.isActive()).isFalse();
         }
     }

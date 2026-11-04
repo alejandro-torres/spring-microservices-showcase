@@ -10,7 +10,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 /**
- * Convierte el texto de un filtro al tipo Java del campo.
+ * Converts the text of a filter to the Java type of the field.
  */
 final class FilterValueConverter {
 
@@ -23,12 +23,12 @@ final class FilterValueConverter {
     }
 
     /**
-     * @throws IllegalArgumentException si el texto no representa un valor válido del tipo
+     * @throws IllegalArgumentException if the text does not represent a valid value of the type
      */
     static Object convert(String raw, Class<?> type) {
         String value = raw.trim();
         if (value.isEmpty()) {
-            throw new IllegalArgumentException("valor vacío");
+            throw new IllegalArgumentException("empty value");
         }
         if (type == String.class) {
             return value;
@@ -57,15 +57,15 @@ final class FilterValueConverter {
         if (type.isEnum()) {
             return parseEnum(value, type);
         }
-        throw new IllegalArgumentException("tipo no soportado: " + type.getName());
+        throw new IllegalArgumentException("unsupported type: " + type.getName());
     }
 
-    // Boolean.parseBoolean convierte cualquier texto en false; aquí solo valen true y false.
+    // Boolean.parseBoolean turns any text into false; here only true and false are valid.
     private static Boolean parseBoolean(String value) {
         return switch (value.toLowerCase(Locale.ROOT)) {
             case "true" -> Boolean.TRUE;
             case "false" -> Boolean.FALSE;
-            default -> throw new IllegalArgumentException("no es un booleano: " + value);
+            default -> throw new IllegalArgumentException("is not a boolean: " + value);
         };
     }
 

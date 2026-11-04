@@ -14,9 +14,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * El bloqueo de una cuenta caduca solo (el login ya lo ignora pasado {@code lockedUntil}); esta limpieza deja la
- * cuenta en su estado normal y registra el desbloqueo automático en la auditoría. Se procesa en lotes para no
- * tener una transacción larga si se acumulan muchas cuentas.
+ * An account's lock expires on its own (the login already ignores it past {@code lockedUntil}); this cleanup leaves
+ * the account in its normal state and records the automatic unlock in the audit log. It works in batches to avoid
+ * a long transaction if many accounts pile up.
  */
 @Service
 @RequiredArgsConstructor

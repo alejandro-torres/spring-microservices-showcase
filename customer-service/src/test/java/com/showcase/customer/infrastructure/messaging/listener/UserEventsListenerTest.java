@@ -29,11 +29,11 @@ class UserEventsListenerTest {
     private UserEventsListener listener;
 
     @Nested
-    @DisplayName("mensajes de auth-service")
+    @DisplayName("auth-service messages")
     class Messages {
 
         @Test
-        @DisplayName("user.registered crea el cliente con los datos del usuario")
+        @DisplayName("user.registered creates the customer with the user's data")
         void onUserRegistered_shouldCreateCustomer() {
             listener.onUserRegistered(envelope("user.registered",
                     new UserRegisteredMessageDTO(10L, "ana", "ana@example.com", "Ana", "García")));
@@ -42,7 +42,7 @@ class UserEventsListenerTest {
         }
 
         @Test
-        @DisplayName("user.disabled desactiva el cliente")
+        @DisplayName("user.disabled deactivates the customer")
         void onUserDisabled_shouldDeactivate() {
             listener.onUserDisabled(envelope("user.disabled", new UserDisabledMessageDTO(10L, "ana")));
 
@@ -50,7 +50,7 @@ class UserEventsListenerTest {
         }
 
         @Test
-        @DisplayName("account.locked lo registra con la fecha de desbloqueo")
+        @DisplayName("account.locked records it with the unlock date")
         void onAccountLocked_shouldRecord() {
             Instant until = Instant.parse("2026-10-14T10:15:00Z");
 

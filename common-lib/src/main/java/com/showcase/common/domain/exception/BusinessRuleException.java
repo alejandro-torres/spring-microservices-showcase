@@ -1,7 +1,7 @@
 package com.showcase.common.domain.exception;
 
 /**
- * La operación incumple una regla de negocio (p. ej. stock insuficiente).
+ * The operation breaks a business rule (e.g. insufficient stock).
  */
 public class BusinessRuleException extends DomainException {
 

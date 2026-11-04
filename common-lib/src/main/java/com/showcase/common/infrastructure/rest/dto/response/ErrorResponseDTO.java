@@ -5,16 +5,16 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Formato común de todas las respuestas de error de la API.
+ * Common format of all API error responses.
  *
- * @param timestamp momento del error
- * @param status    código HTTP
- * @param error     texto estándar del código HTTP (p. ej. "Not Found")
- * @param code      código de error estable para el cliente; no se traduce
- * @param message   mensaje traducido al idioma de la petición
- * @param path      ruta de la petición
- * @param traceId   identificador de la traza para buscarla en Zipkin y en los logs
- * @param errors    errores por campo; solo en los errores de validación
+ * @param timestamp moment of the error
+ * @param status    HTTP code
+ * @param error     standard text of the HTTP code (e.g. "Not Found")
+ * @param code      stable error code for the client; not translated
+ * @param message   message translated to the request's language
+ * @param path      request path
+ * @param traceId   trace identifier to look it up in Zipkin and the logs
+ * @param errors    per-field errors; only in validation errors
  */
 public record ErrorResponseDTO(
         Instant timestamp,

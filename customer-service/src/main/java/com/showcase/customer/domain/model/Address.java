@@ -5,7 +5,7 @@ import com.showcase.customer.domain.exception.CustomerErrorCode;
 import java.util.Locale;
 
 /**
- * Dirección de un cliente. Solo existe dentro de su cliente (composición).
+ * A customer's address. It only exists within its customer (composition).
  */
 public class Address {
 

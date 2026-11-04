@@ -2,6 +2,6 @@ package com.showcase.events.order;
 
 import java.util.List;
 
-/** Pedido confirmado que se cancela: product-service devuelve al stock las unidades de sus líneas. */
+/** Confirmed order being cancelled: product-service returns the units of its lines to the stock. */
 public record OrderCancelledMessageDTO(Long orderId, List<OrderLineMessageDTO> lines) {
 }

@@ -19,7 +19,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 /**
- * Lista blanca de filtros y campos de ordenación del catálogo.
+ * Whitelist of the catalog's filters and sort fields.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ProductQueryFields {

@@ -15,13 +15,13 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Guarda un evento en la tabla {@code outbox_event} dentro de la transacción del cambio de negocio: o se guardan
- * los dos o ninguno. No envía nada a RabbitMQ; eso lo hace después {@link OutboxPublisher}.
+ * Stores an event in the {@code outbox_event} table within the transaction of the business change: either both
+ * are saved or neither. It sends nothing to RabbitMQ; {@link OutboxPublisher} does that afterwards.
  * <p>
- * {@code Propagation.MANDATORY}: llamarlo sin una transacción abierta es un error de programación (el evento se
- * guardaría aunque el cambio de negocio fallara), así que Spring lanza una excepción en lugar de abrir una nueva.
- * Usa JDBC y no JPA para que la misma clase sirva a todos los servicios sin registrar entidades; comparte la
- * conexión de la transacción de JPA en curso.
+ * {@code Propagation.MANDATORY}: calling it without an open transaction is a programming error (the event would be
+ * saved even if the business change failed), so Spring throws an exception instead of opening a new one.
+ * It uses JDBC rather than JPA so the same class serves all services without registering entities; it shares the
+ * connection of the current JPA transaction.
  */
 @RequiredArgsConstructor
 public class OutboxEventWriter {
@@ -40,9 +40,9 @@ public class OutboxEventWriter {
     private final OutboxTracing tracing;
 
     /**
-     * Envuelve el mensaje en el sobre común y lo guarda pendiente de enviar. La routing key es el tipo de evento.
+     * Wraps the message in the common envelope and stores it pending send. The routing key is the event type.
      *
-     * @return el {@code eventId} asignado
+     * @return the assigned {@code eventId}
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public UUID append(String aggregateType, Object aggregateId, String eventType, Object message,

@@ -53,7 +53,7 @@ public class RoleController {
         return mapper.toResponse(roleService.findById(id));
     }
 
-    // Los registros borrados (includeInactive) solo los ve un ADMIN.
+    // Deleted records (includeInactive) are only visible to an ADMIN.
     @PreAuthorize("hasAuthority('role:read') and (!#includeInactive or hasRole('ADMIN'))")
     @GetMapping
     public PageResponseDTO<RoleResponseDTO> findAll(

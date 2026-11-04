@@ -3,7 +3,7 @@ package com.showcase.auth.domain.exception;
 import com.showcase.common.domain.exception.ConflictException;
 
 /**
- * El rol está asignado a usuarios activos y no se puede borrar.
+ * The role is assigned to active users and cannot be deleted.
  */
 public class RoleInUseException extends ConflictException {
 

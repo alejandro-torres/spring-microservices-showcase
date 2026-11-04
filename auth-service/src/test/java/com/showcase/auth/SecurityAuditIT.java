@@ -20,7 +20,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Demuestra el comportamiento de {@code Propagation.REQUIRES_NEW} con transacciones reales en PostgreSQL.
+ * Demonstrates the behavior of {@code Propagation.REQUIRES_NEW} with real transactions in PostgreSQL.
  */
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
@@ -41,9 +41,9 @@ class SecurityAuditIT {
     }
 
     @Test
-    @DisplayName("REQUIRES_NEW: la auditoría se guarda aunque la transacción que la provoca haga rollback")
+    @DisplayName("REQUIRES_NEW: the audit record is saved even if the transaction causing it rolls back")
     void audit_shouldSurviveRollbackOfCallerTransaction() {
-        // when: dentro de una transacción se cambia un dato, se audita y después falla
+        // when: within a transaction a value is changed, audited and then it fails
         assertThatThrownBy(() -> transactionTemplate.executeWithoutResult(status -> {
             UserEntity entity = new UserEntity();
             entity.setUsername("rollback.user");
@@ -51,22 +51,22 @@ class SecurityAuditIT {
             entity.setPasswordHash("{bcrypt}x");
             userJpaRepository.saveAndFlush(entity);
 
-            auditService.record(SecurityEventType.LOGIN_FAILURE, "rollback.user", "intento de prueba");
+            auditService.record(SecurityEventType.LOGIN_FAILURE, "rollback.user", "test attempt");
 
-            throw new IllegalStateException("fallo después de auditar");
-        })).hasMessage("fallo después de auditar");
+            throw new IllegalStateException("failure after auditing");
+        })).hasMessage("failure after auditing");
 
-        // then: el cambio de la transacción principal se ha deshecho, pero el evento de auditoría sigue ahí
+        // then: the main transaction's change has been undone, but the audit event is still there
         assertThat(userJpaRepository.existsByUsername("rollback.user")).isFalse();
         assertThat(eventsFor("rollback.user")).singleElement()
                 .satisfies(event -> {
                     assertThat(event.type()).isEqualTo(SecurityEventType.LOGIN_FAILURE);
-                    assertThat(event.details()).isEqualTo("intento de prueba");
+                    assertThat(event.details()).isEqualTo("test attempt");
                 });
     }
 
     @Test
-    @DisplayName("filtra la auditoría por tipo de evento y la ordena por fecha")
+    @DisplayName("filters the audit log by event type and sorts it by date")
     void findAll_shouldFilterByEventType() {
         auditService.record(SecurityEventType.LOGIN_SUCCESS, "filtro.user", null);
         auditService.record(SecurityEventType.ACCOUNT_LOCKED, "filtro.user", null);

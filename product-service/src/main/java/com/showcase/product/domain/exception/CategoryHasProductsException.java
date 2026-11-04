@@ -3,7 +3,7 @@ package com.showcase.product.domain.exception;
 import com.showcase.common.domain.exception.ConflictException;
 
 /**
- * La categoría tiene productos activos y no se puede borrar.
+ * The category has active products and cannot be deleted.
  */
 public class CategoryHasProductsException extends ConflictException {
 

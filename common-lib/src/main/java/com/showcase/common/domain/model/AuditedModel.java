@@ -6,8 +6,8 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * Datos comunes de los modelos de negocio: identidad, borrado lógico, versión para el bloqueo
- * optimista y fechas de auditoría (las rellena la persistencia).
+ * Common data of the business models: identity, soft delete, version for optimistic locking
+ * and audit dates (filled in by persistence).
  */
 public abstract class AuditedModel {
 
@@ -26,8 +26,8 @@ public abstract class AuditedModel {
     }
 
     /**
-     * Comprueba que el cliente modifica la misma versión que leyó; si otro la cambió antes,
-     * lanza CONCURRENT_MODIFICATION (409) en lugar de sobrescribir sus cambios.
+     * Checks that the client is modifying the same version it read; if someone else changed it first,
+     * throws CONCURRENT_MODIFICATION (409) instead of overwriting their changes.
      */
     public void checkVersion(Long expectedVersion) {
         if (!Objects.equals(version, expectedVersion)) {
@@ -35,7 +35,7 @@ public abstract class AuditedModel {
         }
     }
 
-    /** Borrado lógico: el registro se conserva para auditoría pero deja de estar disponible. */
+    /** Soft delete: the record is kept for auditing but is no longer available. */
     public void deactivate() {
         this.active = false;
     }

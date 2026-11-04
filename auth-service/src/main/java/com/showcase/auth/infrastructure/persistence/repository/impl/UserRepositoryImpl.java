@@ -28,8 +28,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
 
 /**
- * Adaptador de persistencia de usuarios: implementa el puerto del dominio con Spring Data JPA.
- * No abre transacciones propias; participa en la del servicio.
+ * Persistence adapter for users: implements the domain port with Spring Data JPA.
+ * It opens no transactions of its own; it joins the service's.
  */
 @Repository
 @RequiredArgsConstructor
@@ -50,7 +50,7 @@ public class UserRepositoryImpl implements UserRepository {
             mapper.updateEntity(user, entity);
         }
         entity.setRoles(roleReferences(user.getRoles()));
-        // saveAndFlush para devolver la versión y la fecha de modificación ya actualizadas.
+        // saveAndFlush to return the version and modification date already updated.
         return mapper.toDomain(userJpaRepository.saveAndFlush(entity));
     }
 
@@ -99,7 +99,7 @@ public class UserRepositoryImpl implements UserRepository {
         return userJpaRepository.countActiveByRoleId(roleId);
     }
 
-    // Referencias (sin SELECT) a roles que el servicio ya ha comprobado que existen.
+    // References (no SELECT) to roles the service has already checked exist.
     private Set<RoleEntity> roleReferences(Set<Role> roles) {
         return roles.stream()
                 .map(role -> roleJpaRepository.getReferenceById(role.getId()))

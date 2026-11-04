@@ -50,7 +50,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class OrderServiceImplTest {
 
     private static final List<OrderLine> LINES = List.of(new OrderLine(10L, 2), new OrderLine(11L, 1));
-    private static final ShippingAddress NEW_ADDRESS = new ShippingAddress("Calle Mayor 5", "Sevilla", "41001", "ES");
+    private static final ShippingAddress NEW_ADDRESS = new ShippingAddress("High Street 5", "Sevilla", "41001", "ES");
     private static final Instant NOW = Instant.parse("2026-10-14T10:00:00Z");
 
     @Mock
@@ -89,7 +89,7 @@ class OrderServiceImplTest {
     class Create {
 
         @Test
-        @DisplayName("toma el precio de product-service y la dirección principal del cliente")
+        @DisplayName("takes the price from product-service and the customer's primary address")
         void create_shouldBuildOrderFromRemoteData() {
             given(customerClient.findById(3L)).willReturn(Optional.of(customer(3)));
             givenProducts();
@@ -100,11 +100,11 @@ class OrderServiceImplTest {
             assertThat(order.getTotal()).isEqualByComparingTo("30.00");
             assertThat(order.getShippingAddress().city()).isEqualTo("Madrid");
             assertThat(order.getItems()).extracting(item -> item.productName())
-                    .containsExactly("Producto 10", "Producto 11");
+                    .containsExactly("Product 10", "Product 11");
         }
 
         @Test
-        @DisplayName("lanza CUSTOMER_NOT_FOUND y no consulta los productos")
+        @DisplayName("throws CUSTOMER_NOT_FOUND and does not query the products")
         void create_withUnknownCustomer_shouldThrow() {
             assertThatThrownBy(() -> orderService.create(3L, LINES))
                     .isInstanceOf(ResourceNotFoundException.class)
@@ -113,7 +113,7 @@ class OrderServiceImplTest {
         }
 
         @Test
-        @DisplayName("lanza CUSTOMER_WITHOUT_ADDRESS si el cliente no tiene dirección")
+        @DisplayName("throws CUSTOMER_WITHOUT_ADDRESS if the customer has no address")
         void create_withCustomerWithoutAddress_shouldThrow() {
             given(customerClient.findById(3L))
                     .willReturn(Optional.of(new CustomerInfo(3L, "c@example.com", Optional.empty())));
@@ -124,7 +124,7 @@ class OrderServiceImplTest {
         }
 
         @Test
-        @DisplayName("lanza PRODUCT_NOT_FOUND si un producto no existe y no guarda nada")
+        @DisplayName("throws PRODUCT_NOT_FOUND if a product does not exist and saves nothing")
         void create_withUnknownProduct_shouldThrow() {
             given(customerClient.findById(3L)).willReturn(Optional.of(customer(3)));
             given(productClient.findById(10L)).willReturn(Optional.empty());
@@ -135,7 +135,7 @@ class OrderServiceImplTest {
         }
 
         @Test
-        @DisplayName("lanza INSUFFICIENT_STOCK si no hay unidades suficientes")
+        @DisplayName("throws INSUFFICIENT_STOCK if there are not enough units")
         void create_withoutStock_shouldThrow() {
             given(customerClient.findById(3L)).willReturn(Optional.of(customer(3)));
             given(productClient.findById(10L)).willReturn(Optional.of(product(10, "5", 1)));
@@ -147,18 +147,18 @@ class OrderServiceImplTest {
     }
 
     @Nested
-    @DisplayName("consultas")
+    @DisplayName("queries")
     class Queries {
 
         @Test
-        @DisplayName("findById lanza ORDER_NOT_FOUND si no existe")
+        @DisplayName("findById throws ORDER_NOT_FOUND if it does not exist")
         void findById_missing_shouldThrow() {
             assertThatThrownBy(() -> orderService.findById(9L))
                     .hasFieldOrPropertyWithValue("errorCode", OrderErrorCode.ORDER_NOT_FOUND);
         }
 
         @Test
-        @DisplayName("findAll delega en el repositorio")
+        @DisplayName("findAll delegates to the repository")
         void findAll_shouldDelegate() {
             var query = new PageQuery(0, 10, "id", SortDirection.ASC);
             var page = PageResult.of(List.of(pending()), 0, 10, 1);
@@ -173,7 +173,7 @@ class OrderServiceImplTest {
     class Update {
 
         @Test
-        @DisplayName("cambia la dirección de envío comprobando la versión, sin llamar a otros servicios")
+        @DisplayName("changes the shipping address checking the version, without calling other services")
         void update_shouldChangeShippingAddress() {
             given(orderRepository.findById(1L)).willReturn(Optional.of(order(OrderStatus.CONFIRMED)));
             given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
@@ -185,7 +185,7 @@ class OrderServiceImplTest {
         }
 
         @Test
-        @DisplayName("lanza CONCURRENT_MODIFICATION si el pedido cambió desde que se leyó")
+        @DisplayName("throws CONCURRENT_MODIFICATION if the order changed since it was read")
         void update_withStaleVersion_shouldThrow() {
             given(orderRepository.findById(1L)).willReturn(Optional.of(pending()));
 
@@ -195,7 +195,7 @@ class OrderServiceImplTest {
         }
 
         @Test
-        @DisplayName("lanza ORDER_NOT_MODIFIABLE si el pedido está cerrado")
+        @DisplayName("throws ORDER_NOT_MODIFIABLE if the order is closed")
         void update_cancelled_shouldThrow() {
             given(orderRepository.findById(1L)).willReturn(Optional.of(order(OrderStatus.CANCELLED)));
 
@@ -206,11 +206,11 @@ class OrderServiceImplTest {
     }
 
     @Nested
-    @DisplayName("cancel y delete")
+    @DisplayName("cancel and delete")
     class CancelAndDelete {
 
         @Test
-        @DisplayName("cancel guarda el pedido cancelado y publica OrderCancelledEvent para devolver el stock")
+        @DisplayName("cancel saves the cancelled order and publishes OrderCancelledEvent to return the stock")
         void cancel_confirmed_shouldSaveAndPublish() {
             given(orderRepository.findById(1L)).willReturn(Optional.of(order(OrderStatus.CONFIRMED)));
             given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
@@ -222,7 +222,7 @@ class OrderServiceImplTest {
         }
 
         @Test
-        @DisplayName("cancel rechaza un pedido pendiente con ORDER_NOT_CANCELLABLE y no publica nada")
+        @DisplayName("cancel rejects a pending order with ORDER_NOT_CANCELLABLE and publishes nothing")
         void cancel_pending_shouldThrowAndNotPublish() {
             given(orderRepository.findById(1L)).willReturn(Optional.of(pending()));
 
@@ -233,7 +233,7 @@ class OrderServiceImplTest {
         }
 
         @Test
-        @DisplayName("delete hace un borrado lógico de un pedido cerrado")
+        @DisplayName("delete does a soft delete of a closed order")
         void delete_cancelled_shouldDeactivate() {
             given(orderRepository.findById(1L)).willReturn(Optional.of(order(OrderStatus.CANCELLED)));
 
@@ -243,7 +243,7 @@ class OrderServiceImplTest {
         }
 
         @Test
-        @DisplayName("delete no borra un pedido pendiente")
+        @DisplayName("delete does not delete a pending order")
         void delete_pending_shouldThrow() {
             given(orderRepository.findById(1L)).willReturn(Optional.of(pending()));
 

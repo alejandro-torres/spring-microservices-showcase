@@ -22,12 +22,12 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.support.DefaultMessagePropertiesConverter;
 
 /**
- * Implementación con el canal de RabbitMQ:
+ * Implementation with the RabbitMQ channel:
  * <ul>
- *   <li>Consultar: {@code basic.get} sin ACK de varios mensajes y al final un {@code basic.nack} con requeue,
- *       que los devuelve a la DLQ tal cual.</li>
- *   <li>Reenviar: cada mensaje se publica en su cola original (exchange por defecto) esperando el publisher
- *       confirm, y solo entonces se hace ACK en la DLQ. Si el reenvío falla, el mensaje sigue en la DLQ.</li>
+ *   <li>Lookup: {@code basic.get} without ACK of several messages and finally a {@code basic.nack} with requeue,
+ *       which returns them to the DLQ as they were.</li>
+ *   <li>Re-send: each message is published to its original queue (default exchange) awaiting the publisher
+ *       confirm, and only then is it ACKed in the DLQ. If the re-send fails, the message stays in the DLQ.</li>
  * </ul>
  */
 @RequiredArgsConstructor
@@ -75,7 +75,7 @@ public class RabbitDeadLetterQueueAdminImpl implements DeadLetterQueueAdmin {
     @Override
     public int replay(String deadLetterQueue, int max) {
         String sourceQueue = requireKnown(deadLetterQueue);
-        // El callback no lanza la excepción de dominio: RabbitTemplate la envolvería en una de AMQP.
+        // The callback does not throw the domain exception: RabbitTemplate would wrap it in an AMQP one.
         ReplayOutcome outcome = rabbitTemplate.execute(channel -> {
             int count = 0;
             for (int i = 0; i < max; i++) {
@@ -94,7 +94,7 @@ public class RabbitDeadLetterQueueAdminImpl implements DeadLetterQueueAdmin {
             return new ReplayOutcome(count, false);
         });
         int total = outcome == null ? 0 : outcome.replayed();
-        log.info("DLQ: {} mensajes reenviados de {} a {}", total, deadLetterQueue, sourceQueue);
+        log.info("DLQ: {} messages re-sent from {} to {}", total, deadLetterQueue, sourceQueue);
         if (outcome != null && outcome.failed()) {
             throw new ExternalServiceException(CommonErrorCode.SERVICE_UNAVAILABLE);
         }
@@ -114,13 +114,13 @@ public class RabbitDeadLetterQueueAdminImpl implements DeadLetterQueueAdmin {
             Thread.currentThread().interrupt();
             return false;
         } catch (Exception e) {
-            log.warn("DLQ: no se ha podido reenviar el mensaje {} a {}", messageProperties.getMessageId(),
+            log.warn("DLQ: could not re-send message {} to {}", messageProperties.getMessageId(),
                     sourceQueue, e);
             return false;
         }
     }
 
-    /** Devuelve la cola original de la DLQ, o 404 si la DLQ no es de este servicio. */
+    /** Returns the original queue of the DLQ, or 404 if the DLQ does not belong to this service. */
     private String requireKnown(String deadLetterQueue) {
         return properties.consumers().values().stream()
                 .map(MessagingProperties.Consumer::queue)

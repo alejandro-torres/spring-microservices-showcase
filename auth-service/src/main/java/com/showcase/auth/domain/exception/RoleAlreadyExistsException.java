@@ -3,7 +3,7 @@ package com.showcase.auth.domain.exception;
 import com.showcase.common.domain.exception.DuplicateResourceException;
 
 /**
- * Ya existe un rol con ese nombre.
+ * A role with that name already exists.
  */
 public class RoleAlreadyExistsException extends DuplicateResourceException {
 

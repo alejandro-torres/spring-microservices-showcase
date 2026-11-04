@@ -10,9 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Traduce las respuestas de error de los otros servicios. El cuerpo remoto nunca se reenvía al cliente:
- * 401/403 conservan su significado (el token del usuario no sirve o no tiene permiso) y el resto se convierte
- * en un 503 genérico, porque es un fallo de la integración y no de la petición del usuario.
+ * Translates the error responses of the other services. The remote body is never forwarded to the client:
+ * 401/403 keep their meaning (the user's token is not valid or lacks permission) and the rest becomes
+ * a generic 503, because it is a failure of the integration and not of the user's request.
  */
 public class RemoteErrorDecoder implements ErrorDecoder {
 
@@ -25,7 +25,7 @@ public class RemoteErrorDecoder implements ErrorDecoder {
             case 401 -> new UnauthorizedException(CommonErrorCode.INVALID_TOKEN);
             case 403 -> new ForbiddenException(CommonErrorCode.FORBIDDEN);
             default -> {
-                log.warn("Respuesta {} de {}", response.status(), methodKey);
+                log.warn("Response {} from {}", response.status(), methodKey);
                 yield new ExternalServiceException(CommonErrorCode.SERVICE_UNAVAILABLE);
             }
         };

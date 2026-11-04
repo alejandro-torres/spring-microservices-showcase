@@ -8,7 +8,7 @@ import com.showcase.events.auth.UserDisabledMessageDTO;
 import com.showcase.events.auth.UserRegisteredMessageDTO;
 import org.mapstruct.Mapper;
 
-/** Eventos de dominio de usuarios → MessageDTO de events-contract. */
+/** User domain events → MessageDTO in events-contract. */
 @Mapper(componentModel = "spring")
 public interface UserMessageMapper {
 

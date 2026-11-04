@@ -8,8 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
- * Contador {@code showcase.stock.operations} con la etiqueta {@code result}: reserved, insufficient_stock,
- * product_not_found o released. Se incrementa después del commit de la operación.
+ * {@code showcase.stock.operations} counter with the {@code result} tag: reserved, insufficient_stock,
+ * product_not_found or released. It is incremented after the operation's commit.
  */
 @Component
 @RequiredArgsConstructor
@@ -36,7 +36,7 @@ public class MicrometerStockMetricsImpl implements StockMetrics {
 
     private void increment(String result) {
         Counter counter = Counter.builder(NAME)
-                .description("Reservas y devoluciones de stock por resultado")
+                .description("Stock reservations and returns by result")
                 .tag("result", result)
                 .register(registry);
         AfterCommit.run(counter::increment);

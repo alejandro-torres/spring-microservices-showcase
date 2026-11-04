@@ -1,15 +1,15 @@
 package com.showcase.common.infrastructure.messaging.outbox;
 
-/** Estado de un evento en la tabla {@code outbox_event}. */
+/** Status of an event in the {@code outbox_event} table. */
 public enum OutboxStatus {
 
-    /** Pendiente de enviar (o de reintentar). */
+    /** Pending send (or retry). */
     PENDING,
-    /** RabbitMQ ha confirmado que lo ha recibido y que tenía una cola de destino. */
+    /** RabbitMQ has confirmed that it received it and had a destination queue. */
     SENT,
     /**
-     * Ninguna cola recibía el evento después de varios intentos. Se deja en la tabla para revisarlo; para
-     * reenviarlo basta con volver a ponerlo en PENDING.
+     * No queue was receiving the event after several attempts. It stays in the table for review; to
+     * re-send it, just set it back to PENDING.
      */
     UNROUTED
 }

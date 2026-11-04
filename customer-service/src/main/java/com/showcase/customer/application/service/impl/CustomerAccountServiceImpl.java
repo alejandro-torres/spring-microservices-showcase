@@ -17,8 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * El registro del evento procesado y el cambio del cliente van en la misma transacción: si guardar el cliente
- * falla, el rollback deshace también el registro y el reintento lo procesa de nuevo.
+ * Registering the processed event and changing the customer happen in the same transaction: if saving the customer
+ * fails, the rollback also undoes the registration and the retry processes it again.
  */
 @Service
 @RequiredArgsConstructor
@@ -30,18 +30,19 @@ public class CustomerAccountServiceImpl implements CustomerAccountService {
     private final ProcessedEventRegistry processedEvents;
 
     /**
-     * Si el usuario ya tiene cliente (p. ej. lo creó un gestor antes de que llegara el evento) no se hace nada.
-     * Si otro cliente ya usa ese email, la excepción de negocio manda el mensaje a la DLQ para revisarlo a mano.
+     * If the user already has a customer (e.g. a manager created it before the event arrived), nothing is done.
+     * If another customer already uses that email, the business exception sends the message to the DLQ for manual
+     * review.
      */
     @Override
     @Transactional
-    @Observed(name = "customer.create-for-user", contextualName = "crear cliente del usuario")
+    @Observed(name = "customer.create-for-user", contextualName = "create the user's customer")
     public void createForUser(UUID eventId, Long userId, String email, String firstName, String lastName) {
         if (!isNew(eventId, EventTypes.USER_REGISTERED)) {
             return;
         }
         if (customerRepository.existsByUserId(userId)) {
-            log.info("El usuario {} ya tiene cliente; no se crea otro", userId);
+            log.info("User {} already has a customer; no other is created", userId);
             return;
         }
         Customer customer = Customer.create(userId, firstName, lastName, email, null);
@@ -49,10 +50,10 @@ public class CustomerAccountServiceImpl implements CustomerAccountService {
             throw new DuplicateResourceException(CustomerErrorCode.EMAIL_ALREADY_EXISTS, customer.getEmail());
         }
         Customer saved = customerRepository.save(customer);
-        log.info("Cliente {} creado para el usuario {}", saved.getId(), userId);
+        log.info("Customer {} created for user {}", saved.getId(), userId);
     }
 
-    /** Un usuario sin cliente (p. ej. un administrador) no es un error: no hay nada que desactivar. */
+    /** A user without a customer (e.g. an administrator) is not an error: there is nothing to deactivate. */
     @Override
     @Transactional
     public void deactivateForUser(UUID eventId, Long userId) {
@@ -62,22 +63,22 @@ public class CustomerAccountServiceImpl implements CustomerAccountService {
         customerRepository.findByUserId(userId).ifPresentOrElse(customer -> {
             customer.deactivate();
             customerRepository.save(customer);
-            log.info("Cliente {} desactivado porque se ha desactivado el usuario {}", customer.getId(), userId);
-        }, () -> log.info("El usuario desactivado {} no tiene cliente activo", userId));
+            log.info("Customer {} deactivated because user {} was deactivated", customer.getId(), userId);
+        }, () -> log.info("Deactivated user {} has no active customer", userId));
     }
 
     @Override
     @Transactional
     public void recordAccountLocked(UUID eventId, Long userId, Instant lockedUntil) {
         if (isNew(eventId, EventTypes.ACCOUNT_LOCKED)) {
-            log.warn("La cuenta del usuario {} está bloqueada hasta {}", userId, lockedUntil);
+            log.warn("The account of user {} is locked until {}", userId, lockedUntil);
         }
     }
 
     private boolean isNew(UUID eventId, String eventType) {
         boolean isNew = processedEvents.registerIfAbsent(eventId, eventType);
         if (!isNew) {
-            log.info("Evento {} ({}) ya procesado; se ignora el duplicado", eventId, eventType);
+            log.info("Event {} ({}) already processed; ignoring the duplicate", eventId, eventType);
         }
         return isNew;
     }

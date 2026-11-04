@@ -9,25 +9,25 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Puerto de salida para persistir roles.
+ * Outbound port to persist roles.
  */
 public interface RoleRepository {
 
     Role save(Role role);
 
-    /** Solo roles activos. */
+    /** Active roles only. */
     Optional<Role> findById(Long id);
 
-    /** Solo roles activos. */
+    /** Active roles only. */
     Optional<Role> findByName(String name);
 
-    /** Roles activos con esos ids; los que no existan no aparecen en el resultado. */
+    /** Active roles with those ids; those that do not exist do not appear in the result. */
     List<Role> findAllById(Collection<Long> ids);
 
     PageResult<Role> findAll(List<FilterCriterion> filters, PageQuery pageQuery, boolean includeInactive);
 
     boolean existsByName(String name);
 
-    /** Roles activos que incluyen el permiso. */
+    /** Active roles that include the permission. */
     long countActiveByPermissionId(Long permissionId);
 }

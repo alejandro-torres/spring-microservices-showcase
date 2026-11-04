@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.Optional;
 
 /**
- * Operadores de los filtros dinámicos ({@code ?filter=campo:operador:valor}).
+ * Operators of the dynamic filters ({@code ?filter=field:operator:value}).
  */
 public enum FilterOperator {
 
@@ -21,7 +21,7 @@ public enum FilterOperator {
     IS_NULL("isNull", Arity.NONE, ValueKind.ANY),
     IS_NOT_NULL("isNotNull", Arity.NONE, ValueKind.ANY);
 
-    /** Cuántos valores admite el operador. */
+    /** How many values the operator accepts. */
     public enum Arity {
         NONE, ONE, TWO, MANY;
 
@@ -35,7 +35,7 @@ public enum FilterOperator {
         }
     }
 
-    /** Sobre qué tipos de campo tiene sentido el operador. */
+    /** Which field types the operator makes sense on. */
     public enum ValueKind {
         ANY, COMPARABLE, TEXT
     }
@@ -50,7 +50,7 @@ public enum FilterOperator {
         this.valueKind = valueKind;
     }
 
-    /** Nombre del operador en la URL, p. ej. {@code gte} o {@code startsWith}. */
+    /** Name of the operator in the URL, e.g. {@code gte} or {@code startsWith}. */
     public String code() {
         return code;
     }
@@ -63,7 +63,7 @@ public enum FilterOperator {
         return valueKind;
     }
 
-    /** Busca el operador por su nombre en la URL, sin distinguir mayúsculas. */
+    /** Looks up the operator by its name in the URL, case-insensitively. */
     public static Optional<FilterOperator> fromCode(String code) {
         if (code == null) {
             return Optional.empty();

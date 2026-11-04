@@ -15,9 +15,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Ejecuta una llamada Feign protegida por un circuit breaker, en el mismo hilo (el token del usuario está en
- * el contexto de seguridad del hilo). Un 404 se devuelve como Optional vacío y cuenta como llamada correcta.
- * Circuito abierto, timeouts y errores de red se convierten en ExternalServiceException (503).
+ * Runs a Feign call protected by a circuit breaker, on the same thread (the user's token is in the thread's
+ * security context). A 404 is returned as an empty Optional and counts as a successful call.
+ * Open circuit, timeouts and network errors become ExternalServiceException (503).
  */
 final class ResilientCall {
 
@@ -35,10 +35,10 @@ final class ResilientCall {
         } catch (DomainException domainException) {
             throw domainException;
         } catch (CallNotPermittedException open) {
-            log.warn("Circuito {} abierto: no se llama al servicio", circuitBreaker.getName());
+            log.warn("Circuit {} open: the service is not called", circuitBreaker.getName());
             throw new ExternalServiceException(CommonErrorCode.SERVICE_UNAVAILABLE, open);
         } catch (FeignException feignException) {
-            log.warn("Fallo al llamar a {}: {}", circuitBreaker.getName(), feignException.getMessage());
+            log.warn("Failure calling {}: {}", circuitBreaker.getName(), feignException.getMessage());
             throw new ExternalServiceException(CommonErrorCode.SERVICE_UNAVAILABLE, feignException);
         }
     }

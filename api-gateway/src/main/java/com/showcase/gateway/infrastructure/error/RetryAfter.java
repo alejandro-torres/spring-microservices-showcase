@@ -6,9 +6,9 @@ import org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter;
 import org.springframework.http.HttpHeaders;
 
 /**
- * Segundos que tiene que esperar el cliente tras un 429. Con el token bucket de Redis, una petición necesita
- * {@code requestedTokens} fichas y el cubo recupera {@code replenishRate} por segundo, así que la siguiente
- * petición cabe como mucho en {@code ceil(requestedTokens / replenishRate)} segundos.
+ * Seconds the client must wait after a 429. With Redis's token bucket, a request needs
+ * {@code requestedTokens} tokens and the bucket recovers {@code replenishRate} per second, so the next
+ * request fits in at most {@code ceil(requestedTokens / replenishRate)} seconds.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class RetryAfter {

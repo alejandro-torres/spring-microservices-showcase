@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** API de prueba que lanza cada tipo de excepción que debe traducir el GlobalExceptionHandler. */
+/** Test API that throws each type of exception the GlobalExceptionHandler must translate. */
 @RestController
 @RequestMapping("/test")
 class ErrorTestController {
@@ -82,7 +82,7 @@ class ErrorTestController {
 
     @GetMapping("/unexpected")
     String unexpected() {
-        throw new NullPointerException("detalle interno secreto");
+        throw new NullPointerException("secret internal detail");
     }
 
     @GetMapping("/optimistic-lock")

@@ -17,8 +17,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * Errores de acceso a datos. Va aparte del {@link GlobalExceptionHandler} porque solo se registra
- * cuando el servicio tiene Spring Data / JPA (clases de spring-tx en el classpath).
+ * Data access errors. Separate from {@link GlobalExceptionHandler} because it is only registered
+ * when the service has Spring Data / JPA (spring-tx classes on the classpath).
  */
 @RestControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -29,19 +29,19 @@ public class DataAccessExceptionHandler {
 
     private final ErrorResponseFactory responses;
 
-    /** Bloqueo optimista: otro usuario modificó el registro (@Version distinta). */
+    /** Optimistic locking: another user modified the record (different @Version). */
     @ExceptionHandler(OptimisticLockingFailureException.class)
     public ResponseEntity<ErrorResponseDTO> handleOptimisticLock(OptimisticLockingFailureException ex,
                                                                  HttpServletRequest request) {
-        log.warn("Modificación concurrente en {}: {}", request.getRequestURI(), ex.getMessage());
+        log.warn("Concurrent modification in {}: {}", request.getRequestURI(), ex.getMessage());
         return responses.create(HttpStatus.CONFLICT, CommonErrorCode.CONCURRENT_MODIFICATION, List.of(), request);
     }
 
-    /** Restricción de base de datos (clave única, clave foránea...). El mensaje SQL nunca llega al cliente. */
+    /** Database constraint (unique key, foreign key...). The SQL message never reaches the client. */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponseDTO> handleDataIntegrity(DataIntegrityViolationException ex,
                                                                 HttpServletRequest request) {
-        log.warn("Violación de integridad en {}: {}", request.getRequestURI(), ex.getMostSpecificCause().getMessage());
+        log.warn("Integrity violation in {}: {}", request.getRequestURI(), ex.getMostSpecificCause().getMessage());
         return responses.create(HttpStatus.CONFLICT, CommonErrorCode.DATA_CONFLICT, List.of(), request);
     }
 }

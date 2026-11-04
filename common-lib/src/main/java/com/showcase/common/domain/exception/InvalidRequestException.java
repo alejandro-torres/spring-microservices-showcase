@@ -1,7 +1,7 @@
 package com.showcase.common.domain.exception;
 
 /**
- * La petición no es válida: parámetros, paginación o filtros incorrectos.
+ * The request is invalid: incorrect parameters, pagination or filters.
  */
 public class InvalidRequestException extends DomainException {
 

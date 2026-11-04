@@ -8,13 +8,13 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Puerto de salida para persistir clientes con sus direcciones.
+ * Outbound port to persist customers with their addresses.
  */
 public interface CustomerRepository {
 
     Customer save(Customer customer);
 
-    /** Solo clientes activos, con sus direcciones. */
+    /** Active customers only, with their addresses. */
     Optional<Customer> findById(Long id);
 
     Optional<Customer> findByUserId(Long userId);

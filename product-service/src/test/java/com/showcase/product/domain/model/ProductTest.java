@@ -23,11 +23,11 @@ class ProductTest {
     class Create {
 
         @Test
-        @DisplayName("crea un producto activo con el nombre limpio y el precio con 2 decimales")
+        @DisplayName("creates an active product with the clean name and the price with 2 decimals")
         void create_shouldNormalize() {
-            var product = Product.create("  Portátil   Air 13 ", "Ligero", new BigDecimal("999"), 3, laptops());
+            var product = Product.create("  Laptop   Air 13 ", "Light", new BigDecimal("999"), 3, laptops());
 
-            assertThat(product.getName()).isEqualTo("Portátil Air 13");
+            assertThat(product.getName()).isEqualTo("Laptop Air 13");
             assertThat(product.getPrice()).isEqualByComparingTo("999.00").hasScaleOf(2);
             assertThat(product.getStock()).isEqualTo(3);
             assertThat(product.isActive()).isTrue();
@@ -36,7 +36,7 @@ class ProductTest {
         @ParameterizedTest
         @NullAndEmptySource
         @ValueSource(strings = {"A", " B "})
-        @DisplayName("rechaza nombres de menos de 2 caracteres con INVALID_PRODUCT_NAME")
+        @DisplayName("rejects names shorter than 2 characters with INVALID_PRODUCT_NAME")
         void create_withInvalidName_shouldThrow(String name) {
             assertThatThrownBy(() -> Product.create(name, null, BigDecimal.TEN, 1, laptops()))
                     .isInstanceOf(InvalidRequestException.class)
@@ -45,17 +45,17 @@ class ProductTest {
 
         @ParameterizedTest
         @ValueSource(strings = {"0", "-5", "10.999", "1000000.00"})
-        @DisplayName("rechaza precios no positivos, con más de 2 decimales o demasiado altos")
+        @DisplayName("rejects non-positive prices, with more than 2 decimals or too high")
         void create_withInvalidPrice_shouldThrow(String price) {
-            assertThatThrownBy(() -> Product.create("Portátil", null, new BigDecimal(price), 1, laptops()))
+            assertThatThrownBy(() -> Product.create("Laptop", null, new BigDecimal(price), 1, laptops()))
                     .isInstanceOf(InvalidRequestException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ProductErrorCode.INVALID_PRICE);
         }
 
         @Test
-        @DisplayName("rechaza un stock inicial negativo")
+        @DisplayName("rejects a negative initial stock")
         void create_withNegativeStock_shouldThrow() {
-            assertThatThrownBy(() -> Product.create("Portátil", null, BigDecimal.TEN, -1, laptops()))
+            assertThatThrownBy(() -> Product.create("Laptop", null, BigDecimal.TEN, -1, laptops()))
                     .hasFieldOrPropertyWithValue("errorCode", ProductErrorCode.INVALID_QUANTITY);
         }
     }
@@ -65,7 +65,7 @@ class ProductTest {
     class Stock {
 
         @Test
-        @DisplayName("reserva y libera unidades")
+        @DisplayName("reserves and releases units")
         void reserveAndRelease_shouldUpdateStock() {
             var product = laptop();
 
@@ -77,7 +77,7 @@ class ProductTest {
         }
 
         @Test
-        @DisplayName("no reserva más de lo disponible y no modifica el stock al fallar")
+        @DisplayName("does not reserve more than available and does not change the stock on failure")
         void reserve_moreThanAvailable_shouldThrowWithoutChanges() {
             var product = laptop();
 
@@ -91,7 +91,7 @@ class ProductTest {
 
         @ParameterizedTest
         @ValueSource(ints = {0, -2})
-        @DisplayName("rechaza cantidades no positivas al reservar o liberar")
+        @DisplayName("rejects non-positive quantities when reserving or releasing")
         void reserveOrRelease_withInvalidQuantity_shouldThrow(int quantity) {
             var product = laptop();
             assertThatThrownBy(() -> product.reserveStock(quantity))
@@ -101,7 +101,7 @@ class ProductTest {
         }
 
         @Test
-        @DisplayName("ajusta el stock en positivo o negativo sin dejarlo por debajo de 0")
+        @DisplayName("adjusts the stock up or down without taking it below 0")
         void adjustStock_shouldNeverGoNegative() {
             var product = laptop();
 
@@ -116,31 +116,31 @@ class ProductTest {
     }
 
     @Nested
-    @DisplayName("update y Category")
+    @DisplayName("update and Category")
     class Update {
 
         @Test
-        @DisplayName("actualiza datos y categoría sin tocar el stock")
+        @DisplayName("updates data and category without touching the stock")
         void update_shouldKeepStock() {
             var product = laptop();
-            var accessories = new Category(2L, "Accesorios", null, true, 0L, null, null);
+            var accessories = new Category(2L, "Accessories", null, true, 0L, null, null);
 
-            product.update("Portátil Pro 16", "Nuevo modelo", new BigDecimal("1699.5"), accessories);
+            product.update("Laptop Pro 16", "New model", new BigDecimal("1699.5"), accessories);
 
-            assertThat(product.getName()).isEqualTo("Portátil Pro 16");
+            assertThat(product.getName()).isEqualTo("Laptop Pro 16");
             assertThat(product.getPrice()).isEqualByComparingTo("1699.50");
-            assertThat(product.getCategory().getName()).isEqualTo("Accesorios");
+            assertThat(product.getCategory().getName()).isEqualTo("Accessories");
             assertThat(product.getStock()).isEqualTo(5);
         }
 
         @Test
-        @DisplayName("la categoría valida y limpia su nombre")
+        @DisplayName("the category validates and cleans its name")
         void category_shouldValidateName() {
-            var category = Category.create("  Ropa   deportiva ", "Textil");
-            assertThat(category.getName()).isEqualTo("Ropa deportiva");
+            var category = Category.create("  Sports   clothing ", "Textile");
+            assertThat(category.getName()).isEqualTo("Sports clothing");
 
-            category.update("Deporte", null);
-            assertThat(category.getName()).isEqualTo("Deporte");
+            category.update("Sports", null);
+            assertThat(category.getName()).isEqualTo("Sports");
 
             assertThatThrownBy(() -> Category.create("x", null))
                     .hasFieldOrPropertyWithValue("errorCode", ProductErrorCode.INVALID_CATEGORY_NAME);

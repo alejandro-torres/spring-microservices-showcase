@@ -51,9 +51,9 @@ class AccountMaintenanceServiceImplTest {
     class UnlockExpiredAccounts {
 
         @Test
-        @DisplayName("desbloquea las cuentas con el bloqueo caducado y lo audita como automático")
+        @DisplayName("unlocks accounts with an expired lock and audits it as automatic")
         void unlockExpiredAccounts_shouldUnlockAndAudit() {
-            // given: se bloqueó hace una hora durante 15 minutos
+            // given: it was locked an hour ago for 15 minutes
             var ana = user(10L, "ana");
             ana.registerFailedLogin(1, Duration.ofMinutes(15), NOW.minus(Duration.ofHours(1)));
             given(userRepository.findWithExpiredLock(NOW, AccountMaintenanceServiceImpl.BATCH_SIZE))
@@ -71,7 +71,7 @@ class AccountMaintenanceServiceImplTest {
         }
 
         @Test
-        @DisplayName("sin cuentas pendientes no guarda ni audita nada")
+        @DisplayName("with no pending accounts it neither saves nor audits anything")
         void unlockExpiredAccounts_withoutLockedAccounts_shouldDoNothing() {
             // given
             given(userRepository.findWithExpiredLock(NOW, AccountMaintenanceServiceImpl.BATCH_SIZE))
@@ -92,7 +92,7 @@ class AccountMaintenanceServiceImplTest {
     class DeleteExpiredAuthorizations {
 
         @Test
-        @DisplayName("borra las autorizaciones caducadas con la hora actual")
+        @DisplayName("deletes the expired authorizations with the current time")
         void deleteExpiredAuthorizations_shouldDelegateWithNow() {
             // given
             given(authorizationRepository.deleteFullyExpiredBefore(NOW)).willReturn(3);

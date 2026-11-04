@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Excepción base de negocio. Lleva un {@link ErrorCode} y los parámetros del mensaje;
- * el texto que ve el cliente se resuelve después, traducido, a partir de {@link ErrorCode#messageKey()}.
+ * Base business exception. It carries an {@link ErrorCode} and the message parameters;
+ * the text the client sees is resolved later, translated, from {@link ErrorCode#messageKey()}.
  */
 public abstract class DomainException extends RuntimeException {
 
@@ -32,7 +32,7 @@ public abstract class DomainException extends RuntimeException {
         return args;
     }
 
-    // Mensaje técnico para los logs, no para el cliente.
+    // Technical message for the logs, not for the client.
     private static String buildMessage(ErrorCode errorCode, Object[] args) {
         Objects.requireNonNull(errorCode, "errorCode");
         return args.length == 0 ? errorCode.code() : errorCode.code() + " " + Arrays.toString(args);

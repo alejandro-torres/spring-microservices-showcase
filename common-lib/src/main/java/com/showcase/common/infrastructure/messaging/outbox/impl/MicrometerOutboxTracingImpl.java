@@ -10,10 +10,10 @@ import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Guarda el contexto de la traza con el evento (W3C {@code traceparent}) y, al enviarlo, abre un span hijo de esa
- * traza. Con ese span en el ámbito actual, la observación de {@code RabbitTemplate} cuelga de él (Micrometer da
- * preferencia al span abierto a mano frente al de la tarea programada) y propaga la cabecera {@code traceparent}
- * al mensaje, así que el consumidor continúa la misma traza.
+ * Stores the trace context with the event (W3C {@code traceparent}) and, when sending it, opens a child span of that
+ * trace. With that span in the current scope, the {@code RabbitTemplate} observation hangs from it (Micrometer gives
+ * preference to the manually opened span over the scheduled task's) and propagates the {@code traceparent} header
+ * to the message, so the consumer continues the same trace.
  */
 @RequiredArgsConstructor
 public class MicrometerOutboxTracingImpl implements OutboxTracing {

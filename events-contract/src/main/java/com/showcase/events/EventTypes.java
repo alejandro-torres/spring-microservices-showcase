@@ -4,8 +4,8 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 /**
- * Tipos de evento con el formato {@code <entidad>.<acción>}. Son parte del contrato y se usan también como
- * routing key al publicar en el exchange del servicio.
+ * Event types in the format {@code <entity>.<action>}. They are part of the contract and are also used as the
+ * routing key when publishing to the service's exchange.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class EventTypes {
@@ -19,6 +19,6 @@ public final class EventTypes {
     public static final String STOCK_RESERVATION_FAILED = "stock.reservation-failed";
     public static final String STOCK_RELEASED = "stock.released";
 
-    /** Versión actual de todos los contratos; cada evento tendrá la suya cuando alguno cambie. */
+    /** Current version of all contracts; each event will have its own when any of them changes. */
     public static final int CURRENT_VERSION = 1;
 }

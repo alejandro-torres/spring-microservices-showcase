@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
-/** Las direcciones tienen sus propios endpoints. */
+/** Addresses have their own endpoints. */
 public record UpdateCustomerRequestDTO(
         @NotBlank @Size(max = 80) String firstName,
         @NotBlank @Size(max = 120) String lastName,

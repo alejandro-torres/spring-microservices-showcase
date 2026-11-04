@@ -18,11 +18,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Cierra la saga de un pedido. El registro del evento procesado y el cambio de estado van en la misma
- * transacción: si el cambio falla, el rollback deshace también el registro y el reintento lo procesa de nuevo.
+ * Closes an order's saga. Registering the processed event and changing the status happen in the same
+ * transaction: if the change fails, the rollback also undoes the registration and the retry processes it again.
  * <p>
- * Un pedido que no existe o que ya no está PENDING es un error de datos que no se arregla reintentando: la
- * excepción de dominio hace que el mensaje vaya directo a la DLQ para revisarlo.
+ * An order that does not exist or is no longer PENDING is a data error that retrying will not fix: the domain
+ * exception sends the message straight to the DLQ for review.
  */
 @Service
 @RequiredArgsConstructor
@@ -36,7 +36,7 @@ public class OrderSagaServiceImpl implements OrderSagaService {
 
     @Override
     @Transactional
-    @Observed(name = "order.saga.confirm", contextualName = "confirmar pedido")
+    @Observed(name = "order.saga.confirm", contextualName = "confirm order")
     public void confirm(UUID eventId, Long orderId) {
         if (apply(eventId, EventTypes.STOCK_RESERVED, orderId, Order::confirm)) {
             metrics.orderConfirmed();
@@ -45,24 +45,24 @@ public class OrderSagaServiceImpl implements OrderSagaService {
 
     @Override
     @Transactional
-    @Observed(name = "order.saga.reject", contextualName = "rechazar pedido")
+    @Observed(name = "order.saga.reject", contextualName = "reject order")
     public void reject(UUID eventId, Long orderId, String reason) {
         if (apply(eventId, EventTypes.STOCK_RESERVATION_FAILED, orderId, order -> order.reject(reason))) {
             metrics.orderRejected(reason);
         }
     }
 
-    /** @return si el evento era nuevo y se ha aplicado (false con un duplicado) */
+    /** @return whether the event was new and has been applied (false for a duplicate) */
     private boolean apply(UUID eventId, String eventType, Long orderId, Consumer<Order> change) {
         if (!processedEvents.registerIfAbsent(eventId, eventType)) {
-            log.info("Evento {} ({}) ya procesado; se ignora el duplicado", eventId, eventType);
+            log.info("Event {} ({}) already processed; ignoring the duplicate", eventId, eventType);
             return false;
         }
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException(OrderErrorCode.ORDER_NOT_FOUND, orderId));
         change.accept(order);
         orderRepository.save(order);
-        log.info("Pedido {} pasa a {} por el evento {}", orderId, order.getStatus(), eventType);
+        log.info("Order {} moves to {} because of event {}", orderId, order.getStatus(), eventType);
         return true;
     }
 }

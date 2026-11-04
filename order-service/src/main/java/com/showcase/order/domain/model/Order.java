@@ -12,9 +12,9 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Pedido de un cliente. Las líneas quedan fijas al crearlo: son las que product-service reserva en la saga, y
- * cambiarlas después dejaría la reserva desalineada con el pedido. Lo único modificable es la dirección de envío,
- * mientras el pedido no esté cerrado.
+ * A customer's order. The lines are fixed on creation: they are what product-service reserves in the saga, and
+ * changing them later would leave the reservation out of step with the order. The only modifiable thing is the
+ * shipping address, while the order is not closed.
  */
 public class Order extends AuditedModel {
 
@@ -52,12 +52,12 @@ public class Order extends AuditedModel {
         this.shippingAddress = Objects.requireNonNull(newAddress, "shippingAddress");
     }
 
-    /** product-service ha reservado el stock de todas las líneas. */
+    /** product-service has reserved the stock of all the lines. */
     public void confirm() {
         transitionTo(OrderStatus.CONFIRMED);
     }
 
-    /** product-service no ha podido reservar el stock; {@code reason} es el código que explica por qué. */
+    /** product-service could not reserve the stock; {@code reason} is the code explaining why. */
     public void reject(String reason) {
         transitionTo(OrderStatus.REJECTED);
         this.rejectionReason = reason == null || reason.length() <= MAX_REASON ? reason
@@ -65,8 +65,8 @@ public class Order extends AuditedModel {
     }
 
     /**
-     * Solo se cancela un pedido confirmado: su stock está reservado y la cancelación lo devuelve. Un pedido
-     * pendiente todavía está en plena saga (no se sabe si se reservará), así que no se puede cancelar.
+     * Only a confirmed order is cancelled: its stock is reserved and the cancellation returns it. A pending
+     * order is still in the middle of the saga (it is unknown whether it will be reserved), so it cannot be cancelled.
      */
     public void cancel() {
         if (status != OrderStatus.CONFIRMED) {
@@ -75,7 +75,7 @@ public class Order extends AuditedModel {
         transitionTo(OrderStatus.CANCELLED);
     }
 
-    /** Solo se borran (lógicamente) los pedidos cerrados; los demás todavía pueden cambiar. */
+    /** Only closed orders are (soft) deleted; the others can still change. */
     @Override
     public void deactivate() {
         if (!status.isFinal()) {

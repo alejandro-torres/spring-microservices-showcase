@@ -21,7 +21,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
 
 /**
- * Adaptador de persistencia de productos con Spring Data JPA. Participa en la transacción del servicio.
+ * Persistence adapter for products with Spring Data JPA. It joins the service's transaction.
  */
 @Repository
 @RequiredArgsConstructor

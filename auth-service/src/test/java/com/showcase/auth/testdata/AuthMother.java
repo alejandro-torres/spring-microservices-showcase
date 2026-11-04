@@ -6,21 +6,21 @@ import com.showcase.auth.domain.model.User;
 import java.time.Instant;
 import java.util.Set;
 
-/** Datos de prueba de auth-service ya persistidos (con id y versión). */
+/** auth-service test data, already persisted (with id and version). */
 public final class AuthMother {
 
     public static final Instant CREATED_AT = Instant.parse("2026-10-01T09:00:00Z");
-    public static final String PASSWORD_HASH = "{bcrypt}hash-de-prueba-no-es-una-contrasena-real";
+    public static final String PASSWORD_HASH = "{bcrypt}test-hash-not-a-real-password";
 
     private AuthMother() {
     }
 
     public static Permission permission(long id, String name) {
-        return new Permission(id, name, "Permiso " + name, true, 0L, CREATED_AT, CREATED_AT);
+        return new Permission(id, name, "Permission " + name, true, 0L, CREATED_AT, CREATED_AT);
     }
 
     public static Role role(long id, String name, Permission... permissions) {
-        return new Role(id, name, "Rol " + name, Set.of(permissions), true, 0L, CREATED_AT, CREATED_AT);
+        return new Role(id, name, "Role " + name, Set.of(permissions), true, 0L, CREATED_AT, CREATED_AT);
     }
 
     public static User user(long id, String username, Role... roles) {

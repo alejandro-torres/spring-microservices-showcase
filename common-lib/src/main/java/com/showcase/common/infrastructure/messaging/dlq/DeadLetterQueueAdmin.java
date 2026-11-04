@@ -3,20 +3,20 @@ package com.showcase.common.infrastructure.messaging.dlq;
 import java.util.List;
 
 /**
- * Consulta y reenvío de los mensajes que han acabado en las DLQ del servicio. Solo se puede operar sobre las
- * DLQ de las colas que consume el propio servicio; cualquier otra devuelve 404.
+ * Lookup and re-sending of the messages that ended up in the service's DLQs. Only the DLQs of the queues the
+ * service itself consumes can be operated on; any other returns 404.
  */
 public interface DeadLetterQueueAdmin {
 
     List<DeadLetterQueue> queues();
 
-    /** Lee hasta {@code limit} mensajes sin sacarlos de la cola. */
+    /** Reads up to {@code limit} messages without taking them off the queue. */
     List<DeadLetterMessage> peek(String deadLetterQueue, int limit);
 
     /**
-     * Devuelve hasta {@code max} mensajes a su cola original para que se procesen otra vez.
+     * Returns up to {@code max} messages to their original queue to be processed again.
      *
-     * @return cuántos mensajes se han reenviado
+     * @return how many messages were re-sent
      */
     int replay(String deadLetterQueue, int max);
 
@@ -24,7 +24,7 @@ public interface DeadLetterQueueAdmin {
     }
 
     /**
-     * @param reason motivo del rechazo que RabbitMQ añade en la cabecera {@code x-death} ({@code rejected},
+     * @param reason rejection reason that RabbitMQ adds in the {@code x-death} header ({@code rejected},
      *               {@code expired}...)
      */
     record DeadLetterMessage(String messageId, String eventType, String reason, long deathCount, String body) {

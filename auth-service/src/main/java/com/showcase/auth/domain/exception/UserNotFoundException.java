@@ -3,7 +3,7 @@ package com.showcase.auth.domain.exception;
 import com.showcase.common.domain.exception.ResourceNotFoundException;
 
 /**
- * No existe un usuario activo con el id indicado.
+ * There is no active user with the given id.
  */
 public class UserNotFoundException extends ResourceNotFoundException {
 

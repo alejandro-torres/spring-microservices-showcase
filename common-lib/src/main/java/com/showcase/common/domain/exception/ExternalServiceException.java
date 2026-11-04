@@ -1,7 +1,7 @@
 package com.showcase.common.domain.exception;
 
 /**
- * Ha fallado otro microservicio o un sistema externo del que depende la operación.
+ * Another microservice or an external system the operation depends on has failed.
  */
 public class ExternalServiceException extends DomainException {
 

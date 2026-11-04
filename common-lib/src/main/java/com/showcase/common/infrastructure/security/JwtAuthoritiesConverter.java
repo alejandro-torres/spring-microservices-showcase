@@ -11,11 +11,11 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
 /**
- * Convierte los claims del JWT emitido por auth-service en autoridades de Spring Security:
+ * Converts the claims of the JWT issued by auth-service into Spring Security authorities:
  * <ul>
- *   <li>{@code roles: ["ADMIN"]} → {@code ROLE_ADMIN} (para {@code hasRole('ADMIN')})</li>
- *   <li>{@code permissions: ["user:read"]} → {@code user:read} (para {@code hasAuthority('user:read')})</li>
- *   <li>{@code scope: "internal"} → {@code SCOPE_internal} (tokens entre servicios)</li>
+ *   <li>{@code roles: ["ADMIN"]} → {@code ROLE_ADMIN} (for {@code hasRole('ADMIN')})</li>
+ *   <li>{@code permissions: ["user:read"]} → {@code user:read} (for {@code hasAuthority('user:read')})</li>
+ *   <li>{@code scope: "internal"} → {@code SCOPE_internal} (service-to-service tokens)</li>
  * </ul>
  */
 public class JwtAuthoritiesConverter implements Converter<Jwt, AbstractAuthenticationToken> {
@@ -42,7 +42,7 @@ public class JwtAuthoritiesConverter implements Converter<Jwt, AbstractAuthentic
         return values == null ? List.of() : values;
     }
 
-    // El claim scope puede venir como texto separado por espacios o como lista.
+    // The scope claim can come as space-separated text or as a list.
     private static List<String> scopes(Jwt jwt) {
         Object scope = jwt.getClaims().get(SCOPE_CLAIM);
         if (scope instanceof String text) {
