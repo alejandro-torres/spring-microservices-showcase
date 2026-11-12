@@ -1,16 +1,16 @@
-# Observabilidad: Prometheus (métricas y alertas), Loki + Grafana Alloy (logs) y Grafana (dashboards).
-# Se levanta junto al sistema:
+# Observability: Prometheus (metrics and alerts), Loki + Grafana Alloy (logs) and Grafana (dashboards).
+# Started together with the system:
 #   docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d --build
-# Consolas: Grafana http://localhost:3000 (usuario admin, contraseña admin o la de .env) y
+# Consoles: Grafana http://localhost:3000 (user admin, password admin or the one in .env) and
 # Prometheus http://localhost:9090.
-# RabbitMQ ya publica sus métricas (colas, DLQ, consumidores) en el puerto 15692 de la red interna.
+# RabbitMQ already publishes its metrics (queues, DLQ, consumers) on port 15692 of the internal network.
 services:
   prometheus:
     image: prom/prometheus:v3.5.0
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.retention.time=7d
-      # Guarda los exemplars (traceId de peticiones concretas) para saltar de una gráfica a su traza.
+      # Stores the exemplars (traceId of specific requests) to jump from a chart to its trace.
       - --enable-feature=exemplar-storage
       - --web.enable-lifecycle
     ports:
@@ -30,7 +30,7 @@ services:
       - ./docker/loki/loki.yml:/etc/loki/loki.yml:ro
       - loki-data:/loki
 
-  # Lee los logs de todos los contenedores del proyecto por el socket de Docker y los envía a Loki.
+  # Reads the logs of all the project's containers through the Docker socket and sends them to Loki.
   alloy:
     image: grafana/alloy:v1.10.0
     command: run /etc/alloy/config.alloy --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy
@@ -45,7 +45,7 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
-      GF_USERS_DEFAULT_LANGUAGE: es-ES
+      GF_USERS_DEFAULT_LANGUAGE: en-US
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/01-overview.json
     ports:
       - "3000:3000"

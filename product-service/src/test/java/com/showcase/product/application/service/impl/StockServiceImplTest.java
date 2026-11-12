@@ -64,7 +64,7 @@ class StockServiceImplTest {
     @Mock
     private StockMetrics metrics;
 
-    /** Lock que siempre se consigue y apunta qué claves se pidieron. */
+    /** A lock that is always acquired and notes which keys were requested. */
     private final List<String> lockedKeys = new ArrayList<>();
     private final DistributedLockManager lockManager = new DistributedLockManager() {
         @Override
@@ -84,16 +84,16 @@ class StockServiceImplTest {
         stockService = new StockServiceImpl(productRepository, processedEvents, eventPublisher, lockManager, metrics,
                 new TransactionTemplate(transactionManager), new TransactionTemplate(transactionManager),
                 Clock.fixed(NOW, ZoneOffset.UTC));
-        mouse = product(10L, "Ratón", "5.00", 5);
-        keyboard = product(11L, "Teclado", "20.00", 1);
+        mouse = product(10L, "Mouse", "5.00", 5);
+        keyboard = product(11L, "Keyboard", "20.00", 1);
     }
 
     @Nested
-    @DisplayName("lock distribuido")
+    @DisplayName("distributed lock")
     class DistributedLock {
 
         @Test
-        @DisplayName("pide un lock por producto y abre la transacción después de conseguirlos")
+        @DisplayName("requests one lock per product and opens the transaction after acquiring them")
         void reserve_shouldLockEveryProductBeforeTransaction() {
             // given
             given(processedEvents.registerIfAbsent(EVENT_ID, "order.created")).willReturn(false);
@@ -107,7 +107,7 @@ class StockServiceImplTest {
         }
 
         @Test
-        @DisplayName("si no consigue el lock no abre la transacción ni toca el stock (el mensaje se reintentará)")
+        @DisplayName("if it does not get the lock it neither opens the transaction nor touches the stock (the message will be retried)")
         void reserve_whenLockBusy_shouldNotTouchStock() {
             // given
             var busy = new BusinessRuleException(CommonErrorCode.RESOURCE_BUSY, "lock:product:10");
@@ -127,7 +127,7 @@ class StockServiceImplTest {
         }
 
         @Test
-        @DisplayName("una clave por producto aunque aparezca en varias líneas")
+        @DisplayName("one key per product even if it appears in several lines")
         void lockKeys_shouldBeDistinctPerProduct() {
             assertThat(StockServiceImpl.lockKeys(List.of(new StockLine(5L, 1), new StockLine(5L, 2))))
                     .containsExactly("lock:product:5");
@@ -139,7 +139,7 @@ class StockServiceImplTest {
     class Reserve {
 
         @Test
-        @DisplayName("con stock de todas las líneas, descuenta cada una y publica stock.reserved")
+        @DisplayName("with stock for all lines, it deducts each one and publishes stock.reserved")
         void reserve_withStock_shouldReserveAllLines() {
             // given
             given(processedEvents.registerIfAbsent(EVENT_ID, "order.created")).willReturn(true);
@@ -158,7 +158,7 @@ class StockServiceImplTest {
         }
 
         @Test
-        @DisplayName("si falta stock en una línea no descuenta ninguna y publica INSUFFICIENT_STOCK")
+        @DisplayName("if a line lacks stock none is deducted and it publishes INSUFFICIENT_STOCK")
         void reserve_withoutStock_shouldReserveNothing() {
             // given
             given(processedEvents.registerIfAbsent(EVENT_ID, "order.created")).willReturn(true);
@@ -176,7 +176,7 @@ class StockServiceImplTest {
         }
 
         @Test
-        @DisplayName("si un producto no existe publica PRODUCT_NOT_FOUND sin tocar el stock")
+        @DisplayName("if a product does not exist it publishes PRODUCT_NOT_FOUND without touching the stock")
         void reserve_withUnknownProduct_shouldFail() {
             // given
             given(processedEvents.registerIfAbsent(EVENT_ID, "order.created")).willReturn(true);
@@ -191,7 +191,7 @@ class StockServiceImplTest {
         }
 
         @Test
-        @DisplayName("procesa los productos ordenados por id para bloquearlos siempre en el mismo orden")
+        @DisplayName("processes the products sorted by id to always lock them in the same order")
         void reserve_shouldProcessProductsInIdOrder() {
             // given
             given(processedEvents.registerIfAbsent(EVENT_ID, "order.created")).willReturn(true);
@@ -208,7 +208,7 @@ class StockServiceImplTest {
         }
 
         @Test
-        @DisplayName("ignora un order.created duplicado")
+        @DisplayName("ignores a duplicate order.created")
         void reserve_duplicate_shouldDoNothing() {
             // given
             given(processedEvents.registerIfAbsent(EVENT_ID, "order.created")).willReturn(false);
@@ -226,7 +226,7 @@ class StockServiceImplTest {
     class Release {
 
         @Test
-        @DisplayName("devuelve las unidades de cada línea, aunque el producto esté borrado, y publica stock.released")
+        @DisplayName("returns the units of each line, even if the product is deleted, and publishes stock.released")
         void release_shouldReturnStock() {
             // given
             mouse.deactivate();
@@ -245,7 +245,7 @@ class StockServiceImplTest {
         }
 
         @Test
-        @DisplayName("si un producto ya no existe, devuelve el resto y publica stock.released igualmente")
+        @DisplayName("if a product no longer exists, it returns the rest and publishes stock.released anyway")
         void release_withMissingProduct_shouldSkipIt() {
             // given
             given(processedEvents.registerIfAbsent(EVENT_ID, "order.cancelled")).willReturn(true);
@@ -262,7 +262,7 @@ class StockServiceImplTest {
         }
 
         @Test
-        @DisplayName("ignora un order.cancelled duplicado: el stock no se devuelve dos veces")
+        @DisplayName("ignores a duplicate order.cancelled: the stock is not returned twice")
         void release_duplicate_shouldDoNothing() {
             // given
             given(processedEvents.registerIfAbsent(EVENT_ID, "order.cancelled")).willReturn(false);

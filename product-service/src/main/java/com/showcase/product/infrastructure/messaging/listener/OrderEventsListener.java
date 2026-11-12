@@ -11,9 +11,9 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 /**
- * Adaptador de entrada de los eventos de order-service: convierte el mensaje y llama a {@link StockService}, sin
- * lógica de negocio. Todas las réplicas escuchan la misma cola (competing consumers): cada mensaje lo procesa
- * una sola.
+ * Inbound adapter for order-service events: it converts the message and calls {@link StockService}, with no
+ * business logic. All replicas listen to the same queue (competing consumers): each message is processed by
+ * only one.
  */
 @Component
 @RequiredArgsConstructor

@@ -32,8 +32,8 @@ public class TokenRevocationServiceImpl implements TokenRevocationService {
     }
 
     /**
-     * Guarda el instante de la revocación en segundos, la precisión del claim iat. Un token emitido en el
-     * mismo segundo también se considera revocado: es preferible pedir un login más que dejar uno válido.
+     * Stores the revocation instant in seconds, the precision of the iat claim. A token issued in the
+     * same second is also considered revoked: asking for one more login is preferable to leaving a valid one.
      */
     @Override
     public void revokeAllForUser(String username, String reason) {

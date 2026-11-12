@@ -19,8 +19,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * Errores de seguridad lanzados dentro de los controllers, sobre todo por {@code @PreAuthorize}.
- * Sin este handler, el {@code @ExceptionHandler(Exception.class)} global los convertiría en un 500.
+ * Security errors thrown inside the controllers, mainly by {@code @PreAuthorize}.
+ * Without this handler, the global {@code @ExceptionHandler(Exception.class)} would turn them into a 500.
  */
 @RestControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -29,7 +29,7 @@ public class SecurityExceptionHandler {
 
     private final ErrorResponseFactory responses;
 
-    /** 403 si el usuario está autenticado; 401 si es anónimo (todavía puede identificarse). */
+    /** 403 if the user is authenticated; 401 if anonymous (they can still identify themselves). */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponseDTO> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

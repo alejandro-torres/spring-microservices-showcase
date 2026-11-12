@@ -7,8 +7,8 @@ import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 /**
- * Cambia la dirección de envío de un pedido que no está cerrado. Las líneas no se pueden modificar: ya se han
- * enviado a product-service para reservar su stock.
+ * Changes the shipping address of an order that is not closed. The lines cannot be modified: they have already
+ * been sent to product-service to reserve their stock.
  */
 public record UpdateOrderRequestDTO(
         @NotBlank @Size(max = 255) String street,

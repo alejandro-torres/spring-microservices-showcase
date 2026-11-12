@@ -15,7 +15,7 @@ class PageResponseDTOTest {
     class From {
 
         @Test
-        @DisplayName("convierte el contenido y copia los datos de paginación del PageResult")
+        @DisplayName("converts the content and copies the pagination data of the PageResult")
         void from_shouldMapContentAndCopyPagination() {
             // given
             var result = PageResult.of(List.of(1, 2), 2, 2, 7);
@@ -39,7 +39,7 @@ class PageResponseDTOTest {
     class ErrorResponse {
 
         @Test
-        @DisplayName("usa una lista vacía cuando no hay errores por campo")
+        @DisplayName("uses an empty list when there are no field errors")
         void constructor_withNullErrors_shouldUseEmptyList() {
             var error = new ErrorResponseDTO(null, 404, "Not Found", "X", "m", "/p", null, null);
             assertThat(error.errors()).isEmpty();

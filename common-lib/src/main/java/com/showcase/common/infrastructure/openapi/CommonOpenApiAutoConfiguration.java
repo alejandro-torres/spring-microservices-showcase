@@ -33,10 +33,10 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.method.HandlerMethod;
 
 /**
- * Documentación OpenAPI común de los servicios web: título, esquemas de seguridad (pegar el JWT de auth-service o
- * hacer login con OAuth2 desde el Swagger UI) y, en cada operación, sus posibles respuestas de error con el cuerpo
- * {@code ErrorResponseDTO}. Así ningún controller repite las mismas {@code @ApiResponse}; si una operación declara la
- * suya, se respeta.
+ * Common OpenAPI documentation of the web services: title, security schemes (paste auth-service's JWT or
+ * log in with OAuth2 from the Swagger UI) and, on each operation, its possible error responses with the
+ * {@code ErrorResponseDTO} body. This way no controller repeats the same {@code @ApiResponse}; if an operation
+ * declares its own, it is respected.
  */
 @AutoConfiguration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
@@ -48,8 +48,8 @@ public class CommonOpenApiAutoConfiguration {
     static final String ERROR_SCHEMA_REF = "#/components/schemas/ErrorResponseDTO";
 
     /**
-     * @param authServerUrl dónde están {@code /oauth2/authorize} y {@code /oauth2/token}. Vacío (por defecto): rutas
-     *                      relativas, que el Swagger UI del gateway resuelve contra sí mismo, el emisor de los tokens.
+     * @param authServerUrl where {@code /oauth2/authorize} and {@code /oauth2/token} live. Empty (default): relative
+     *                      paths, which the gateway's Swagger UI resolves against itself, the token issuer.
      */
     @Bean
     @ConditionalOnMissingBean
@@ -59,37 +59,38 @@ public class CommonOpenApiAutoConfiguration {
                 .info(new Info()
                         .title(applicationName + " API")
                         .version("v1")
-                        .description("Errores en español o inglés según Accept-Language. Para probar la API, "
-                                + "Authorize → oauth2 (client_id web-client, sin secreto) abre el login de "
-                                + "auth-service; o pega en bearer-jwt un token ya obtenido."))
-                // Relativo: el Swagger UI lo resuelve contra donde se sirve (el gateway o el propio servicio).
-                // Si no, springdoc lo calcula con el X-Forwarded-Prefix del gateway (/auth-service), que no es una
-                // ruta de la API.
-                .servers(List.of(new Server().url("/").description("Donde se sirve esta documentación")))
+                        .description("Errors in English or Spanish according to Accept-Language. To try the API, "
+                                + "Authorize → oauth2 (client_id web-client, no secret) opens the login of "
+                                + "auth-service; or paste a token you already have into bearer-jwt."))
+                // Relative: the Swagger UI resolves it against where it is served (the gateway or the service itself).
+                // Otherwise, springdoc computes it with the gateway's X-Forwarded-Prefix (/auth-service), which is not
+                // an
+                // API path.
+                .servers(List.of(new Server().url("/").description("Where this documentation is served")))
                 .components(new Components()
                         .addSecuritySchemes(SECURITY_SCHEME, new SecurityScheme()
                                 .type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT"))
                         .addSecuritySchemes(OAUTH2_SCHEME, oauth2Scheme(authServerUrl)))
-                // Dos requisitos alternativos: vale cualquiera de los dos esquemas.
+                // Two alternative requirements: either scheme is valid.
                 .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME))
                 .addSecurityItem(new SecurityRequirement().addList(OAUTH2_SCHEME));
     }
 
-    /** Authorization code con PKCE: el mismo flujo que una aplicación de navegador, sin secreto de cliente. */
+    /** Authorization code with PKCE: the same flow as a browser application, without a client secret. */
     static SecurityScheme oauth2Scheme(String authServerUrl) {
         String base = authServerUrl.endsWith("/") ? authServerUrl.substring(0, authServerUrl.length() - 1)
                 : authServerUrl;
         return new SecurityScheme()
                 .type(SecurityScheme.Type.OAUTH2)
-                .description("Login de auth-service con authorization code + PKCE")
+                .description("auth-service login with authorization code + PKCE")
                 .flows(new OAuthFlows().authorizationCode(new OAuthFlow()
                         .authorizationUrl(base + "/oauth2/authorize")
                         .tokenUrl(base + "/oauth2/token")
-                        .scopes(new Scopes().addString("openid", "Identidad del usuario")
-                                .addString("profile", "Perfil del usuario"))));
+                        .scopes(new Scopes().addString("openid", "User identity")
+                                .addString("profile", "User profile"))));
     }
 
-    /** Registra el esquema de {@code ErrorResponseDTO} (y sus tipos anidados) en los componentes. */
+    /** Registers the schema of {@code ErrorResponseDTO} (and its nested types) in the components. */
     @Bean
     public GlobalOpenApiCustomizer errorResponseSchemaCustomizer() {
         return openApi -> {

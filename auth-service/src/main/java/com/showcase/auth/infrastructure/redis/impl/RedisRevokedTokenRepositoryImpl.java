@@ -9,9 +9,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Repository;
 
 /**
- * Tokens revocados en Redis con TTL: las claves desaparecen solas cuando el token habría caducado,
- * así que Redis nunca crece indefinidamente. Al estar fuera de la JVM, la revocación vale para todas
- * las réplicas a la vez.
+ * Revoked tokens in Redis with a TTL: the keys disappear on their own when the token would have expired,
+ * so Redis never grows indefinitely. Being outside the JVM, the revocation applies to all
+ * replicas at once.
  */
 @Repository
 @RequiredArgsConstructor

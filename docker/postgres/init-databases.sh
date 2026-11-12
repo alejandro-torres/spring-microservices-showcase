@@ -1,6 +1,6 @@
 #!/bin/sh
-# Database per Service: una base de datos y un usuario propietario por microservicio, en el mismo servidor.
-# Ningún servicio puede leer la base de datos de otro. Lo ejecuta PostgreSQL solo al crear el volumen.
+# Database per Service: one database and one owner user per microservice, on the same server.
+# No service can read another's database. PostgreSQL only runs it when creating the volume.
 set -eu
 
 create_database() {

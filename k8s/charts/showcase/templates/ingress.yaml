@@ -1,6 +1,6 @@
 {{- if .Values.ingress.enabled }}
-# Entrada desde fuera del clúster: https://<host> llega al gateway, que es el único servicio expuesto.
-# cert-manager emite el certificado TLS con el ClusterIssuer indicado (en local, la CA de k8s/platform).
+# Entry from outside the cluster: https://<host> reaches the gateway, the only exposed service.
+# cert-manager issues the TLS certificate with the given ClusterIssuer (locally, the k8s/platform CA).
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

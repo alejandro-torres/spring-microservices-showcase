@@ -24,11 +24,11 @@ class CustomerClientImplTest {
     class FindById {
 
         @Test
-        @DisplayName("usa la dirección principal como dirección de envío")
+        @DisplayName("uses the primary address as the shipping address")
         void findById_shouldPickMainAddress() {
             given(feignClient.findById(3L)).willReturn(new CustomerClientResponseDTO(3L, "c@example.com", List.of(
-                    new AddressClientResponseDTO("Calle 1", "Lugo", "27001", "ES", false),
-                    new AddressClientResponseDTO("Calle 2", "Soria", "42001", "ES", true))));
+                    new AddressClientResponseDTO("Street 1", "Lugo", "27001", "ES", false),
+                    new AddressClientResponseDTO("Street 2", "Soria", "42001", "ES", true))));
 
             assertThat(client.findById(3L)).hasValueSatisfying(customer ->
                     assertThat(customer.mainAddress()).hasValueSatisfying(
@@ -36,7 +36,7 @@ class CustomerClientImplTest {
         }
 
         @Test
-        @DisplayName("un cliente sin direcciones no tiene dirección de envío")
+        @DisplayName("a customer without addresses has no shipping address")
         void findById_withoutAddresses_shouldHaveNoMainAddress() {
             given(feignClient.findById(3L)).willReturn(new CustomerClientResponseDTO(3L, "c@example.com", null));
 
@@ -45,7 +45,7 @@ class CustomerClientImplTest {
         }
 
         @Test
-        @DisplayName("un 404 devuelve vacío")
+        @DisplayName("a 404 returns empty")
         void findById_notFound_shouldReturnEmpty() {
             given(feignClient.findById(3L)).willThrow(new RemoteResourceNotFoundException("findById"));
 

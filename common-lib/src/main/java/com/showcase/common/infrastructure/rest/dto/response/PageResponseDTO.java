@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * Respuesta paginada de la API.
+ * Paginated API response.
  */
 public record PageResponseDTO<T>(
         List<T> content,
@@ -20,7 +20,7 @@ public record PageResponseDTO<T>(
         content = List.copyOf(content);
     }
 
-    /** Convierte un {@link PageResult} del dominio aplicando el mapper a cada elemento. */
+    /** Converts a domain {@link PageResult} by applying the mapper to each element. */
     public static <D, T> PageResponseDTO<T> from(PageResult<D> result, Function<? super D, ? extends T> mapper) {
         List<T> content = result.content().stream().<T>map(mapper).toList();
         return new PageResponseDTO<>(content, result.page(), result.size(), result.totalElements(),

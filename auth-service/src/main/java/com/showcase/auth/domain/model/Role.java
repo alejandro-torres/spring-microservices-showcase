@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * Rol con un conjunto de permisos (p. ej. ADMIN, USER).
+ * Role with a set of permissions (e.g. ADMIN, USER).
  */
 public class Role extends AuditedModel {
 
@@ -38,7 +38,7 @@ public class Role extends AuditedModel {
         return new Role(null, normalized, description, permissions, true, null, null, null);
     }
 
-    /** Sustituye la descripción y el conjunto completo de permisos. */
+    /** Replaces the description and the full set of permissions. */
     public void update(String newDescription, Set<Permission> newPermissions) {
         this.description = newDescription;
         this.permissions.clear();

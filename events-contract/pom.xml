@@ -12,9 +12,9 @@
 
     <artifactId>events-contract</artifactId>
     <name>events-contract</name>
-    <description>Contratos de los mensajes de RabbitMQ: el sobre común y los MessageDTO de cada evento</description>
+    <description>RabbitMQ message contracts: the common envelope and the MessageDTOs of each event</description>
 
-    <!-- Sin dependencias: son records de Java que cualquier servicio puede serializar con su propio Jackson -->
+    <!-- No dependencies: they are Java records any service can serialize with its own Jackson -->
     <dependencies>
         <dependency>
             <groupId>tools.jackson.core</groupId>

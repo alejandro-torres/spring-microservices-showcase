@@ -8,24 +8,24 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Puerto de salida para persistir productos.
+ * Outbound port to persist products.
  */
 public interface ProductRepository {
 
     Product save(Product product);
 
-    /** Solo productos activos, con su categoría. */
+    /** Active products only, with their category. */
     Optional<Product> findById(Long id);
 
-    /** Incluye los borrados: al cancelar un pedido su stock vuelve aunque el producto ya no se venda. */
+    /** Includes deleted ones: when an order is cancelled its stock returns even if the product is no longer sold. */
     Optional<Product> findByIdIncludingInactive(Long id);
 
     PageResult<Product> findAll(List<FilterCriterion> filters, PageQuery pageQuery, boolean includeInactive);
 
-    /** Productos activos de una categoría (consulta JPQL con su propia consulta de recuento). */
+    /** Active products of a category (JPQL query with its own count query). */
     PageResult<Product> findActiveByCategory(Long categoryId, PageQuery pageQuery);
 
-    /** Sin distinguir mayúsculas; incluye productos borrados, porque el nombre sigue reservado. */
+    /** Case-insensitive; includes deleted products, because the name remains reserved. */
     boolean existsByName(String name);
 
     boolean existsByNameAndIdNot(String name, Long id);

@@ -19,7 +19,7 @@ class CommonOpenApiAutoConfigurationTest {
     class OpenApi {
 
         @Test
-        @DisplayName("declara el Bearer JWT y el login OAuth2 como alternativas")
+        @DisplayName("declares the Bearer JWT and the OAuth2 login as alternatives")
         void openApi_shouldDeclareBearerAndOAuth2AsAlternatives() {
             // when
             OpenAPI openApi = configuration.openApi("product-service", "");
@@ -34,7 +34,7 @@ class CommonOpenApiAutoConfigurationTest {
         }
 
         @Test
-        @DisplayName("declara un servidor relativo para que «Try it out» no use el prefijo /servicio del gateway")
+        @DisplayName("declares a relative server so that 'Try it out' does not use the gateway's /service prefix")
         void openApi_shouldDeclareRelativeServer() {
             // when
             OpenAPI openApi = configuration.openApi("auth-service", "");
@@ -50,7 +50,7 @@ class CommonOpenApiAutoConfigurationTest {
     class OAuth2Scheme {
 
         @Test
-        @DisplayName("sin URL del servidor usa rutas relativas, que el Swagger UI del gateway resuelve contra sí mismo")
+        @DisplayName("without a server URL it uses relative paths, which the gateway's Swagger UI resolves against itself")
         void oauth2Scheme_withoutUrl_shouldUseRelativePaths() {
             // when
             SecurityScheme scheme = CommonOpenApiAutoConfiguration.oauth2Scheme("");
@@ -64,7 +64,7 @@ class CommonOpenApiAutoConfigurationTest {
         }
 
         @Test
-        @DisplayName("con URL del servidor (con o sin barra final) construye las URLs absolutas")
+        @DisplayName("with a server URL (with or without trailing slash) it builds absolute URLs")
         void oauth2Scheme_withUrl_shouldUseAbsoluteUrls() {
             // when
             var flow = CommonOpenApiAutoConfiguration.oauth2Scheme("http://localhost:9000/").getFlows()

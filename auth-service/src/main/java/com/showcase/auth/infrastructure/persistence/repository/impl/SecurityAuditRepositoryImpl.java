@@ -32,7 +32,7 @@ public class SecurityAuditRepositoryImpl implements SecurityAuditRepository {
         return mapper.toDomain(jpaRepository.save(mapper.toEntity(event)));
     }
 
-    /** La auditoría no tiene borrado lógico: se pide incluir "inactivos" para no filtrar por la columna active. */
+    /** The audit log has no soft delete: "inactive" is requested so as not to filter by the active column. */
     @Override
     public PageResult<SecurityAuditEvent> findAll(List<FilterCriterion> filters, PageQuery pageQuery) {
         Page<SecurityAuditLogEntity> page = jpaRepository.findAll(

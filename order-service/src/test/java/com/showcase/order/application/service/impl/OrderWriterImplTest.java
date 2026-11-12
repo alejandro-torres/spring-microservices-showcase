@@ -52,7 +52,7 @@ class OrderWriterImplTest {
     class Create {
 
         @Test
-        @DisplayName("guarda el pedido y después publica OrderCreatedEvent con sus líneas")
+        @DisplayName("saves the order and then publishes OrderCreatedEvent with its lines")
         void create_shouldSaveAndPublishEvent() {
             // given
             var order = pending();
@@ -73,7 +73,7 @@ class OrderWriterImplTest {
         }
 
         @Test
-        @DisplayName("el evento lleva el id que asigna la base de datos, no el del pedido sin guardar")
+        @DisplayName("the event carries the id assigned by the database, not that of the unsaved order")
         void create_shouldPublishSavedId() {
             // given
             var unsaved = Order.create(3L, pending().getShippingAddress(),

@@ -9,11 +9,11 @@ import org.springframework.amqp.listener.ListenerExecutionFailedException;
 import org.springframework.amqp.rabbit.listener.api.RabbitListenerErrorHandler;
 
 /**
- * Las excepciones de los listeners no pasan por el {@code GlobalExceptionHandler} (no hay petición HTTP). Este
- * handler, referenciado en cada {@code @RabbitListener(errorHandler = ...)}, registra el fallo con el
- * {@code eventId}, la cola y si se va a reintentar (el {@code traceId} lo añade el MDC del log), y relanza la
- * excepción: la política de reintentos decide con {@link MessagingExceptionClassifier} si se reintenta o si el
- * mensaje va directo a la DLQ.
+ * Listener exceptions do not go through the {@code GlobalExceptionHandler} (there is no HTTP request). This
+ * handler, referenced in each {@code @RabbitListener(errorHandler = ...)}, records the failure with the
+ * {@code eventId}, the queue and whether it will be retried (the {@code traceId} is added by the log's MDC), and
+ * rethrows the exception: the retry policy decides with {@link MessagingExceptionClassifier} whether to retry or
+ * send the message straight to the DLQ.
  */
 public class LoggingRabbitListenerErrorHandler implements RabbitListenerErrorHandler {
 
@@ -27,11 +27,11 @@ public class LoggingRabbitListenerErrorHandler implements RabbitListenerErrorHan
         MessageProperties properties = amqpMessage.getMessageProperties();
         Throwable cause = exception.getCause() != null ? exception.getCause() : exception;
         if (MessagingExceptionClassifier.isRetryable(exception)) {
-            log.warn("Error al procesar el evento {} ({}) de la cola {}; se reintentará: {}",
+            log.warn("Error processing event {} ({}) from queue {}; it will be retried: {}",
                     properties.getMessageId(), properties.getType(), properties.getConsumerQueue(),
                     cause.toString());
         } else {
-            log.error("Evento {} ({}) de la cola {} rechazado sin reintentos, va a la DLQ: {}",
+            log.error("Event {} ({}) from queue {} rejected without retries, going to the DLQ: {}",
                     properties.getMessageId(), properties.getType(), properties.getConsumerQueue(),
                     cause.toString());
         }

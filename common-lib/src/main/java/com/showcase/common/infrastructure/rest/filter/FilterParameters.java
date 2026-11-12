@@ -3,11 +3,11 @@ package com.showcase.common.infrastructure.rest.filter;
 import java.util.List;
 
 /**
- * Valores crudos de los parámetros {@code filter} de la URL, uno por cada {@code filter=...}.
+ * Raw values of the URL's {@code filter} parameters, one per {@code filter=...}.
  *
- * <p>Se usa en lugar de {@code @RequestParam List<String>} porque Spring separa por comas un único
- * parámetro, y eso rompería los filtros con varios valores ({@code categoryId:in:1,2,3}).
- * Lo rellena {@link FilterParametersArgumentResolver}.
+ * <p>Used instead of {@code @RequestParam List<String>} because Spring splits a single parameter
+ * by commas, which would break filters with several values ({@code categoryId:in:1,2,3}).
+ * It is filled in by {@link FilterParametersArgumentResolver}.
  */
 public record FilterParameters(List<String> values) {
 

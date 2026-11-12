@@ -20,7 +20,7 @@ class FilterableFieldTest {
     class Field {
 
         @Test
-        @DisplayName("indica qué operadores admite el campo")
+        @DisplayName("states which operators the field accepts")
         void allows_shouldCheckAllowedOperators() {
             var field = FilterableField.of("price", BigDecimal.class, EQ, GTE);
             assertThat(field.allows(GTE)).isTrue();
@@ -28,7 +28,7 @@ class FilterableFieldTest {
         }
 
         @Test
-        @DisplayName("rechaza operadores incompatibles con el tipo del campo")
+        @DisplayName("rejects operators incompatible with the field's type")
         void constructor_withIncompatibleOperator_shouldFail() {
             assertThatThrownBy(() -> FilterableField.of("price", BigDecimal.class, LIKE))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -38,7 +38,7 @@ class FilterableFieldTest {
         }
 
         @Test
-        @DisplayName("rechaza tipos no soportados y campos sin operadores")
+        @DisplayName("rejects unsupported types and fields without operators")
         void constructor_withUnsupportedTypeOrNoOperators_shouldFail() {
             assertThatThrownBy(() -> FilterableField.of("tags", Set.class, EQ))
                     .isInstanceOf(IllegalArgumentException.class);
@@ -52,7 +52,7 @@ class FilterableFieldTest {
     class Fields {
 
         @Test
-        @DisplayName("indexa los campos por nombre y los busca")
+        @DisplayName("indexes the fields by name and looks them up")
         void of_shouldIndexByName() {
             var fields = FilterFields.of(FilterableField.of("name", String.class, EQ));
             assertThat(fields.find("name")).isPresent();
@@ -60,7 +60,7 @@ class FilterableFieldTest {
         }
 
         @Test
-        @DisplayName("rechaza campos repetidos")
+        @DisplayName("rejects repeated fields")
         void of_withDuplicatedField_shouldFail() {
             assertThatThrownBy(() -> FilterFields.of(
                     FilterableField.of("name", String.class, EQ),

@@ -1,5 +1,5 @@
 {{- /*
-Un Deployment, Service, ConfigMap y Secret por microservicio, generados a partir de .Values.services.
+One Deployment, Service, ConfigMap and Secret per microservice, generated from .Values.services.
 */ -}}
 {{- $root := . -}}
 {{- range $name, $svc := .Values.services }}
@@ -34,9 +34,9 @@ stringData:
   {{- end }}
   {{- if eq $name "auth-service" }}
   INTERNAL_CLIENT_SECRET: {{ $root.Values.secrets.internalClientSecret | quote }}
-  # Clave RSA compartida: los tokens siguen siendo válidos aunque se reinicie o escale auth-service.
-  JWT_PRIVATE_KEY: {{ required "Falta secrets.jwtPrivateKey (usa k8s/deploy.sh o --set-file)" $root.Values.secrets.jwtPrivateKey | quote }}
-  JWT_PUBLIC_KEY: {{ required "Falta secrets.jwtPublicKey (usa k8s/deploy.sh o --set-file)" $root.Values.secrets.jwtPublicKey | quote }}
+  # Shared RSA key: tokens stay valid even if auth-service restarts or scales.
+  JWT_PRIVATE_KEY: {{ required "Missing secrets.jwtPrivateKey (use k8s/deploy.sh or --set-file)" $root.Values.secrets.jwtPrivateKey | quote }}
+  JWT_PUBLIC_KEY: {{ required "Missing secrets.jwtPublicKey (use k8s/deploy.sh or --set-file)" $root.Values.secrets.jwtPublicKey | quote }}
   {{- end }}
   {{- if and $svc.redis $root.Values.secrets.redisPassword }}
   SPRING_DATA_REDIS_PASSWORD: {{ $root.Values.secrets.redisPassword | quote }}
@@ -74,7 +74,7 @@ spec:
   {{- if not $svc.autoscaling }}
   replicas: {{ $svc.replicas }}
   {{- end }}
-  # Actualización sin cortes: primero arranca una réplica nueva y solo cuando está lista se para una antigua.
+  # Zero-downtime update: a new replica starts first and only when it is ready is an old one stopped.
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -89,18 +89,18 @@ spec:
         {{- include "showcase.labels" $root | nindent 8 }}
         {{- include "showcase.selector" $name | nindent 8 }}
       annotations:
-        # Si cambian la configuración o los secretos, los pods se vuelven a crear al hacer helm upgrade.
+        # If the configuration or secrets change, the pods are recreated on helm upgrade.
         checksum/config: {{ $config | sha256sum }}
         checksum/secrets: {{ toJson $root.Values.secrets | sha256sum }}
     spec:
-      # Sin las variables REDIS_PORT=tcp://... que Kubernetes crea por cada Service: chocan con las de Spring.
+      # Without the REDIS_PORT=tcp://... variables Kubernetes creates per Service: they clash with Spring's.
       enableServiceLinks: false
       securityContext:
         {{- include "showcase.podSecurityContext" (dict "user" $root.Values.securityContext.runAsUser "group" $root.Values.securityContext.runAsGroup) | nindent 8 }}
-      # Spring termina las peticiones en curso (shutdown: graceful, hasta 30 s) antes de que se fuerce la parada.
+      # Spring finishes in-flight requests (shutdown: graceful, up to 30 s) before the stop is forced.
       terminationGracePeriodSeconds: 45
       {{- if $svc.discovery }}
-      # Permiso para leer Services y endpoints (Spring Cloud Kubernetes); los demás no necesitan la API.
+      # Permission to read Services and endpoints (Spring Cloud Kubernetes); the others do not need the API.
       serviceAccountName: service-discovery
       {{- else }}
       automountServiceAccountToken: false
@@ -120,7 +120,7 @@ spec:
           imagePullPolicy: {{ $root.Values.image.pullPolicy }}
           securityContext:
             {{- include "showcase.containerSecurityContext" $root | nindent 12 }}
-          # Unos segundos para que el Service y los balanceadores dejen de enviar tráfico a la réplica antes de pararla.
+          # A few seconds for the Service and load balancers to stop sending traffic to the replica before stopping it.
           lifecycle:
             preStop:
               sleep:
@@ -137,7 +137,7 @@ spec:
                 name: {{ $name }}
             - secretRef:
                 name: {{ $name }}
-          # El primer arranque de la JVM es lento: hasta 3 minutos antes de que empiecen las demás sondas.
+          # The JVM's first startup is slow: up to 3 minutes before the other probes begin.
           startupProbe:
             httpGet:
               path: /actuator/health/liveness
@@ -158,7 +158,7 @@ spec:
             failureThreshold: 3
           resources:
             {{- toYaml ($svc.resources | default $root.Values.defaultResources) | nindent 12 }}
-          # Lo único escribible: los temporales de Tomcat y de la JVM.
+          # The only writable thing: Tomcat's and the JVM's temporary files.
           volumeMounts:
             - name: tmp
               mountPath: /tmp
@@ -189,7 +189,7 @@ spec:
           type: Utilization
           averageUtilization: {{ $svc.autoscaling.targetCPUUtilizationPercentage }}
   behavior:
-    # Baja despacio (una réplica por minuto, tras 5 minutos estable) para no oscilar con picos cortos.
+    # Scales down slowly (one replica per minute, after 5 stable minutes) so as not to oscillate with short spikes.
     scaleDown:
       stabilizationWindowSeconds: 300
       policies:
@@ -199,7 +199,7 @@ spec:
 {{- end }}
 {{- if or $svc.autoscaling (gt (int $svc.replicas) 1) }}
 ---
-# Durante un drenado de nodo o una actualización del clúster, como mucho una réplica fuera a la vez.
+# During a node drain or a cluster upgrade, at most one replica out at a time.
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:

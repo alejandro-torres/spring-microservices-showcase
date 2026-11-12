@@ -45,7 +45,7 @@ class PasswordChangeIT {
     }
 
     @Test
-    @DisplayName("cambia la contraseña, invalida la anterior e impide volver a las últimas usadas")
+    @DisplayName("changes the password, invalidates the previous one and prevents going back to recently used ones")
     void changePassword_fullFlow() throws Exception {
         userService.create("cambio.clave", "cambio@example.com", "Primera-111!", Set.of());
 
@@ -53,13 +53,13 @@ class PasswordChangeIT {
         login("cambio.clave", "Primera-111!", "/login?error");
         login("cambio.clave", "Segunda-222!", "/");
 
-        // La primera sigue en el historial: no se puede reutilizar.
+        // The first one is still in the history: it cannot be reused.
         changePassword("cambio.clave", "Segunda-222!", "Primera-111!")
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.code").value("PASSWORD_RECENTLY_USED"))
-                .andExpect(jsonPath("$.message").value("La nueva contraseña no puede ser ninguna de las últimas 3 que has usado."));
+                .andExpect(jsonPath("$.message").value("The new password cannot be any of your last 3 passwords."));
 
-        changePassword("cambio.clave", "incorrecta", "Tercera-333!")
+        changePassword("cambio.clave", "wrong", "Tercera-333!")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_CURRENT_PASSWORD"));
     }

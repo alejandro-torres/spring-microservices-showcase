@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Cierre de sesión: revoca el token con el que se hace la petición, que deja de valer al instante
- * en lugar de esperar a que caduque.
+ * Logout: revokes the token used for the request, which stops being valid instantly
+ * instead of waiting for it to expire.
  */
 @RestController
 @RequestMapping("/api/v1/auth")

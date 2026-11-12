@@ -16,12 +16,12 @@ import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.core.TopicExchange;
 
 /**
- * Construye los exchanges, colas y bindings de un servicio a partir de {@link MessagingProperties}. RabbitAdmin
- * los declara al conectar; declarar algo que ya existe con los mismos argumentos no hace nada, por eso el
- * consumidor también declara el exchange del que lee (así no depende del orden de arranque).
+ * Builds a service's exchanges, queues and bindings from {@link MessagingProperties}. RabbitAdmin declares
+ * them on connecting; declaring something that already exists with the same arguments does nothing, which is why
+ * the consumer also declares the exchange it reads from (so it does not depend on the startup order).
  * <p>
- * Cada cola rechaza sus mensajes fallidos al DLX del servicio ({@code <servicio>.dlx}, de tipo direct), que
- * los deja en su DLQ ({@code <cola>.dlq}).
+ * Each queue rejects its failed messages to the service's DLX ({@code <service>.dlx}, of type direct), which
+ * leaves them in its DLQ ({@code <queue>.dlq}).
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class MessagingTopology {

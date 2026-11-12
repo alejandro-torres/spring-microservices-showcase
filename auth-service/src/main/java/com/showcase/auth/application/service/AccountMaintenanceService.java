@@ -1,21 +1,21 @@
 package com.showcase.auth.application.service;
 
 /**
- * Mantenimiento periódico de las cuentas y los tokens (puerto de entrada de las tareas programadas).
+ * Periodic maintenance of accounts and tokens (inbound port of the scheduled tasks).
  */
 public interface AccountMaintenanceService {
 
     /**
-     * Desbloquea las cuentas cuyo bloqueo por intentos fallidos ya ha caducado y deja constancia en la auditoría.
+     * Unlocks the accounts whose failed-attempts lock has already expired and records it in the audit log.
      *
-     * @return cuántas se han desbloqueado
+     * @return how many were unlocked
      */
     int unlockExpiredAccounts();
 
     /**
-     * Borra las autorizaciones OAuth2 en las que ya ha caducado todo (códigos, access y refresh tokens).
+     * Deletes the OAuth2 authorizations in which everything has expired (codes, access and refresh tokens).
      *
-     * @return cuántas se han borrado
+     * @return how many were deleted
      */
     int deleteExpiredAuthorizations();
 }

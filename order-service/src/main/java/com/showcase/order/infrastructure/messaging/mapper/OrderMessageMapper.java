@@ -9,8 +9,8 @@ import com.showcase.order.domain.event.OrderEventLine;
 import org.mapstruct.Mapper;
 
 /**
- * Eventos de dominio (internos) → MessageDTO (contrato público de events-contract). Separarlos permite cambiar
- * el dominio sin romper a los consumidores, y al revés.
+ * Domain events (internal) → MessageDTO (public contract in events-contract). Separating them allows changing
+ * the domain without breaking consumers, and vice versa.
  */
 @Mapper(componentModel = "spring")
 public interface OrderMessageMapper {

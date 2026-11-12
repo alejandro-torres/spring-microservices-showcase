@@ -24,7 +24,7 @@ class PageQueryParserTest {
     class Parse {
 
         @Test
-        @DisplayName("crea el PageQuery con un campo de ordenación permitido")
+        @DisplayName("creates the PageQuery with an allowed sort field")
         void parse_withAllowedSort_shouldCreateQuery() {
             assertThat(PageQueryParser.parse(1, 20, "username", "desc", SORTABLE))
                     .isEqualTo(new PageQuery(1, 20, "username", SortDirection.DESC));
@@ -33,14 +33,14 @@ class PageQueryParserTest {
         @ParameterizedTest
         @NullAndEmptySource
         @ValueSource(strings = "  ")
-        @DisplayName("usa id si no se indica el orden")
+        @DisplayName("uses id if the sort is not specified")
         void parse_withoutSort_shouldUseId(String sort) {
             assertThat(PageQueryParser.parse(0, 10, sort, null, SORTABLE).sort()).isEqualTo("id");
         }
 
         @ParameterizedTest
         @ValueSource(strings = {"passwordHash", "email", "1; DROP TABLE users"})
-        @DisplayName("rechaza un campo de ordenación fuera de la lista blanca con INVALID_PAGINATION")
+        @DisplayName("rejects a sort field outside the whitelist with INVALID_PAGINATION")
         void parse_withSortNotAllowed_shouldThrow(String sort) {
             assertThatThrownBy(() -> PageQueryParser.parse(0, 10, sort, "asc", SORTABLE))
                     .isInstanceOf(InvalidRequestException.class)

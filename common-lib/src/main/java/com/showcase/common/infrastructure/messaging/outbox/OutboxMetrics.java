@@ -7,10 +7,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
- * Métrica {@code outbox.events} con los eventos del outbox por estado: los {@code pending} deberían estar casi
- * siempre a 0 (si crecen, RabbitMQ no está recibiendo los eventos) y los {@code unrouted} son eventos que ninguna
- * cola recibía y hay que revisar. Prometheus lee el valor en cada consulta (el índice parcial de los pendientes
- * hace que la consulta sea barata).
+ * {@code outbox.events} metric with the outbox events by status: {@code pending} should almost always be at 0
+ * (if it grows, RabbitMQ is not receiving the events) and {@code unrouted} are events no queue was receiving and
+ * that must be reviewed. Prometheus reads the value on each query (the partial index on pending rows keeps the
+ * query cheap).
  */
 @RequiredArgsConstructor
 public class OutboxMetrics implements MeterBinder {
@@ -25,7 +25,7 @@ public class OutboxMetrics implements MeterBinder {
 
     private void register(MeterRegistry registry, OutboxStatus status) {
         Gauge.builder("outbox.events", this, metrics -> metrics.count(status))
-                .description("Eventos del outbox por estado")
+                .description("Outbox events by status")
                 .tag("status", status.name().toLowerCase())
                 .register(registry);
     }
@@ -36,7 +36,7 @@ public class OutboxMetrics implements MeterBinder {
                     .param("status", status.name())
                     .query(Long.class).single();
         } catch (RuntimeException e) {
-            // Sin base de datos la métrica no tiene valor; el health check ya avisa del problema.
+            // Without a database the metric has no value; the health check already reports the problem.
             return Double.NaN;
         }
     }

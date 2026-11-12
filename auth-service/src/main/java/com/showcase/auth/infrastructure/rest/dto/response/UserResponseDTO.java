@@ -3,7 +3,7 @@ package com.showcase.auth.infrastructure.rest.dto.response;
 import java.time.Instant;
 import java.util.Set;
 
-/** Nunca incluye la contraseña ni su hash. */
+/** Never includes the password or its hash. */
 public record UserResponseDTO(
         Long id,
         String username,

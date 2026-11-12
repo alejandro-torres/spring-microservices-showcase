@@ -1,187 +1,185 @@
-# Operar el sistema en Kubernetes
+# Operating the system on Kubernetes
 
-Guía práctica: instalar, escalar, actualizar, volver atrás e investigar fallos. Qué se despliega y por qué está en
-[k8s/README.md](../k8s/README.md). Los comandos se lanzan desde la raíz del repositorio con bash (Git Bash en
-Windows).
+Practical guide: install, scale, upgrade, roll back and investigate failures. What is deployed and why is in
+[k8s/README.md](../k8s/README.md). Commands are run from the repository root with bash (Git Bash on Windows).
 
-## Conceptos en dos minutos
+## Concepts in two minutes
 
-| Recurso | Qué es | En este proyecto |
+| Resource | What it is | In this project |
 |---|---|---|
-| **Pod** | Uno o varios contenedores que arrancan y mueren juntos | Una réplica de un microservicio |
-| **Deployment** | Mantiene N pods iguales y los actualiza poco a poco | Uno por microservicio |
-| **StatefulSet** | Como un Deployment, pero con identidad y disco fijos | PostgreSQL, Redis, RabbitMQ |
-| **Service** | Nombre DNS estable que reparte el tráfico entre los pods listos | `product-service:8081`, `postgres:5432`... |
-| **Ingress** | Entrada HTTP(S) desde fuera del clúster | `https://showcase.localhost` → gateway |
-| **ConfigMap / Secret** | Variables de entorno y contraseñas de los pods | Uno de cada por microservicio |
-| **HPA** | Ajusta el número de réplicas según la CPU | product-service y order-service |
-| **NetworkPolicy** | Cortafuegos entre pods | Todo cerrado salvo lo que cada servicio usa |
-| **Helm chart / release** | Plantillas de todo lo anterior / una instalación con su historial | `k8s/charts/showcase` / `showcase` |
+| **Pod** | One or more containers that start and die together | A replica of a microservice |
+| **Deployment** | Keeps N identical pods and updates them gradually | One per microservice |
+| **StatefulSet** | Like a Deployment, but with a fixed identity and disk | PostgreSQL, Redis, RabbitMQ |
+| **Service** | Stable DNS name that distributes traffic among the ready pods | `product-service:8081`, `postgres:5432`... |
+| **Ingress** | HTTP(S) entry from outside the cluster | `https://showcase.localhost` → gateway |
+| **ConfigMap / Secret** | Environment variables and passwords of the pods | One of each per microservice |
+| **HPA** | Adjusts the number of replicas according to CPU | product-service and order-service |
+| **NetworkPolicy** | Firewall between pods | Everything closed except what each service uses |
+| **Helm chart / release** | Templates of all the above / an installation with its history | `k8s/charts/showcase` / `showcase` |
 
-## Instalar desde cero
+## Install from scratch
 
-Requisitos: Docker Desktop (12 GB de memoria o más), kubectl, kind y Helm (ver [k8s/README.md](../k8s/README.md)).
+Requirements: Docker Desktop (12 GB of memory or more), kubectl, kind and Helm (see [k8s/README.md](../k8s/README.md)).
 
 ```bash
-k8s/kind/cluster.sh create          # clúster de 3 nodos
-k8s/platform/install.sh             # Ingress (Traefik), certificados (cert-manager) y métricas de CPU
-k8s/observability/install.sh        # opcional: Prometheus, Grafana, Loki, Alloy y Tempo
-k8s/deploy.sh                       # imágenes + chart (unos minutos la primera vez)
-k8s/e2e.sh                          # comprobación de punta a punta
+k8s/kind/cluster.sh create          # 3-node cluster
+k8s/platform/install.sh             # Ingress (Traefik), certificates (cert-manager) and CPU metrics
+k8s/observability/install.sh        # optional: Prometheus, Grafana, Loki, Alloy and Tempo
+k8s/deploy.sh                       # images + chart (a few minutes the first time)
+k8s/e2e.sh                          # end-to-end check
 ```
 
-- API y Swagger: https://showcase.localhost/swagger-ui.html (usuario `admin`, contraseña `Showcase-Dev-2026!`).
-  Para que el navegador confíe en el certificado, importa la CA local (instrucciones en [k8s/README.md](../k8s/README.md)).
+- API and Swagger: https://showcase.localhost/swagger-ui.html (user `admin`, password `Showcase-Dev-2026!`).
+  For the browser to trust the certificate, import the local CA (instructions in [k8s/README.md](../k8s/README.md)).
 - Grafana: `kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80` → http://localhost:3000
   (admin / admin).
-- Consola de RabbitMQ: `kubectl -n showcase port-forward svc/rabbitmq 15672` → http://localhost:15672.
+- RabbitMQ console: `kubectl -n showcase port-forward svc/rabbitmq 15672` → http://localhost:15672.
 
-Para empezar de cero: `k8s/kind/cluster.sh delete` borra el clúster con todos sus datos.
+To start from scratch: `k8s/kind/cluster.sh delete` deletes the cluster with all its data.
 
-## Ver el estado
-
-```bash
-kubectl -n showcase get pods -o wide         # READY 1/1 y STATUS Running en todos; en qué nodo está cada uno
-kubectl -n showcase get deploy,sts,hpa,pdb   # réplicas deseadas y disponibles, autoescalado, presupuestos
-kubectl -n showcase get ingress,certificate  # entrada y certificado (READY True)
-kubectl top pods -n showcase                 # CPU y memoria de cada pod
-helm -n showcase list                        # release instalado y su revisión
-```
-
-## Escalar
-
-product-service y order-service se escalan solos con el HPA, entre los mínimos y máximos de
-[values.yaml](../k8s/charts/showcase/values.yaml) (`autoscaling`). Para verlo con carga:
+## Check the state
 
 ```bash
-k8s/load/hpa-demo.sh                          # 4 minutos de carga: product-service pasa de 3 a 6 réplicas
-kubectl -n showcase get hpa -w                # en otra terminal: CPU y réplicas en directo
+kubectl -n showcase get pods -o wide         # READY 1/1 and STATUS Running on all; which node each is on
+kubectl -n showcase get deploy,sts,hpa,pdb   # desired and available replicas, autoscaling, budgets
+kubectl -n showcase get ingress,certificate  # entry and certificate (READY True)
+kubectl top pods -n showcase                 # CPU and memory of each pod
+helm -n showcase list                        # installed release and its revision
 ```
 
-Los demás servicios se escalan a mano:
+## Scale
+
+product-service and order-service scale on their own with the HPA, between the minimums and maximums in
+[values.yaml](../k8s/charts/showcase/values.yaml) (`autoscaling`). To see it under load:
 
 ```bash
-kubectl -n showcase scale deploy/customer-service --replicas=2      # inmediato, hasta el próximo helm upgrade
-k8s/deploy.sh --set services.customer-service.replicas=2            # permanente (o cámbialo en values.yaml)
+k8s/load/hpa-demo.sh                          # 4 minutes of load: product-service goes from 3 to 6 replicas
+kubectl -n showcase get hpa -w                # in another terminal: live CPU and replicas
 ```
 
-No uses `kubectl scale` con product-service ni order-service: el HPA lo deshace enseguida. Cambia `minReplicas` y
+The other services are scaled by hand:
+
+```bash
+kubectl -n showcase scale deploy/customer-service --replicas=2      # immediate, until the next helm upgrade
+k8s/deploy.sh --set services.customer-service.replicas=2            # permanent (or change it in values.yaml)
+```
+
+Do not use `kubectl scale` on product-service or order-service: the HPA undoes it right away. Change `minReplicas` and
 `maxReplicas`.
 
-Cada réplica abre hasta `databasePoolSize` conexiones (5). Antes de subir réplicas o `maxReplicas`, comprueba que el
-total cabe en el `max_connections` de PostgreSQL (`postgres.maxConnections`, 200 en local). Si no cabe, las réplicas
-nuevas fallan al arrancar con *remaining connection slots are reserved*.
+Each replica opens up to `databasePoolSize` connections (5). Before raising replicas or `maxReplicas`, check that the
+total fits within PostgreSQL's `max_connections` (`postgres.maxConnections`, 200 locally). If it does not fit, new
+replicas fail on startup with *remaining connection slots are reserved*.
 
-## Actualizar
-
-```bash
-k8s/deploy.sh                                  # nuevo código: reconstruye, carga las imágenes y reinicia los pods
-SKIP_BUILD=1 k8s/deploy.sh                     # solo cambios del chart o de values.yaml
-k8s/deploy.sh --set springProfile=prod         # cualquier valor del chart con --set
-kubectl -n showcase rollout status deploy/order-service   # seguir una actualización
-```
-
-Cada actualización es un *rolling update* sin cortes. Arranca una réplica nueva y, solo cuando pasa la sonda de
-readiness, para una antigua. La antigua deja de recibir tráfico y termina las peticiones en curso. Si las réplicas
-nuevas no llegan a estar listas, las antiguas siguen atendiendo y la actualización se queda a medias, sin cortar el
-servicio. Para salir de ahí, haz un rollback.
-
-Si cambia cualquier variable de entorno (ConfigMap) o secreto, los pods se reinician solos con el `helm upgrade`.
-
-## Volver atrás (rollback)
+## Upgrade
 
 ```bash
-helm -n showcase history showcase              # revisiones: cuál está deployed y cuál failed
-helm -n showcase rollback showcase             # a la revisión anterior
-helm -n showcase rollback showcase 7           # a una revisión concreta
-kubectl -n showcase rollout undo deploy/api-gateway   # deshacer solo un Deployment (sin pasar por Helm)
+k8s/deploy.sh                                  # new code: rebuilds, loads the images and restarts the pods
+SKIP_BUILD=1 k8s/deploy.sh                     # only chart or values.yaml changes
+k8s/deploy.sh --set springProfile=prod         # any chart value with --set
+kubectl -n showcase rollout status deploy/order-service   # follow an upgrade
 ```
 
-Ejemplo comprobado. Un `helm upgrade` con una imagen que no existe deja los pods nuevos en `ImagePullBackOff`, la
-API sigue respondiendo con las réplicas antiguas y `helm rollback` vuelve a dejarlo todo como estaba. Prefiere
-`helm rollback` a `kubectl rollout undo`: así Helm sigue sabiendo qué versión está instalada.
+Each upgrade is a zero-downtime *rolling update*. A new replica starts and, only when it passes the readiness probe,
+an old one stops. The old one stops receiving traffic and finishes in-flight requests. If the new replicas never get
+ready, the old ones keep serving and the upgrade stays half-done, without cutting the service. To get out of that,
+roll back.
 
-## Investigar un fallo
+If any environment variable (ConfigMap) or secret changes, the pods restart on their own with the `helm upgrade`.
 
-### 1. ¿Qué pod está mal?
+## Roll back
+
+```bash
+helm -n showcase history showcase              # revisions: which is deployed and which failed
+helm -n showcase rollback showcase             # to the previous revision
+helm -n showcase rollback showcase 7           # to a specific revision
+kubectl -n showcase rollout undo deploy/api-gateway   # undo a single Deployment (bypassing Helm)
+```
+
+Verified example. A `helm upgrade` with an image that does not exist leaves the new pods in `ImagePullBackOff`, the
+API keeps responding with the old replicas and `helm rollback` leaves everything as it was. Prefer `helm rollback` to
+`kubectl rollout undo`: that way Helm still knows which version is installed.
+
+## Investigate a failure
+
+### 1. Which pod is wrong?
 
 ```bash
 kubectl -n showcase get pods
 ```
 
-| STATUS | Qué significa | Dónde mirar |
+| STATUS | What it means | Where to look |
 |---|---|---|
-| `Pending` | No cabe en ningún nodo o espera un disco | `kubectl describe pod`: eventos `FailedScheduling` |
-| `Init:0/2` | Un initContainer espera a PostgreSQL o RabbitMQ | `kubectl logs <pod> -c wait-for-postgres` y el estado de `postgres-0` / `rabbitmq-0` |
-| `ImagePullBackOff` | La imagen no existe en el nodo o el registro | ¿`kind load` / `k8s/deploy.sh`? ¿etiqueta correcta? |
-| `CrashLoopBackOff` | La aplicación arranca y se cae | `kubectl logs <pod> --previous` |
-| `Running` con `0/1` | Arrancada pero no pasa la readiness: no recibe tráfico | `kubectl describe pod` (sondas) y los logs |
-| `OOMKilled` (en describe) | Superó el límite de memoria | Sube `resources.limits.memory` |
-| `CrashLoopBackOff` con *remaining connection slots* | PostgreSQL sin conexiones libres | Réplicas × `databasePoolSize` frente a `max_connections` |
+| `Pending` | It fits on no node or is waiting for a disk | `kubectl describe pod`: `FailedScheduling` events |
+| `Init:0/2` | An initContainer is waiting for PostgreSQL or RabbitMQ | `kubectl logs <pod> -c wait-for-postgres` and the state of `postgres-0` / `rabbitmq-0` |
+| `ImagePullBackOff` | The image does not exist on the node or registry | `kind load` / `k8s/deploy.sh`? Correct tag? |
+| `CrashLoopBackOff` | The application starts and crashes | `kubectl logs <pod> --previous` |
+| `Running` with `0/1` | Started but not passing readiness: receives no traffic | `kubectl describe pod` (probes) and the logs |
+| `OOMKilled` (in describe) | It exceeded the memory limit | Raise `resources.limits.memory` |
+| `CrashLoopBackOff` with *remaining connection slots* | PostgreSQL has no free connections | Replicas × `databasePoolSize` versus `max_connections` |
 
-### 2. Eventos y logs
+### 2. Events and logs
 
 ```bash
-kubectl -n showcase describe pod <pod>                       # al final, Events: por qué no arranca o no está listo
+kubectl -n showcase describe pod <pod>                       # at the end, Events: why it does not start or is not ready
 kubectl -n showcase get events --sort-by=.lastTimestamp | tail -20
-kubectl -n showcase logs <pod> --previous                    # logs del contenedor que se cayó
-kubectl -n showcase logs -f deploy/order-service             # logs en directo (de una réplica)
-kubectl -n showcase logs -l app.kubernetes.io/name=product-service --prefix --tail=50   # de todas las réplicas
+kubectl -n showcase logs <pod> --previous                    # logs of the container that crashed
+kubectl -n showcase logs -f deploy/order-service             # live logs (of one replica)
+kubectl -n showcase logs -l app.kubernetes.io/name=product-service --prefix --tail=50   # of all replicas
 ```
 
-Los logs son JSON (ECS). Lo útil está en `message`, `error.message`, `error.stack_trace` y `traceId`.
+The logs are JSON (ECS). The useful parts are in `message`, `error.message`, `error.stack_trace` and `traceId`.
 
-### 3. Conectividad
+### 3. Connectivity
 
-Las NetworkPolicies cortan todo lo que no está permitido. Un servicio nuevo que llama a otro, o un servicio externo
-nuevo, necesita su regla. Un síntoma típico es un *timeout* (no un *connection refused*) en los logs. Para probar
-desde dentro de un pod:
+NetworkPolicies cut everything not allowed. A new service calling another, or a new external service, needs its rule.
+A typical symptom is a *timeout* (not a *connection refused*) in the logs. To test from inside a pod:
 
 ```bash
-kubectl -n showcase exec deploy/order-service -- nc -z -w 3 product-service 8081; echo $?   # 0 = permitido
+kubectl -n showcase exec deploy/order-service -- nc -z -w 3 product-service 8081; echo $?   # 0 = allowed
 kubectl -n showcase get networkpolicy
 ```
 
-Quién puede hablar con quién se define en `clients` de cada servicio en [values.yaml](../k8s/charts/showcase/values.yaml).
+Who can talk to whom is defined in each service's `clients` in [values.yaml](../k8s/charts/showcase/values.yaml).
 
-### 4. Seguir una petición por su traceId (Grafana)
+### 4. Follow a request by its traceId (Grafana)
 
-Cada respuesta de error lleva su `traceId` (`ErrorResponseDTO`), y cada línea de log de esa petición también, en
-todos los servicios por los que pasó.
+Each error response carries its `traceId` (`ErrorResponseDTO`), and so does each log line of that request, across all
+the services it went through.
 
-1. Coge el `traceId`, de la respuesta de error o de una línea de log.
-2. En Grafana, *Explore → Loki*: `{service=~".+"} | traceId="<traceId>"`. Salen los logs de esa petición en el
-   gateway, auth, order, product... ordenados en el tiempo.
-3. Pulsa *Ver la traza en Tempo* en cualquier línea. Verás la traza completa: qué servicio tardó, qué consulta SQL,
-   en qué llamada falló.
-4. Desde un pico en las gráficas de latencia (dashboards de *Showcase*), los puntos (*exemplars*) abren la traza de
-   una petición concreta de ese momento.
+1. Take the `traceId`, from the error response or from a log line.
+2. In Grafana, *Explore → Loki*: `{service=~".+"} | traceId="<traceId>"`. It shows the logs of that request in the
+   gateway, auth, order, product... ordered in time.
+3. Click *View the trace in Tempo* on any line. You will see the full trace: which service was slow, which SQL query,
+   which call failed.
+4. From a spike on the latency charts (*Showcase* dashboards), the dots (*exemplars*) open the trace of a specific
+   request at that moment.
 
-Las alertas (*Alerting* en Grafana o en Prometheus) avisan de pods en CrashLoop, pods no listos, Deployments sin
-réplicas, errores 5xx, latencia alta, DLQ con mensajes y circuit breakers abiertos.
+The alerts (*Alerting* in Grafana or in Prometheus) warn about pods in CrashLoop, pods not ready, Deployments without
+replicas, 5xx errors, high latency, DLQs with messages and open circuit breakers.
 
-## Producción
+## Production
 
-[values-prod.yaml](../k8s/charts/showcase/values-prod.yaml) prepara el chart para un clúster real:
+[values-prod.yaml](../k8s/charts/showcase/values-prod.yaml) prepares the chart for a real cluster:
 
-- PostgreSQL, Redis y RabbitMQ **gestionados**, fuera del clúster (`postgres.enabled: false`, etc.), con TLS. Las
-  NetworkPolicies abren la salida solo hacia su red (`cidr`).
-- Antes de instalar hay que crear un usuario y una base de datos por servicio (como
-  [docker/postgres/init-databases.sh](../docker/postgres/init-databases.sh)) y un usuario de RabbitMQ por servicio con
-  sus permisos (como [docker/rabbitmq/setup-users.sh](../docker/rabbitmq/setup-users.sh)).
-- Los **Secrets** no los crea el chart (`secrets.create: false`). Se crean aparte con las mismas claves, normalmente
-  con External Secrets desde el gestor de secretos de la nube. Así ninguna contraseña pasa por Git.
-- Imágenes de un registro, con la versión fijada en cada despliegue: `--set image.tag=1.4.0`.
-- Perfil `prod`, al menos 2 réplicas de cada servicio, HPA con más margen y Let's Encrypt en el Ingress.
+- **Managed** PostgreSQL, Redis and RabbitMQ, outside the cluster (`postgres.enabled: false`, etc.), with TLS. The
+  NetworkPolicies open egress only towards their network (`cidr`).
+- Before installing, create one user and one database per service (as in
+  [docker/postgres/init-databases.sh](../docker/postgres/init-databases.sh)) and one RabbitMQ user per service with
+  its permissions (as in [docker/rabbitmq/setup-users.sh](../docker/rabbitmq/setup-users.sh)).
+- The chart does not create the **Secrets** (`secrets.create: false`). They are created separately with the same keys,
+  usually with External Secrets from the cloud's secret manager. This way no password goes through Git.
+- Images from a registry, with the version set on each deployment: `--set image.tag=1.4.0`.
+- `prod` profile, at least 2 replicas of each service, HPA with more headroom and Let's Encrypt on the Ingress.
 
 ```bash
 helm upgrade --install showcase k8s/charts/showcase -n showcase --create-namespace \
   -f k8s/charts/showcase/values-prod.yaml --set image.tag=1.4.0
 ```
 
-## Integración continua
+## Continuous integration
 
-El workflow [kubernetes.yml](../.github/workflows/kubernetes.yml) repite en GitHub Actions lo mismo que en local, en
-cada pull request: crea el clúster de kind, instala la plataforma, construye y despliega el chart y lanza `k8s/e2e.sh`.
-Si falla, el log del job incluye el estado de los pods, los eventos y los logs de cada servicio, y los informes de los
-e2e quedan como artefacto.
+The [kubernetes.yml](../.github/workflows/kubernetes.yml) workflow repeats on GitHub Actions the same as locally, on
+each pull request: it creates the kind cluster, installs the platform, builds and deploys the chart and runs
+`k8s/e2e.sh`. On failure, the job log includes the state of the pods, the events and each service's logs, and the e2e
+reports are kept as an artifact.

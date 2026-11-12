@@ -16,14 +16,14 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Los eventos de usuarios se guardan en el outbox en la misma transacción que el cambio. El publicador se
- * desactiva para inspeccionar las filas antes de que se envíen.
+ * User events are stored in the outbox in the same transaction as the change. The publisher is
+ * disabled to inspect the rows before they are sent.
  */
 @SpringBootTest(properties = "showcase.messaging.outbox.enabled=false")
 @Import(TestcontainersConfiguration.class)
 class UserEventsOutboxIT {
 
-    private static final String PASSWORD = "Secreta-Test-123";
+    private static final String PASSWORD = "Secret-Test-123";
 
     @Autowired
     private UserService userService;
@@ -35,11 +35,11 @@ class UserEventsOutboxIT {
     private JsonMapper jsonMapper;
 
     @Nested
-    @DisplayName("registro")
+    @DisplayName("registration")
     class Registration {
 
         @Test
-        @DisplayName("guarda user.registered con el sobre común y el nombre del cliente")
+        @DisplayName("saves user.registered with the common envelope and the customer's name")
         void register_shouldStoreUserRegisteredEvent() {
             // when
             long userId = userService.register("outbox.ana", "outbox.ana@example.com", PASSWORD, "Ana", "García")
@@ -55,25 +55,25 @@ class UserEventsOutboxIT {
         }
 
         @Test
-        @DisplayName("si el alta falla no queda ningún evento")
+        @DisplayName("if the sign-up fails no event remains")
         void register_whenFails_shouldNotStoreEvent() {
             // given
-            userService.register("outbox.dup", "outbox.dup@example.com", PASSWORD, "Dup", "Licado");
+            userService.register("outbox.dup", "outbox.dup@example.com", PASSWORD, "Dup", "Licate");
             long before = countEvents("user.registered");
 
             // when / then
-            assertThatThrownBy(() -> userService.register("outbox.dup", "otro@example.com", PASSWORD, "Otro", "Más"))
+            assertThatThrownBy(() -> userService.register("outbox.dup", "other@example.com", PASSWORD, "Other", "More"))
                     .isInstanceOf(UsernameAlreadyExistsException.class);
             assertThat(countEvents("user.registered")).isEqualTo(before);
         }
     }
 
     @Nested
-    @DisplayName("desactivación")
+    @DisplayName("deactivation")
     class Disabling {
 
         @Test
-        @DisplayName("borrar un usuario guarda user.disabled")
+        @DisplayName("deleting a user saves user.disabled")
         void delete_shouldStoreUserDisabledEvent() {
             // given
             long userId = userService.register("outbox.bea", "outbox.bea@example.com", PASSWORD, "Bea", "López")

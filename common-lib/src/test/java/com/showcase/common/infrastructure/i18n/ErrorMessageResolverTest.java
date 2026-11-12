@@ -41,41 +41,41 @@ class ErrorMessageResolverTest {
     }
 
     @Nested
-    @DisplayName("resolve con un código de error")
+    @DisplayName("resolve with an error code")
     class ResolveErrorCode {
 
         @Test
-        @DisplayName("devuelve el mensaje común en español con sus parámetros")
-        void resolve_withSpanish_shouldReturnSpanishMessage() {
-            var message = resolver.resolve(CommonErrorCode.TOO_MANY_FILTERS, List.of(10), SPANISH);
-            assertThat(message).isEqualTo("Se permiten como máximo 10 filtros por petición.");
+        @DisplayName("returns the common message in English with its parameters")
+        void resolve_withEnglish_shouldReturnEnglishMessage() {
+            var message = resolver.resolve(CommonErrorCode.TOO_MANY_FILTERS, List.of(10), Locale.US);
+            assertThat(message).isEqualTo("At most 10 filters are allowed per request.");
         }
 
         @Test
-        @DisplayName("devuelve el mensaje común en inglés")
-        void resolve_withEnglish_shouldReturnEnglishMessage() {
-            var message = resolver.resolve(CommonErrorCode.INVALID_FILTER_VALUE, List.of("price", "abc"), Locale.US);
-            assertThat(message).isEqualTo("Value 'abc' is not valid for the filter on field 'price'.");
+        @DisplayName("returns the common message in Spanish")
+        void resolve_withSpanish_shouldReturnSpanishMessage() {
+            var message = resolver.resolve(CommonErrorCode.INVALID_FILTER_VALUE, List.of("price", "abc"), SPANISH);
+            assertThat(message).isEqualTo("El valor 'abc' no es válido para el filtro del campo 'price'.");
         }
 
         @ParameterizedTest
         @ValueSource(strings = {"fr", "de-DE", "pt"})
-        @DisplayName("usa el español para los idiomas no soportados")
-        void resolve_withUnsupportedLanguage_shouldFallBackToSpanish(String languageTag) {
+        @DisplayName("uses English for unsupported languages")
+        void resolve_withUnsupportedLanguage_shouldFallBackToEnglish(String languageTag) {
             var message = resolver.resolve(CommonErrorCode.FORBIDDEN, List.of(), Locale.forLanguageTag(languageTag));
-            assertThat(message).isEqualTo("No tienes permiso para realizar esta operación.");
+            assertThat(message).isEqualTo("You do not have permission to perform this operation.");
         }
 
         @Test
-        @DisplayName("da prioridad al mensaje del servicio sobre el común")
+        @DisplayName("gives priority to the service's message over the common one")
         void resolve_withServiceMessage_shouldUseIt() {
-            serviceMessages.addMessage("error.FORBIDDEN", SPANISH, "Solo un administrador puede hacer esto.");
-            assertThat(resolver.resolve(CommonErrorCode.FORBIDDEN, List.of(), SPANISH))
-                    .isEqualTo("Solo un administrador puede hacer esto.");
+            serviceMessages.addMessage("error.FORBIDDEN", Locale.ENGLISH, "Only an administrator can do this.");
+            assertThat(resolver.resolve(CommonErrorCode.FORBIDDEN, List.of(), Locale.ENGLISH))
+                    .isEqualTo("Only an administrator can do this.");
         }
 
         @Test
-        @DisplayName("resuelve los códigos propios de un servicio")
+        @DisplayName("resolves a service's own codes")
         void resolve_withServiceErrorCode_shouldUseServiceMessage() {
             serviceMessages.addMessage("error.PRODUCT_NOT_FOUND", Locale.ENGLISH, "Product with id {0} not found");
             assertThat(resolver.resolve(TestErrorCode.PRODUCT_NOT_FOUND, List.of(25), Locale.ENGLISH))
@@ -83,28 +83,28 @@ class ErrorMessageResolverTest {
         }
 
         @Test
-        @DisplayName("no formatea los números de los parámetros (ids sin separador de miles)")
+        @DisplayName("does not format the numbers in parameters (ids without thousands separators)")
         void resolve_withLargeNumber_shouldNotFormatIt() {
-            var message = resolver.resolve(CommonErrorCode.RESOURCE_NOT_FOUND, List.of("Product", 25000L), SPANISH);
-            assertThat(message).isEqualTo("No se ha encontrado el recurso Product con id 25000.");
+            var message = resolver.resolve(CommonErrorCode.RESOURCE_NOT_FOUND, List.of("Product", 25000L), Locale.ENGLISH);
+            assertThat(message).isEqualTo("Product with id 25000 was not found.");
         }
 
         @Test
-        @DisplayName("usa un mensaje genérico si el código no tiene traducción")
+        @DisplayName("uses a generic message if the code has no translation")
         void resolve_withUnknownCode_shouldReturnDefaultMessage() {
-            assertThat(resolver.resolve(TestErrorCode.UNKNOWN_CODE, List.of(), SPANISH))
-                    .isEqualTo("Se ha producido un error al procesar la petición.");
+            assertThat(resolver.resolve(TestErrorCode.UNKNOWN_CODE, List.of(), Locale.ENGLISH))
+                    .isEqualTo("An error occurred while processing the request.");
         }
     }
 
     @Nested
-    @DisplayName("resolve con un error de validación")
+    @DisplayName("resolve with a validation error")
     class ResolveValidation {
 
         @Test
-        @DisplayName("traduce el mensaje de la restricción con sus atributos")
+        @DisplayName("translates the constraint's message with its attributes")
         void resolve_withSizeConstraint_shouldUseAttributes() {
-            // given: Spring pasa el campo y después los atributos por orden alfabético (max, min)
+            // given: Spring passes the field and then the attributes in alphabetical order (max, min)
             var error = new DefaultMessageSourceResolvable(
                     new String[]{"Size.product.name", "Size"}, new Object[]{"name", 100, 3}, "size must be between 3 and 100");
 
@@ -114,34 +114,34 @@ class ErrorMessageResolverTest {
         }
 
         @Test
-        @DisplayName("da prioridad a un mensaje más específico definido por el servicio")
+        @DisplayName("gives priority to a more specific message defined by the service")
         void resolve_withServiceSpecificMessage_shouldUseIt() {
-            serviceMessages.addMessage("NotBlank.product.name", SPANISH, "el nombre del producto es obligatorio");
+            serviceMessages.addMessage("NotBlank.product.name", Locale.ENGLISH, "the product name is required");
             var error = new DefaultMessageSourceResolvable(
                     new String[]{"NotBlank.product.name", "NotBlank"}, new Object[]{"name"}, "must not be blank");
 
-            assertThat(resolver.resolve(error, SPANISH)).isEqualTo("el nombre del producto es obligatorio");
+            assertThat(resolver.resolve(error, Locale.ENGLISH)).isEqualTo("the product name is required");
         }
 
         @Test
-        @DisplayName("usa el mensaje por defecto de la validación si no hay traducción")
+        @DisplayName("uses the validation's default message if there is no translation")
         void resolve_withUnknownConstraint_shouldUseDefaultMessage() {
             var error = new DefaultMessageSourceResolvable(
                     new String[]{"CustomConstraint"}, new Object[]{"field"}, "custom default message");
-            assertThat(resolver.resolve(error, SPANISH)).isEqualTo("custom default message");
+            assertThat(resolver.resolve(error, Locale.ENGLISH)).isEqualTo("custom default message");
         }
     }
 
     @Nested
-    @DisplayName("ficheros de mensajes")
+    @DisplayName("message files")
     class MessageFiles {
 
         @ParameterizedTest
         @EnumSource(CommonErrorCode.class)
-        @DisplayName("todos los códigos comunes tienen mensaje en español y en inglés")
-        void allCommonCodes_shouldHaveSpanishAndEnglishMessages(CommonErrorCode errorCode) throws IOException {
+        @DisplayName("all the common codes have a message in English and Spanish")
+        void allCommonCodes_shouldHaveEnglishAndSpanishMessages(CommonErrorCode errorCode) throws IOException {
             assertThat(load("i18n/common-messages_es.properties")).containsKey(errorCode.messageKey());
-            assertThat(load("i18n/common-messages_en.properties")).containsKey(errorCode.messageKey());
+            assertThat(load("i18n/common-messages.properties")).containsKey(errorCode.messageKey());
         }
 
         private Properties load(String path) throws IOException {

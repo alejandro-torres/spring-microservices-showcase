@@ -11,8 +11,8 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 /**
- * Adaptador de entrada de los eventos de auth-service: convierte el mensaje y llama a
- * {@link CustomerAccountService}, sin lógica de negocio ni transacción propia.
+ * Inbound adapter for auth-service events: it converts the message and calls
+ * {@link CustomerAccountService}, with no business logic or transaction of its own.
  */
 @Component
 @RequiredArgsConstructor

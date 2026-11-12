@@ -12,11 +12,11 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 
 /**
- * Rechaza los JWT revocados aunque su firma y su fecha sean válidas. Se añade a los validadores
- * por defecto (firma, expiración) del JwtDecoder de la API.
+ * Rejects revoked JWTs even if their signature and date are valid. It is added to the default
+ * validators (signature, expiry) of the API's JwtDecoder.
  *
- * <p>Si Redis no responde, el token se rechaza (fail closed): es preferible un 401 a aceptar un token
- * que podría estar revocado.
+ * <p>If Redis does not respond, the token is rejected (fail closed): a 401 is preferable to accepting a token
+ * that could be revoked.
  */
 @Component
 @RequiredArgsConstructor
@@ -36,7 +36,7 @@ public class RevokedTokenValidator implements OAuth2TokenValidator<Jwt> {
                     ? OAuth2TokenValidatorResult.failure(REVOKED)
                     : OAuth2TokenValidatorResult.success();
         } catch (RuntimeException e) {
-            log.error("No se pudo comprobar si el token está revocado; se rechaza", e);
+            log.error("Could not check whether the token is revoked; rejecting it", e);
             return OAuth2TokenValidatorResult.failure(UNAVAILABLE);
         }
     }

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Crea o borra el clúster local de kind.
+# Creates or deletes the local kind cluster.
 #   k8s/kind/cluster.sh create   # 3 nodos (1 control-plane + 2 workers), puertos 80/443 mapeados
 #   k8s/kind/cluster.sh delete
 set -euo pipefail
@@ -10,7 +10,7 @@ CONFIG="$(dirname "$0")/kind-config.yaml"
 case "${1:-create}" in
   create)
     if kind get clusters | grep -qx "$CLUSTER_NAME"; then
-      echo "El clúster $CLUSTER_NAME ya existe"
+      echo "Cluster $CLUSTER_NAME already exists"
     else
       kind create cluster --config "$CONFIG" --wait 120s
     fi

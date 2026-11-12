@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 /**
- * API de categorías. Usa los mismos permisos que el catálogo (product:read / product:write).
+ * Categories API. Uses the same permissions as the catalog (product:read / product:write).
  */
 @RestController
 @RequestMapping("/api/v1/categories")
@@ -77,7 +77,7 @@ public class CategoryController {
         return PageResponseDTO.from(result, mapper::toResponse);
     }
 
-    /** Productos activos de la categoría (consulta JPQL paginada). */
+    /** Active products of the category (paginated JPQL query). */
     @PreAuthorize("hasAuthority('product:read')")
     @GetMapping("/{id}/products")
     public PageResponseDTO<ProductResponseDTO> findProducts(

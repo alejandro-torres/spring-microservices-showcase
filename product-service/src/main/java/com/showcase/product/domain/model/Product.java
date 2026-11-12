@@ -10,7 +10,7 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * Producto del catálogo. Contiene las reglas de stock: nunca puede quedar negativo.
+ * Catalog product. It holds the stock rules: stock can never go negative.
  */
 public class Product extends AuditedModel {
 
@@ -43,7 +43,7 @@ public class Product extends AuditedModel {
                 Objects.requireNonNull(category, "category"), true, null, null, null);
     }
 
-    /** El stock no se toca aquí: tiene sus propias operaciones para que nunca se pise por error. */
+    /** The stock is not touched here: it has its own operations so it is never overwritten by mistake. */
     public void update(String newName, String newDescription, BigDecimal newPrice, Category newCategory) {
         this.name = normalizeName(newName);
         this.description = newDescription;
@@ -51,7 +51,7 @@ public class Product extends AuditedModel {
         this.category = Objects.requireNonNull(newCategory, "category");
     }
 
-    /** Reserva unidades para un pedido; falla sin modificar nada si no hay suficientes. */
+    /** Reserves units for an order; fails without modifying anything if there are not enough. */
     public void reserveStock(int quantity) {
         requirePositive(quantity);
         if (stock < quantity) {
@@ -60,13 +60,13 @@ public class Product extends AuditedModel {
         stock -= quantity;
     }
 
-    /** Devuelve unidades reservadas (p. ej. al cancelar un pedido). */
+    /** Returns reserved units (e.g. when cancelling an order). */
     public void releaseStock(int quantity) {
         requirePositive(quantity);
         stock += quantity;
     }
 
-    /** Ajuste manual de inventario: positivo para entradas, negativo para salidas o mermas. */
+    /** Manual inventory adjustment: positive for incoming stock, negative for outgoing stock or shrinkage. */
     public void adjustStock(int delta) {
         if (delta == 0) {
             throw new InvalidRequestException(ProductErrorCode.INVALID_QUANTITY, delta);
@@ -89,7 +89,7 @@ public class Product extends AuditedModel {
         return normalized;
     }
 
-    /** Precio mayor que 0 y con 2 decimales como máximo (no se redondea en silencio). */
+    /** Price greater than 0 with at most 2 decimals (it is not silently rounded). */
     static BigDecimal normalizePrice(BigDecimal price) {
         if (price == null || price.signum() <= 0 || price.compareTo(MAX_PRICE) > 0) {
             throw new InvalidRequestException(ProductErrorCode.INVALID_PRICE, price);

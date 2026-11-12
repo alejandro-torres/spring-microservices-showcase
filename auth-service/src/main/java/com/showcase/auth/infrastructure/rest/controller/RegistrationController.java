@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 /**
- * Registro público de usuarios (no requiere token). El nuevo usuario recibe el rol USER.
+ * Public user registration (no token required). The new user gets the USER role.
  */
 @RestController
 @RequestMapping("/api/v1/auth")

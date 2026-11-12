@@ -31,7 +31,7 @@ class SecurityExceptionHandlerTest {
 
         @GetMapping("/denied")
         String denied() {
-            // Lo mismo que lanza @PreAuthorize cuando no se cumple la regla.
+            // The same thing @PreAuthorize throws when the rule is not met.
             throw new AuthorizationDeniedException("Access Denied", new AuthorizationDecision(false));
         }
 
@@ -57,7 +57,7 @@ class SecurityExceptionHandlerTest {
     }
 
     @Test
-    @DisplayName("un @PreAuthorize denegado a un usuario autenticado devuelve 403, no 500")
+    @DisplayName("a @PreAuthorize denied to an authenticated user returns 403, not 500")
     void accessDenied_authenticated_shouldReturn403() throws Exception {
         SecurityContextHolder.getContext().setAuthentication(
                 new TestingAuthenticationToken("ana", null, List.of()));
@@ -68,7 +68,7 @@ class SecurityExceptionHandlerTest {
     }
 
     @Test
-    @DisplayName("un acceso denegado sin autenticación devuelve 401")
+    @DisplayName("a denied access without authentication returns 401")
     void accessDenied_anonymous_shouldReturn401() throws Exception {
         mockMvc.perform(get("/denied"))
                 .andExpect(status().isUnauthorized())
@@ -76,7 +76,7 @@ class SecurityExceptionHandlerTest {
     }
 
     @Test
-    @DisplayName("un error de autenticación devuelve 401")
+    @DisplayName("an authentication error returns 401")
     void authenticationException_shouldReturn401() throws Exception {
         mockMvc.perform(get("/bad-credentials"))
                 .andExpect(status().isUnauthorized())

@@ -1,7 +1,7 @@
 package com.showcase.common.domain.exception;
 
 /**
- * Un filtro dinámico de la URL no es válido: formato, campo, operador o valor.
+ * A dynamic filter in the URL is invalid: format, field, operator or value.
  */
 public class InvalidFilterException extends InvalidRequestException {
 

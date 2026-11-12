@@ -3,7 +3,7 @@ package com.showcase.product.domain.exception;
 import com.showcase.common.domain.exception.BusinessRuleException;
 
 /**
- * No hay stock suficiente para la operación.
+ * Not enough stock for the operation.
  */
 public class InsufficientStockException extends BusinessRuleException {
 

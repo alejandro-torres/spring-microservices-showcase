@@ -26,7 +26,7 @@ class AfterCommitTest {
     class Run {
 
         @Test
-        @DisplayName("sin transacción ejecuta la acción enseguida")
+        @DisplayName("without a transaction it runs the action immediately")
         void run_withoutTransaction_shouldRunNow() {
             // when
             AfterCommit.run(runs::incrementAndGet);
@@ -36,7 +36,7 @@ class AfterCommitTest {
         }
 
         @Test
-        @DisplayName("dentro de una transacción espera al commit")
+        @DisplayName("within a transaction it waits for the commit")
         void run_withinTransaction_shouldWaitForCommit() {
             // given
             TransactionSynchronizationManager.initSynchronization();
@@ -51,7 +51,7 @@ class AfterCommitTest {
         }
 
         @Test
-        @DisplayName("si la transacción hace rollback no se ejecuta")
+        @DisplayName("if the transaction rolls back it does not run")
         void run_withRollback_shouldNotRun() {
             // given
             TransactionSynchronizationManager.initSynchronization();

@@ -26,7 +26,7 @@ class OrderTest {
     class Create {
 
         @Test
-        @DisplayName("crea el pedido pendiente y calcula el total a partir de las líneas")
+        @DisplayName("creates the pending order and computes the total from the lines")
         void create_shouldBePendingWithTotal() {
             var order = Order.create(3L, ADDRESS, List.of(item(10, "5.5", 2), item(11, "20", 1)));
 
@@ -37,7 +37,7 @@ class OrderTest {
         }
 
         @Test
-        @DisplayName("rechaza un pedido sin líneas o con más de 20")
+        @DisplayName("rejects an order with no lines or more than 20")
         void create_withInvalidItemCount_shouldThrow() {
             var tooMany = java.util.stream.LongStream.rangeClosed(1, 21).mapToObj(id -> item(id, "1", 1)).toList();
 
@@ -50,7 +50,7 @@ class OrderTest {
         }
 
         @Test
-        @DisplayName("rechaza un pedido sin cliente o sin dirección")
+        @DisplayName("rejects an order with no customer or address")
         void create_withoutCustomer_shouldThrow() {
             assertThatThrownBy(() -> Order.create(null, ADDRESS, List.of(item(1, "1", 1))))
                     .hasFieldOrPropertyWithValue("errorCode", OrderErrorCode.INVALID_ORDER_DATA);
@@ -59,7 +59,7 @@ class OrderTest {
         }
 
         @Test
-        @DisplayName("rechaza el mismo producto en dos líneas")
+        @DisplayName("rejects the same product in two lines")
         void create_withDuplicateProduct_shouldThrow() {
             assertThatThrownBy(() -> Order.create(3L, ADDRESS, List.of(item(10, "1", 1), item(10, "1", 2))))
                     .isInstanceOf(InvalidRequestException.class)
@@ -67,7 +67,7 @@ class OrderTest {
         }
 
         @Test
-        @DisplayName("una línea necesita producto, nombre, precio no negativo y cantidad positiva")
+        @DisplayName("a line needs a product, name, non-negative price and positive quantity")
         void orderItem_withInvalidData_shouldThrow() {
             assertThatThrownBy(() -> item(1, "-1", 1)).isInstanceOf(InvalidRequestException.class);
             assertThatThrownBy(() -> item(1, "1", 0)).isInstanceOf(InvalidRequestException.class);
@@ -83,11 +83,11 @@ class OrderTest {
     @DisplayName("changeShippingAddress")
     class ChangeShippingAddress {
 
-        private final ShippingAddress newAddress = new ShippingAddress("Calle Mayor 5", "Sevilla", "41001", "ES");
+        private final ShippingAddress newAddress = new ShippingAddress("High Street 5", "Sevilla", "41001", "ES");
 
         @ParameterizedTest(name = "{0}")
         @CsvSource({"PENDING", "CONFIRMED"})
-        @DisplayName("cambia la dirección de un pedido abierto sin tocar sus líneas")
+        @DisplayName("changes the address of an open order without touching its lines")
         void changeShippingAddress_openOrder_shouldChangeAddress(OrderStatus status) {
             var order = order(status);
 
@@ -99,7 +99,7 @@ class OrderTest {
 
         @ParameterizedTest(name = "{0}")
         @CsvSource({"REJECTED", "CANCELLED"})
-        @DisplayName("no permite cambiar un pedido cerrado")
+        @DisplayName("does not allow changing a closed order")
         void changeShippingAddress_closedOrder_shouldThrow(OrderStatus status) {
             var order = order(status);
 
@@ -109,20 +109,20 @@ class OrderTest {
         }
 
         @Test
-        @DisplayName("una dirección necesita calle, ciudad, código postal y país de 2 letras en mayúsculas")
+        @DisplayName("an address needs a street, city, postal code and 2-letter uppercase country")
         void shippingAddress_withInvalidData_shouldThrow() {
             assertThatThrownBy(() -> new ShippingAddress(" ", "Madrid", "28013", "ES"))
                     .isInstanceOf(InvalidRequestException.class)
                     .hasFieldOrPropertyWithValue("errorCode", OrderErrorCode.INVALID_ORDER_DATA);
-            assertThatThrownBy(() -> new ShippingAddress("Gran Vía 1", "Madrid", "28013", "es"))
+            assertThatThrownBy(() -> new ShippingAddress("Main Street 1", "Madrid", "28013", "es"))
                     .isInstanceOf(InvalidRequestException.class);
-            assertThatThrownBy(() -> new ShippingAddress("Gran Vía 1", null, "28013", "ES"))
+            assertThatThrownBy(() -> new ShippingAddress("Main Street 1", null, "28013", "ES"))
                     .isInstanceOf(InvalidRequestException.class);
         }
     }
 
     @Nested
-    @DisplayName("cambios de estado")
+    @DisplayName("status changes")
     class StatusChanges {
 
         @ParameterizedTest(name = "{0} -> {1}: {2}")
@@ -130,13 +130,13 @@ class OrderTest {
                 "PENDING, CONFIRMED, true", "PENDING, REJECTED, true", "PENDING, CANCELLED, false",
                 "CONFIRMED, CANCELLED, true", "CONFIRMED, REJECTED, false", "CONFIRMED, PENDING, false",
                 "REJECTED, CANCELLED, false", "CANCELLED, CONFIRMED, false"})
-        @DisplayName("solo se permiten las transiciones del ciclo de vida")
+        @DisplayName("only the lifecycle transitions are allowed")
         void canTransitionTo_shouldFollowLifecycle(OrderStatus from, OrderStatus to, boolean allowed) {
             assertThat(from.canTransitionTo(to)).isEqualTo(allowed);
         }
 
         @Test
-        @DisplayName("confirm y cancel cambian el estado; reject guarda además el motivo")
+        @DisplayName("confirm and cancel change the status; reject also stores the reason")
         void transitions_shouldChangeStatus() {
             var confirmed = pending();
             var rejected = pending();
@@ -150,7 +150,7 @@ class OrderTest {
         }
 
         @Test
-        @DisplayName("un motivo de rechazo demasiado largo se recorta a 100 caracteres")
+        @DisplayName("a rejection reason that is too long is trimmed to 100 characters")
         void reject_withLongReason_shouldTruncate() {
             var order = pending();
 
@@ -160,7 +160,7 @@ class OrderTest {
         }
 
         @Test
-        @DisplayName("un pedido ya confirmado no se puede rechazar")
+        @DisplayName("an already confirmed order cannot be rejected")
         void reject_confirmed_shouldThrow() {
             assertThatThrownBy(() -> order(OrderStatus.CONFIRMED).reject("INSUFFICIENT_STOCK"))
                     .hasFieldOrPropertyWithValue("errorCode", OrderErrorCode.INVALID_STATUS_TRANSITION);
@@ -168,7 +168,7 @@ class OrderTest {
 
         @ParameterizedTest(name = "{0}")
         @CsvSource({"PENDING", "REJECTED", "CANCELLED"})
-        @DisplayName("solo se cancela un pedido confirmado: uno pendiente aún está en la saga")
+        @DisplayName("only a confirmed order is cancelled: a pending one is still in the saga")
         void cancel_notConfirmed_shouldThrowNotCancellable(OrderStatus status) {
             assertThatThrownBy(() -> order(status).cancel())
                     .isInstanceOf(BusinessRuleException.class)
@@ -176,7 +176,7 @@ class OrderTest {
         }
 
         @Test
-        @DisplayName("solo se borran pedidos en estado final")
+        @DisplayName("only orders in a final status are deleted")
         void deactivate_shouldRequireFinalStatus() {
             var cancelled = order(OrderStatus.CANCELLED);
             cancelled.deactivate();
@@ -187,7 +187,7 @@ class OrderTest {
         }
 
         @Test
-        @DisplayName("las líneas del pedido no se pueden modificar desde fuera")
+        @DisplayName("the order's lines cannot be modified from outside")
         void items_shouldBeImmutable() {
             var items = pending().getItems();
 

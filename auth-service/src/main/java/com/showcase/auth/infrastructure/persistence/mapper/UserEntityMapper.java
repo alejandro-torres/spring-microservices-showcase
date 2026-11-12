@@ -11,11 +11,11 @@ public interface UserEntityMapper {
 
     User toDomain(UserEntity entity);
 
-    /** Los roles los asigna el repositorio con referencias a las entidades existentes. */
+    /** The repository assigns the roles with references to the existing entities. */
     @Mapping(target = "roles", ignore = true)
     UserEntity toEntity(User user);
 
-    /** El username no cambia nunca; la contraseña llega ya cifrada desde el dominio. */
+    /** The username never changes; the password arrives already hashed from the domain. */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "username", ignore = true)
     @Mapping(target = "roles", ignore = true)

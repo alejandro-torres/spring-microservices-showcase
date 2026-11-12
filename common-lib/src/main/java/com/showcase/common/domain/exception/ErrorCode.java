@@ -1,17 +1,17 @@
 package com.showcase.common.domain.exception;
 
 /**
- * Código de error estable que viaja en las respuestas de la API. Cada servicio
- * define el suyo con un enum (p. ej. {@code ProductErrorCode}) además de {@link CommonErrorCode}.
+ * Stable error code carried in the API responses. Each service defines its own with an enum
+ * (e.g. {@code ProductErrorCode}) in addition to {@link CommonErrorCode}.
  */
 public interface ErrorCode {
 
-    /** Identificador que recibe el cliente en el campo {@code code}; no se traduce. */
+    /** Identifier the client receives in the {@code code} field; not translated. */
     String code();
 
     ErrorCategory category();
 
-    /** Clave del mensaje traducido en los ficheros {@code messages_*.properties}. */
+    /** Key of the translated message in the {@code messages_*.properties} files. */
     default String messageKey() {
         return "error." + code();
     }

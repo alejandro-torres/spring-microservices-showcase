@@ -9,19 +9,19 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Puerto de salida para persistir usuarios. Lo implementa la infraestructura con JPA.
+ * Outbound port to persist users. The infrastructure implements it with JPA.
  */
 public interface UserRepository {
 
     User save(User user);
 
-    /** Solo usuarios activos (no borrados). */
+    /** Active users only (not deleted). */
     Optional<User> findById(Long id);
 
-    /** Solo usuarios activos; el username ya llega normalizado (minúsculas). */
+    /** Active users only; the username arrives already normalized (lowercase). */
     Optional<User> findByUsername(String username);
 
-    /** Hasta {@code limit} cuentas activas cuyo bloqueo por intentos fallidos ya ha caducado. */
+    /** Up to {@code limit} active accounts whose failed-attempts lock has already expired. */
     List<User> findWithExpiredLock(Instant now, int limit);
 
     PageResult<User> findAll(List<FilterCriterion> filters, PageQuery pageQuery, boolean includeInactive);
@@ -32,6 +32,6 @@ public interface UserRepository {
 
     boolean existsByEmailAndIdNot(String email, Long id);
 
-    /** Usuarios activos que tienen asignado el rol. */
+    /** Active users assigned the role. */
     long countActiveByRoleId(Long roleId);
 }

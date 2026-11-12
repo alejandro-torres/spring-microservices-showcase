@@ -27,7 +27,7 @@ class UserTest {
     class Create {
 
         @Test
-        @DisplayName("crea un usuario activo y habilitado, normalizando username y email")
+        @DisplayName("creates an active, enabled user, normalizing username and email")
         void create_shouldNormalizeAndActivate() {
             // when
             var user = User.create("  Ana.Garcia ", " Ana@Example.COM ", PASSWORD_HASH, Set.of(userRole()));
@@ -43,8 +43,8 @@ class UserTest {
 
         @ParameterizedTest
         @NullAndEmptySource
-        @ValueSource(strings = {"ab", "con espacios", "demasiado-largo-para-ser-un-username", "ñandu"})
-        @DisplayName("rechaza un username con formato inválido con INVALID_USERNAME")
+        @ValueSource(strings = {"ab", "with spaces", "too-long-to-be-a-valid-username", "ñandu"})
+        @DisplayName("rejects a username with an invalid format with INVALID_USERNAME")
         void create_withInvalidUsername_shouldThrow(String username) {
             assertThatThrownBy(() -> User.create(username, "ana@example.com", PASSWORD_HASH, Set.of()))
                     .isInstanceOf(InvalidRequestException.class)
@@ -53,8 +53,8 @@ class UserTest {
 
         @ParameterizedTest
         @NullAndEmptySource
-        @ValueSource(strings = {"sin-arroba", "a@b", "dos@@example.com"})
-        @DisplayName("rechaza un email con formato inválido con INVALID_EMAIL")
+        @ValueSource(strings = {"no-at-sign", "a@b", "dos@@example.com"})
+        @DisplayName("rejects an email with an invalid format with INVALID_EMAIL")
         void create_withInvalidEmail_shouldThrow(String email) {
             assertThatThrownBy(() -> User.create("ana", email, PASSWORD_HASH, Set.of()))
                     .isInstanceOf(InvalidRequestException.class)
@@ -62,7 +62,7 @@ class UserTest {
         }
 
         @Test
-        @DisplayName("exige la contraseña ya cifrada")
+        @DisplayName("requires the password already hashed")
         void create_withoutPasswordHash_shouldFail() {
             assertThatThrownBy(() -> User.create("ana", "ana@example.com", null, Set.of()))
                     .isInstanceOf(NullPointerException.class);
@@ -74,7 +74,7 @@ class UserTest {
     class Roles {
 
         @Test
-        @DisplayName("asigna un rol nuevo")
+        @DisplayName("assigns a new role")
         void assignRole_shouldAddRole() {
             var user = user(10L, "ana", userRole());
             user.assignRole(adminRole());
@@ -82,7 +82,7 @@ class UserTest {
         }
 
         @Test
-        @DisplayName("rechaza asignar un rol que ya tiene con ROLE_ALREADY_ASSIGNED")
+        @DisplayName("rejects assigning a role the user already has with ROLE_ALREADY_ASSIGNED")
         void assignRole_alreadyAssigned_shouldThrow() {
             var user = user(10L, "ana", userRole());
             assertThatThrownBy(() -> user.assignRole(userRole()))
@@ -91,7 +91,7 @@ class UserTest {
         }
 
         @Test
-        @DisplayName("quita un rol asignado y rechaza quitar uno que no tiene")
+        @DisplayName("removes an assigned role and rejects removing one the user does not have")
         void removeRole_shouldRemoveOrThrow() {
             var user = user(10L, "ana", userRole(), adminRole());
 
@@ -104,7 +104,7 @@ class UserTest {
         }
 
         @Test
-        @DisplayName("no permite modificar los roles desde fuera del modelo")
+        @DisplayName("does not allow modifying the roles from outside the model")
         void getRoles_shouldBeUnmodifiable() {
             var user = user(10L, "ana", userRole());
             assertThatThrownBy(() -> user.getRoles().clear()).isInstanceOf(UnsupportedOperationException.class);
@@ -112,14 +112,14 @@ class UserTest {
     }
 
     @Nested
-    @DisplayName("bloqueo por intentos fallidos")
+    @DisplayName("lockout after failed attempts")
     class Lockout {
 
         private static final java.time.Instant NOW = java.time.Instant.parse("2026-10-14T12:00:00Z");
         private static final java.time.Duration LOCK = java.time.Duration.ofMinutes(15);
 
         @Test
-        @DisplayName("cuenta los fallos y bloquea al llegar al máximo, reiniciando el contador")
+        @DisplayName("counts failures and locks on reaching the maximum, resetting the counter")
         void registerFailedLogin_shouldLockAtMaxAttempts() {
             var user = user(10L, "ana");
 
@@ -135,7 +135,7 @@ class UserTest {
         }
 
         @Test
-        @DisplayName("el bloqueo caduca solo y no se cuentan intentos mientras dura")
+        @DisplayName("the lock expires on its own and attempts are not counted while it lasts")
         void lock_shouldExpireAndIgnoreAttemptsWhileLocked() {
             var user = user(10L, "ana");
             user.registerFailedLogin(1, LOCK, NOW);
@@ -146,7 +146,7 @@ class UserTest {
         }
 
         @Test
-        @DisplayName("un login correcto reinicia el contador y unlock quita el bloqueo")
+        @DisplayName("a successful login resets the counter and unlock removes the lock")
         void resetAndUnlock_shouldClearState() {
             var user = user(10L, "ana");
             user.registerFailedLogin(5, LOCK, NOW);
@@ -161,20 +161,20 @@ class UserTest {
     }
 
     @Nested
-    @DisplayName("update, deactivate y checkVersion")
+    @DisplayName("update, deactivate and checkVersion")
     class Lifecycle {
 
         @Test
-        @DisplayName("actualiza el email normalizado y el estado habilitado")
+        @DisplayName("updates the normalized email and the enabled status")
         void update_shouldChangeEmailAndEnabled() {
             var user = user(10L, "ana");
-            user.update("NUEVO@example.com", false);
-            assertThat(user.getEmail()).isEqualTo("nuevo@example.com");
+            user.update("NEW@example.com", false);
+            assertThat(user.getEmail()).isEqualTo("new@example.com");
             assertThat(user.isEnabled()).isFalse();
         }
 
         @Test
-        @DisplayName("el borrado lógico también deshabilita el usuario")
+        @DisplayName("soft delete also disables the user")
         void deactivate_shouldAlsoDisable() {
             var user = user(10L, "ana");
             user.deactivate();
@@ -183,7 +183,7 @@ class UserTest {
         }
 
         @Test
-        @DisplayName("acepta la versión actual y rechaza otra con CONCURRENT_MODIFICATION")
+        @DisplayName("accepts the current version and rejects another with CONCURRENT_MODIFICATION")
         void checkVersion_shouldDetectConcurrentChanges() {
             var user = user(10L, "ana");
             user.checkVersion(0L);

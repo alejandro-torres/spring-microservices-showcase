@@ -59,50 +59,50 @@ class ProductServiceImplTest {
     class Create {
 
         @Test
-        @DisplayName("crea el producto en su categoría")
+        @DisplayName("creates the product in its category")
         void create_shouldSaveProduct() {
             given(categoryRepository.findById(1L)).willReturn(Optional.of(laptops()));
             givenSaveReturnsArgument();
 
-            var created = productService.create("Portátil Air 13", "Ligero", new BigDecimal("999"), 3, 1L);
+            var created = productService.create("Laptop Air 13", "Light", new BigDecimal("999"), 3, 1L);
 
-            assertThat(created.getCategory().getName()).isEqualTo("Portátiles");
+            assertThat(created.getCategory().getName()).isEqualTo("Laptops");
             assertThat(created.getPrice()).isEqualByComparingTo("999.00");
         }
 
         @Test
-        @DisplayName("lanza CATEGORY_NOT_FOUND si la categoría no existe y no guarda nada")
+        @DisplayName("throws CATEGORY_NOT_FOUND if the category does not exist and saves nothing")
         void create_withMissingCategory_shouldThrow() {
-            assertThatThrownBy(() -> productService.create("Portátil", null, BigDecimal.TEN, 1, 9L))
+            assertThatThrownBy(() -> productService.create("Laptop", null, BigDecimal.TEN, 1, 9L))
                     .isInstanceOf(CategoryNotFoundException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ProductErrorCode.CATEGORY_NOT_FOUND);
             verify(productRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("rechaza un nombre ya existente comparando el nombre ya normalizado")
+        @DisplayName("rejects an existing name, comparing the already normalized name")
         void create_withExistingName_shouldThrow() {
             given(categoryRepository.findById(1L)).willReturn(Optional.of(laptops()));
-            given(productRepository.existsByName("Portátil Pro 15")).willReturn(true);
+            given(productRepository.existsByName("Laptop Pro 15")).willReturn(true);
 
-            assertThatThrownBy(() -> productService.create("  Portátil   Pro 15 ", null, BigDecimal.TEN, 1, 1L))
+            assertThatThrownBy(() -> productService.create("  Laptop   Pro 15 ", null, BigDecimal.TEN, 1, 1L))
                     .isInstanceOf(ProductAlreadyExistsException.class);
             verify(productRepository, never()).save(any());
         }
     }
 
     @Nested
-    @DisplayName("consultas")
+    @DisplayName("queries")
     class Find {
 
         @Test
-        @DisplayName("findById lanza PRODUCT_NOT_FOUND si no existe")
+        @DisplayName("findById throws PRODUCT_NOT_FOUND if it does not exist")
         void findById_missing_shouldThrow() {
             assertThatThrownBy(() -> productService.findById(99L)).isInstanceOf(ProductNotFoundException.class);
         }
 
         @Test
-        @DisplayName("findByCategory comprueba la categoría y delega en la consulta JPQL")
+        @DisplayName("findByCategory checks the category and delegates to the JPQL query")
         void findByCategory_shouldCheckCategory() {
             var page = PageResult.of(List.of(laptop()), 0, 10, 1);
             given(categoryRepository.findById(1L)).willReturn(Optional.of(laptops()));
@@ -115,47 +115,47 @@ class ProductServiceImplTest {
     }
 
     @Nested
-    @DisplayName("update y delete")
+    @DisplayName("update and delete")
     class UpdateAndDelete {
 
         @Test
-        @DisplayName("actualiza datos y categoría sin tocar el stock")
+        @DisplayName("updates data and category without touching the stock")
         void update_shouldKeepStock() {
             given(productRepository.findById(10L)).willReturn(Optional.of(laptop()));
-            given(categoryRepository.findById(2L)).willReturn(Optional.of(category(2L, "Accesorios")));
+            given(categoryRepository.findById(2L)).willReturn(Optional.of(category(2L, "Accessories")));
             givenSaveReturnsArgument();
 
-            var updated = productService.update(10L, "Portátil Pro 16", null, new BigDecimal("1599.99"), 2L, 0L);
+            var updated = productService.update(10L, "Laptop Pro 16", null, new BigDecimal("1599.99"), 2L, 0L);
 
-            assertThat(updated.getName()).isEqualTo("Portátil Pro 16");
-            assertThat(updated.getCategory().getName()).isEqualTo("Accesorios");
+            assertThat(updated.getName()).isEqualTo("Laptop Pro 16");
+            assertThat(updated.getCategory().getName()).isEqualTo("Accessories");
             assertThat(updated.getStock()).isEqualTo(5);
         }
 
         @Test
-        @DisplayName("rechaza una versión desactualizada con CONCURRENT_MODIFICATION")
+        @DisplayName("rejects a stale version with CONCURRENT_MODIFICATION")
         void update_withStaleVersion_shouldThrow() {
             given(productRepository.findById(10L)).willReturn(Optional.of(laptop()));
 
-            assertThatThrownBy(() -> productService.update(10L, "Otro", null, BigDecimal.TEN, 1L, 4L))
+            assertThatThrownBy(() -> productService.update(10L, "Other", null, BigDecimal.TEN, 1L, 4L))
                     .isInstanceOf(ConflictException.class)
                     .hasFieldOrPropertyWithValue("errorCode", CommonErrorCode.CONCURRENT_MODIFICATION);
             verify(productRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("rechaza renombrar a un nombre que ya usa otro producto")
+        @DisplayName("rejects renaming to a name another product already uses")
         void update_withNameOfAnotherProduct_shouldThrow() {
             given(productRepository.findById(10L)).willReturn(Optional.of(laptop()));
             given(categoryRepository.findById(1L)).willReturn(Optional.of(laptops()));
-            given(productRepository.existsByNameAndIdNot("Portátil Air 13", 10L)).willReturn(true);
+            given(productRepository.existsByNameAndIdNot("Laptop Air 13", 10L)).willReturn(true);
 
-            assertThatThrownBy(() -> productService.update(10L, "Portátil Air 13", null, BigDecimal.TEN, 1L, 0L))
+            assertThatThrownBy(() -> productService.update(10L, "Laptop Air 13", null, BigDecimal.TEN, 1L, 0L))
                     .isInstanceOf(ProductAlreadyExistsException.class);
         }
 
         @Test
-        @DisplayName("delete hace un borrado lógico")
+        @DisplayName("delete does a soft delete")
         void delete_shouldDeactivate() {
             given(productRepository.findById(10L)).willReturn(Optional.of(laptop()));
 
@@ -171,7 +171,7 @@ class ProductServiceImplTest {
     class AdjustStock {
 
         @Test
-        @DisplayName("aplica el ajuste y guarda")
+        @DisplayName("applies the adjustment and saves")
         void adjustStock_shouldUpdateStock() {
             given(productRepository.findById(10L)).willReturn(Optional.of(laptop()));
             givenSaveReturnsArgument();
@@ -180,7 +180,7 @@ class ProductServiceImplTest {
         }
 
         @Test
-        @DisplayName("no guarda nada si el ajuste dejaría el stock en negativo")
+        @DisplayName("saves nothing if the adjustment would leave the stock negative")
         void adjustStock_belowZero_shouldThrow() {
             given(productRepository.findById(10L)).willReturn(Optional.of(laptop()));
 

@@ -1,6 +1,6 @@
 package com.showcase.events.auth;
 
-/** Alta pública de un usuario: customer-service crea su perfil de cliente. */
+/** Public user sign-up: customer-service creates their customer profile. */
 public record UserRegisteredMessageDTO(Long userId, String username, String email, String firstName,
                                        String lastName) {
 }

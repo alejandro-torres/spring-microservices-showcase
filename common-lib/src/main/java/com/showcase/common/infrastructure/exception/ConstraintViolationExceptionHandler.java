@@ -23,8 +23,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * Violaciones de Bean Validation lanzadas fuera de los controllers (p. ej. con {@code @Validated} en un servicio).
- * Va aparte porque solo se registra si el servicio incluye Bean Validation.
+ * Bean Validation violations thrown outside the controllers (e.g. with {@code @Validated} on a service).
+ * Separate because it is only registered if the service includes Bean Validation.
  */
 @RestControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -42,7 +42,7 @@ public class ConstraintViolationExceptionHandler {
         List<FieldErrorDTO> errors = ex.getConstraintViolations().stream()
                 .map(violation -> new FieldErrorDTO(lastNode(violation), responses.resolve(toResolvable(violation))))
                 .toList();
-        log.warn("Petición no válida en {}: {} errores de validación", request.getRequestURI(), errors.size());
+        log.warn("Invalid request at {}: {} validation errors", request.getRequestURI(), errors.size());
         return responses.create(HttpStatus.BAD_REQUEST, CommonErrorCode.VALIDATION_ERROR, List.of(), errors, request);
     }
 
@@ -52,7 +52,7 @@ public class ConstraintViolationExceptionHandler {
         return dot >= 0 ? path.substring(dot + 1) : path;
     }
 
-    // Mismo formato que usa Spring en los FieldError: el campo y después los atributos por orden alfabético.
+    // Same format Spring uses in FieldErrors: the field and then the attributes in alphabetical order.
     private static DefaultMessageSourceResolvable toResolvable(ConstraintViolation<?> violation) {
         String constraint = violation.getConstraintDescriptor().getAnnotation().annotationType().getSimpleName();
         Map<String, Object> attributes = new TreeMap<>(violation.getConstraintDescriptor().getAttributes());

@@ -1,12 +1,12 @@
 {{/*
-Variables de entorno (ConfigMap) de un microservicio: (dict "root" . "name" nombre "svc" valores). Se usa también
-para el checksum del Deployment: si cambia cualquier variable, los pods se vuelven a crear al hacer helm upgrade.
+Environment variables (ConfigMap) of a microservice: (dict "root" . "name" name "svc" values). Also used
+for the Deployment checksum: if any variable changes, the pods are recreated on helm upgrade.
 */}}
 {{- define "showcase.serviceConfig" -}}
 {{- $root := .root -}}
 {{- $name := .name -}}
 {{- $svc := .svc -}}
-# Logs en JSON (ECS) con traceId y spanId.
+# JSON logs (ECS) with traceId and spanId.
 LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
 SPRING_PROFILES_ACTIVE: {{ $root.Values.springProfile | quote }}
 ZIPKIN_ENDPOINT: {{ $root.Values.tracing.endpoint | quote }}
@@ -14,7 +14,7 @@ AUTH_JWK_SET_URI: http://auth-service:9000/oauth2/jwks
 {{- with $svc.database }}
 DB_URL: jdbc:postgresql://{{ include "showcase.postgresHost" $root }}:{{ include "showcase.postgresPort" $root }}/{{ . }}_db{{ if not $root.Values.postgres.enabled }}{{ $root.Values.externalDatabase.jdbcParams }}{{ end }}
 DB_USERNAME: {{ . | quote }}
-# Conexiones por réplica: con el HPA al máximo, todas juntas tienen que caber en max_connections de PostgreSQL.
+# Connections per replica: with the HPA at its maximum, together they must fit within PostgreSQL's max_connections.
 SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: {{ $root.Values.databasePoolSize | quote }}
 {{- end }}
 {{- with $svc.rabbitmq }}
@@ -34,16 +34,16 @@ SPRING_DATA_REDIS_SSL_ENABLED: {{ $root.Values.externalRedis.ssl | quote }}
 {{- end }}
 {{- end }}
 {{- if eq $name "auth-service" }}
-# Los tokens se piden a través del gateway: el emisor es su URL pública.
+# Tokens are requested through the gateway: the issuer is its public URL.
 AUTH_ISSUER: {{ $root.Values.publicUrl | quote }}
-# Login del Swagger UI desde la URL pública, además de los de desarrollo.
+# Swagger UI login from the public URL, in addition to the development ones.
 WEB_CLIENT_REDIRECT_URIS: "http://127.0.0.1:3000/callback,http://localhost:8080/swagger-ui/oauth2-redirect.html,{{ $root.Values.publicUrl }}/swagger-ui/oauth2-redirect.html"
 {{- end }}
 {{- if eq $name "api-gateway" }}
-# El propio origen público: detrás del Ingress el gateway recibe http y no ve el https del navegador como suyo.
+# The public origin itself: behind the Ingress the gateway receives http and does not see the browser's https as its own.
 CORS_ALLOWED_ORIGINS: "{{ $root.Values.corsAllowedOrigins }},{{ $root.Values.publicUrl }}"
 {{- if $root.Values.ingress.enabled }}
-# Detrás del Ingress: un único proxy de confianza (ver ingress en values.yaml).
+# Behind the Ingress: a single trusted proxy (see ingress in values.yaml).
 GATEWAY_TRUSTED_PROXIES: {{ $root.Values.ingress.trustedProxies | quote }}
 RATE_LIMIT_TRUSTED_PROXY_HOPS: {{ $root.Values.ingress.trustedProxyHops | quote }}
 {{- end }}

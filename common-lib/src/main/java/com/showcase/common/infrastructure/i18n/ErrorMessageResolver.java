@@ -11,11 +11,11 @@ import org.springframework.context.NoSuchMessageException;
 import org.springframework.context.support.ResourceBundleMessageSource;
 
 /**
- * Resuelve los mensajes de error traducidos al idioma de la petición.
+ * Resolves the error messages translated to the request's language.
  *
- * <p>Busca primero en los mensajes del propio servicio ({@code messages_*.properties}) y después
- * en los comunes de {@code common-lib} ({@code i18n/common-messages_*.properties}), de modo que un
- * servicio puede sobrescribir cualquier mensaje común. El español es el idioma por defecto.
+ * <p>It looks first in the service's own messages ({@code messages_*.properties}) and then
+ * in {@code common-lib}'s common ones ({@code i18n/common-messages_*.properties}), so a
+ * service can override any common message. English is the default language.
  */
 @RequiredArgsConstructor
 public class ErrorMessageResolver {
@@ -23,25 +23,25 @@ public class ErrorMessageResolver {
     public static final String COMMON_BASENAME = "i18n/common-messages";
     static final String DEFAULT_KEY = "error.default";
 
-    /** Mensajes comunes de common-lib, iguales en todos los servicios: se cargan una sola vez. */
+    /** common-lib's common messages, the same in all services: loaded only once. */
     private static final MessageSource COMMON_MESSAGES = createCommonMessageSource();
 
     @NonNull
     private final MessageSource serviceMessages;
 
-    /** Mensaje de un código de error con sus parámetros. */
+    /** Message of an error code with its parameters. */
     public String resolve(ErrorCode errorCode, List<Object> args, Locale locale) {
         Object[] formattedArgs = toText(args);
         String message = find(errorCode.messageKey(), formattedArgs, locale);
         return message != null ? message : find(DEFAULT_KEY, null, locale);
     }
 
-    /** Mensaje de un error de validación de campo (resuelve sus códigos en orden, p. ej. NotBlank). */
+    /** Message of a field validation error (resolves its codes in order, e.g. NotBlank). */
     public String resolve(MessageSourceResolvable resolvable, Locale locale) {
         try {
             return serviceMessages.getMessage(withoutDefault(resolvable), locale);
         } catch (NoSuchMessageException ignored) {
-            // Se prueba con los mensajes comunes.
+            // Tested with the common messages.
         }
         try {
             return COMMON_MESSAGES.getMessage(resolvable, locale);
@@ -55,12 +55,12 @@ public class ErrorMessageResolver {
         return message != null ? message : COMMON_MESSAGES.getMessage(key, args, null, locale);
     }
 
-    // Los parámetros se pasan como texto para que MessageFormat no formatee los ids (25000 → "25.000").
+    // Parameters are passed as text so that MessageFormat does not format the ids (25000 → "25,000").
     private static Object[] toText(List<Object> args) {
         return args == null ? new Object[0] : args.stream().map(String::valueOf).toArray();
     }
 
-    // Sin el mensaje por defecto, para que el servicio no "resuelva" con el texto de Hibernate Validator.
+    // Without the default message, so the service does not "resolve" with Hibernate Validator's text.
     private static MessageSourceResolvable withoutDefault(MessageSourceResolvable source) {
         return new MessageSourceResolvable() {
             @Override

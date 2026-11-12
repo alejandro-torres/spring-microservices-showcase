@@ -11,7 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
 
-/** Registro de auditoría: solo se inserta, nunca se modifica (sin versión ni borrado lógico). */
+/** Audit record: only inserted, never modified (no version or soft delete). */
 @Entity
 @Table(name = "security_audit_log")
 public class SecurityAuditLogEntity {

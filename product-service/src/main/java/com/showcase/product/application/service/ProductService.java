@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Casos de uso del catálogo de productos (puerto de entrada).
+ * Use cases for the product catalog (inbound port).
  */
 public interface ProductService {
 
@@ -18,15 +18,15 @@ public interface ProductService {
 
     PageResult<Product> findAll(List<FilterCriterion> filters, PageQuery pageQuery, boolean includeInactive);
 
-    /** Productos activos de una categoría; falla con 404 si la categoría no existe. */
+    /** Active products of a category; fails with 404 if the category does not exist. */
     PageResult<Product> findByCategory(Long categoryId, PageQuery pageQuery);
 
-    /** {@code version} es la que leyó el cliente (bloqueo optimista). El stock no se cambia aquí. */
+    /** {@code version} is the one the client read (optimistic locking). The stock is not changed here. */
     Product update(Long id, String name, String description, BigDecimal price, Long categoryId, Long version);
 
-    /** Borrado lógico. */
+    /** Soft delete. */
     void delete(Long id);
 
-    /** Ajuste manual de inventario: positivo para entradas, negativo para salidas. */
+    /** Manual inventory adjustment: positive for incoming stock, negative for outgoing stock. */
     Product adjustStock(Long id, int delta);
 }

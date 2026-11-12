@@ -1,6 +1,6 @@
 {{/*
-Dónde está cada pieza de infraestructura: dentro del chart (postgres.enabled, redis.enabled, rabbitmq.enabled) o un
-servicio gestionado fuera del clúster (externalDatabase, externalRedis, externalRabbitmq).
+Where each piece of infrastructure lives: inside the chart (postgres.enabled, redis.enabled, rabbitmq.enabled) or a
+managed service outside the cluster (externalDatabase, externalRedis, externalRabbitmq).
 */}}
 {{- define "showcase.postgresHost" -}}
 {{- if .Values.postgres.enabled }}postgres{{ else }}{{ required "Falta externalDatabase.host" .Values.externalDatabase.host }}{{ end -}}
@@ -22,8 +22,8 @@ servicio gestionado fuera del clúster (externalDatabase, externalRedis, externa
 {{- end -}}
 
 {{/*
-Regla de salida hacia una pieza de infraestructura: al pod del chart o, si es externa, a su red (cidr).
-(dict "root" . "enabled" bool "name" nombre del pod "port" puerto "cidr" red externa)
+Egress rule towards a piece of infrastructure: to the chart's pod or, if external, to its network (cidr).
+(dict "root" . "enabled" bool "name" pod name "port" port "cidr" external network)
 */}}
 {{- define "showcase.egressInfra" -}}
 {{- if .enabled }}

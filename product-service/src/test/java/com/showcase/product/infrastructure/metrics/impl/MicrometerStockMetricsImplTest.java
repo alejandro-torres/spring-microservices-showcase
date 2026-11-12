@@ -17,11 +17,11 @@ class MicrometerStockMetricsImplTest {
     }
 
     @Nested
-    @DisplayName("contadores de stock")
+    @DisplayName("stock counters")
     class Counters {
 
         @Test
-        @DisplayName("cuenta reservas, fallos por motivo y devoluciones")
+        @DisplayName("counts reservations, failures by reason and returns")
         void counters_shouldBeTaggedByResult() {
             // when
             metrics.stockReserved();

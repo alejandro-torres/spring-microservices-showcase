@@ -42,7 +42,7 @@ class MicrometerOutboxTracingImplTest {
                         return true;
                     }
                 })
-                // La misma propagación W3C (traceparent) que configura Spring Boot por defecto.
+                // The same W3C propagation (traceparent) that Spring Boot configures by default.
                 .propagationFactory(new W3CPropagation())
                 .build();
         tracer = new BraveTracer(tracing.tracer(), new BraveCurrentTraceContext(tracing.currentTraceContext()),
@@ -60,13 +60,13 @@ class MicrometerOutboxTracingImplTest {
     class CurrentTraceParent {
 
         @Test
-        @DisplayName("sin traza en curso devuelve null")
+        @DisplayName("with no trace in progress it returns null")
         void currentTraceParent_withoutTrace_shouldReturnNull() {
             assertThat(outboxTracing.currentTraceParent()).isNull();
         }
 
         @Test
-        @DisplayName("con una traza en curso devuelve su contexto en formato W3C traceparent")
+        @DisplayName("with a trace in progress it returns its context in W3C traceparent format")
         void currentTraceParent_withTrace_shouldReturnW3cHeader() {
             // given
             Span span = tracer.nextSpan().name("POST /orders").start();
@@ -90,7 +90,7 @@ class MicrometerOutboxTracingImplTest {
     class CallWithParent {
 
         @Test
-        @DisplayName("ejecuta la acción como hijo de la traza guardada")
+        @DisplayName("runs the action as a child of the stored trace")
         void callWithParent_shouldContinueStoredTrace() {
             // given
             String traceId = "4bf92f3577b34da6a3ce929d0e0e4736";
@@ -110,13 +110,13 @@ class MicrometerOutboxTracingImplTest {
         }
 
         @Test
-        @DisplayName("sin traza guardada ejecuta la acción sin crear spans")
+        @DisplayName("with no stored trace it runs the action without creating spans")
         void callWithParent_withoutTraceParent_shouldJustRun() {
             // when
-            String result = outboxTracing.callWithParent(null, "outbox order.created", () -> "enviado");
+            String result = outboxTracing.callWithParent(null, "outbox order.created", () -> "sent");
 
             // then
-            assertThat(result).isEqualTo("enviado");
+            assertThat(result).isEqualTo("sent");
             assertThat(finishedSpans).isEmpty();
         }
     }

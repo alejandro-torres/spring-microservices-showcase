@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Instala (o actualiza) la observabilidad del clúster en el namespace monitoring:
-#   - kube-prometheus-stack: Prometheus, Alertmanager, Grafana, kube-state-metrics y node-exporter
-#   - Loki (logs) y Grafana Alloy como DaemonSet (recoge los logs de cada nodo)
-#   - Tempo (trazas, en lugar de Zipkin)
-# y carga los dashboards de docker/grafana/dashboards y las alertas de docker/prometheus/alerts.yml.
+# Installs (or upgrades) the cluster observability in the monitoring namespace:
+#   - kube-prometheus-stack: Prometheus, Alertmanager, Grafana, kube-state-metrics and node-exporter
+#   - Loki (logs) and Grafana Alloy as a DaemonSet (collects the logs of each node)
+#   - Tempo (traces, instead of Zipkin)
+# and loads the dashboards from docker/grafana/dashboards and the alerts from docker/prometheus/alerts.yml.
 #   k8s/observability/install.sh
-# Después, k8s/deploy.sh vuelve a desplegar la aplicación enviando las trazas a Tempo.
+# Afterwards, k8s/deploy.sh redeploys the application sending the traces to Tempo.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -14,13 +14,13 @@ NAMESPACE=monitoring
 
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts >/dev/null
 helm repo add grafana https://grafana.github.io/helm-charts >/dev/null
-# Loki y Tempo se mantienen ahora en el repositorio de la comunidad de Grafana.
+# Loki and Tempo are now maintained in the Grafana community repository.
 helm repo add grafana-community https://grafana-community.github.io/helm-charts >/dev/null
 helm repo update prometheus-community grafana grafana-community >/dev/null
 
 kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 
-# Dashboards: un ConfigMap con los JSON de docker/grafana/dashboards, en la carpeta "Showcase" de Grafana.
+# Dashboards: a ConfigMap with the JSONs from docker/grafana/dashboards, in Grafana's "Showcase" folder.
 kubectl -n "$NAMESPACE" create configmap showcase-dashboards --from-file="$ROOT/docker/grafana/dashboards" \
   --dry-run=client -o yaml \
   | kubectl label --local -f - grafana_dashboard=1 -o yaml \
@@ -36,7 +36,7 @@ helm upgrade --install tempo grafana-community/tempo --version 3.2.0 \
 helm upgrade --install alloy grafana/alloy --version 1.13.1 \
   --namespace "$NAMESPACE" -f "$DIR/values/alloy.yaml" --wait --timeout 10m
 
-# Alertas: los mismos grupos que en Docker Compose más las de Kubernetes, como PrometheusRule.
+# Alerts: the same groups as in Docker Compose plus the Kubernetes ones, as a PrometheusRule.
 for rules in "$ROOT/docker/prometheus/alerts.yml" "$DIR/alerts-kubernetes.yml"; do
   name="showcase-$(basename "$rules" .yml)"
   {

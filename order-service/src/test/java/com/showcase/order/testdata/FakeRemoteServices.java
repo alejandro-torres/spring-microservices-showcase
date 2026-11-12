@@ -12,8 +12,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Servidor HTTP mínimo que hace de product-service y customer-service en los tests de integración, para probar
- * Feign de verdad (JSON, códigos de error, cabeceras) sin arrancar los otros servicios.
+ * Minimal HTTP server that plays product-service and customer-service in the integration tests, to test
+ * Feign for real (JSON, error codes, headers) without starting the other services.
  */
 public final class FakeRemoteServices implements AutoCloseable {
 
@@ -36,12 +36,12 @@ public final class FakeRemoteServices implements AutoCloseable {
         return "http://127.0.0.1:" + server.getAddress().getPort();
     }
 
-    /** Respuesta 200 con este JSON para la ruta indicada (p. ej. {@code /api/v1/products/1}). */
+    /** 200 response with this JSON for the given path (e.g. {@code /api/v1/products/1}). */
     public void respond(String path, String json) {
         responses.put(path, json);
     }
 
-    /** Simula una caída: todas las peticiones responden 500. */
+    /** Simulates an outage: all requests respond 500. */
     public void setDown(boolean isDown) {
         down.set(isDown);
     }

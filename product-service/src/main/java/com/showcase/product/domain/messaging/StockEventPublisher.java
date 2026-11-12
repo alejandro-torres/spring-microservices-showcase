@@ -4,7 +4,7 @@ import com.showcase.product.domain.event.StockReleasedEvent;
 import com.showcase.product.domain.event.StockReservationFailedEvent;
 import com.showcase.product.domain.event.StockReservedEvent;
 
-/** Publicación de los eventos de stock (puerto de salida), dentro de la transacción del cambio. */
+/** Publishing of stock events (outbound port), within the transaction of the change. */
 public interface StockEventPublisher {
 
     void publish(StockReservedEvent event);

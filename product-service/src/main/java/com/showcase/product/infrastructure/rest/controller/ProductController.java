@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 /**
- * API del catálogo. Solo conoce la interfaz {@link ProductService}.
+ * Catalog API. It only knows the {@link ProductService} interface.
  */
 @RestController
 @RequestMapping("/api/v1/products")
@@ -60,7 +60,8 @@ public class ProductController {
     }
 
     /**
-     * P. ej. {@code ?filter=name:like:portatil&filter=price:between:100,500&filter=categoryId:in:1,2&sort=price&direction=DESC}.
+     * P. ej. {@code
+     * ?filter=name:like:laptop&filter=price:between:100,500&filter=categoryId:in:1,2&sort=price&direction=DESC}.
      */
     @PreAuthorize("hasAuthority('product:read') and (!#includeInactive or hasRole('ADMIN'))")
     @GetMapping
@@ -93,7 +94,7 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 
-    /** Ajuste manual de inventario: solo ADMIN. */
+    /** Manual inventory adjustment: ADMIN only. */
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}/stock")
     public ProductResponseDTO adjustStock(@PathVariable @Positive Long id,

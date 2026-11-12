@@ -12,8 +12,8 @@ class StrongPasswordValidatorTest {
     private final StrongPasswordValidator validator = new StrongPasswordValidator();
 
     @ParameterizedTest
-    @ValueSource(strings = {"Secreta-123", "Aa1!aaaa", "Contraseña#2026", "P@ssw0rdMuyLarga_conTodo1"})
-    @DisplayName("acepta contraseñas con mayúsculas, minúsculas, números y símbolos")
+    @ValueSource(strings = {"Secret-123", "Aa1!aaaa", "Password#2026", "P@ssw0rdVeryLong_withAll1"})
+    @DisplayName("accepts passwords with uppercase, lowercase, digits and symbols")
     void isValid_strongPasswords_shouldBeAccepted(String password) {
         assertThat(validator.isValid(password, null)).isTrue();
     }
@@ -21,20 +21,20 @@ class StrongPasswordValidatorTest {
     @ParameterizedTest
     @ValueSource(strings = {
             "Aa1!aaa",        // 7 caracteres
-            "secreta-123",    // sin mayúsculas
-            "SECRETA-123",    // sin minúsculas
-            "Secreta-abc",    // sin números
-            "Secreta123",     // sin símbolos
-            "Secreta 123!",   // con espacios
+            "secret-123",    // no uppercase
+            "SECRET-123",    // no lowercase
+            "Secret-abc",    // no digits
+            "Secreta123",     // no symbols
+            "Secret 123!",   // with spaces
             ""
     })
-    @DisplayName("rechaza contraseñas débiles")
+    @DisplayName("rejects weak passwords")
     void isValid_weakPasswords_shouldBeRejected(String password) {
         assertThat(validator.isValid(password, null)).isFalse();
     }
 
     @Test
-    @DisplayName("rechaza más de 72 caracteres (BCrypt ignoraría el resto) y deja los nulos a @NotBlank")
+    @DisplayName("rejects more than 72 characters (BCrypt would ignore the rest) and leaves nulls to @NotBlank")
     void isValid_limits() {
         assertThat(validator.isValid("Aa1!" + "a".repeat(69), null)).isFalse();
         assertThat(validator.isValid("Aa1!" + "a".repeat(68), null)).isTrue();

@@ -42,16 +42,16 @@ import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Mensajería común de los servicios con RabbitMQ: se activa al definir {@code showcase.messaging.source}.
+ * Common messaging for services with RabbitMQ: enabled by defining {@code showcase.messaging.source}.
  * <ul>
- *   <li>Topología (exchanges, colas, DLX y DLQ) a partir de {@link MessagingProperties}.</li>
- *   <li>Mensajes en JSON con el Jackson 3 del servicio ({@code JacksonJsonMessageConverter}, el sucesor de
+ *   <li>Topology (exchanges, queues, DLX and DLQ) from {@link MessagingProperties}.</li>
+ *   <li>JSON messages with the service's Jackson 3 ({@code JacksonJsonMessageConverter}, the successor of
  *       {@code Jackson2JsonMessageConverter}).</li>
- *   <li>Reintentos de los listeners: la política ({@code spring.rabbitmq.listener.simple.retry.*}) la configura
- *       Spring Boot; aquí se añade qué excepciones no se reintentan y que, al agotar los intentos, el mensaje se
- *       rechaza sin reencolar para que RabbitMQ lo mande a la DLQ.</li>
- *   <li>Outbox (que conserva la traza de la petición hasta el consumidor), registro de eventos procesados y
- *       administración de las DLQ.</li>
+ *   <li>Listener retries: the policy ({@code spring.rabbitmq.listener.simple.retry.*}) is configured by
+ *       Spring Boot; this adds which exceptions are not retried and that, once attempts run out, the message is
+ *       rejected without requeueing so RabbitMQ sends it to the DLQ.</li>
+ *   <li>Outbox (which keeps the request's trace up to the consumer), registry of processed events and
+ *       DLQ administration.</li>
  * </ul>
  */
 @AutoConfiguration(
@@ -74,7 +74,7 @@ public class CommonMessagingAutoConfiguration {
         return MessagingTopology.declarables(properties);
     }
 
-    /** Tras el último intento, rechazo sin reencolar: RabbitMQ lo manda al DLX de la cola. */
+    /** After the last attempt, rejected without requeueing: RabbitMQ sends it to the queue's DLX. */
     @Bean
     @ConditionalOnMissingBean
     public MessageRecoverer messageRecoverer() {
@@ -92,7 +92,7 @@ public class CommonMessagingAutoConfiguration {
         return new LoggingRabbitListenerErrorHandler();
     }
 
-    /** Outbox e idempotencia: guardan en la base de datos del servicio, en su misma transacción. */
+    /** Outbox and idempotency: they store in the service's database, in its same transaction. */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(JdbcClient.class)
     static class PersistenceConfiguration {
@@ -103,7 +103,7 @@ public class CommonMessagingAutoConfiguration {
             return new JdbcProcessedEventRegistryImpl(jdbcClient, clock.getIfAvailable(Clock::systemUTC));
         }
 
-        /** Solo en los servicios que consumen eventos (los que definen cuánto se guardan los procesados). */
+        /** Only in the services that consume events (those that define how long processed ones are kept). */
         @Bean
         @ConditionalOnMissingBean
         @ConditionalOnProperty(prefix = "showcase.messaging", name = "processed-event-retention")
@@ -114,7 +114,7 @@ public class CommonMessagingAutoConfiguration {
         }
     }
 
-    /** Solo en los servicios que publican eventos (los que tienen {@code showcase.messaging.exchange}). */
+    /** Only in the services that publish events (those with {@code showcase.messaging.exchange}). */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(JdbcClient.class)
     @ConditionalOnProperty(prefix = "showcase.messaging", name = "exchange")
@@ -143,7 +143,7 @@ public class CommonMessagingAutoConfiguration {
         }
     }
 
-    /** Eventos pendientes y sin destino del outbox como métrica, en los servicios que publican eventos. */
+    /** Pending and unrouted outbox events as a metric, in the services that publish events. */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(name = {"io.micrometer.core.instrument.binder.MeterBinder",
             "org.springframework.jdbc.core.simple.JdbcClient"})
@@ -157,12 +157,12 @@ public class CommonMessagingAutoConfiguration {
         }
     }
 
-    /** Con Micrometer Tracing, la traza de la petición sigue por el outbox hasta el consumidor. */
+    /** With Micrometer Tracing, the request's trace continues through the outbox to the consumer. */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(name = "io.micrometer.tracing.Tracer")
     static class OutboxTracingConfiguration {
 
-        /** Sin Tracer o Propagator (p. ej. con el tracing desactivado en los tests) el outbox no une las trazas. */
+        /** Without a Tracer or Propagator (e.g. with tracing disabled in tests) the outbox does not link the traces. */
         @Bean
         @ConditionalOnMissingBean
         public OutboxTracing outboxTracing(ObjectProvider<Tracer> tracer, ObjectProvider<Propagator> propagator) {

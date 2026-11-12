@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
-/** Consultas de las tareas de mantenimiento contra PostgreSQL real. */
+/** Maintenance task queries against real PostgreSQL. */
 class MaintenanceRepositoriesIT extends AbstractPersistenceIT {
 
     @Autowired
@@ -39,7 +39,7 @@ class MaintenanceRepositoriesIT extends AbstractPersistenceIT {
     class FindWithExpiredLock {
 
         @Test
-        @DisplayName("devuelve solo las cuentas cuyo bloqueo ya ha caducado")
+        @DisplayName("returns only the accounts whose lock has already expired")
         void findWithExpiredLock_shouldReturnOnlyExpiredLocks() {
             // given
             User expired = saveUser("lock.expired", NOW.minus(Duration.ofHours(1)));
@@ -58,7 +58,7 @@ class MaintenanceRepositoriesIT extends AbstractPersistenceIT {
     class DeleteFullyExpiredBefore {
 
         @Test
-        @DisplayName("borra solo las autorizaciones en las que ha caducado todo, también el refresh token")
+        @DisplayName("deletes only the authorizations in which everything has expired, including the refresh token")
         void deleteFullyExpiredBefore_shouldKeepAuthorizationsWithValidRefreshToken() {
             // given
             JdbcClient jdbc = JdbcClient.create(dataSource);

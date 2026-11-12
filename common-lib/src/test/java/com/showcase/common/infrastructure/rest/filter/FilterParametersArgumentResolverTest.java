@@ -26,7 +26,7 @@ class FilterParametersArgumentResolverTest {
             .build();
 
     @Test
-    @DisplayName("recibe cada filter sin separar por comas los valores de in y between")
+    @DisplayName("receives each filter without splitting the values of in and between by commas")
     void resolve_shouldKeepCommasInsideEachFilter() throws Exception {
         mockMvc.perform(get("/echo")
                         .param("filter", "categoryId:in:1,2,3")
@@ -35,7 +35,7 @@ class FilterParametersArgumentResolverTest {
     }
 
     @Test
-    @DisplayName("devuelve una lista vacía si no hay filtros")
+    @DisplayName("returns an empty list if there are no filters")
     void resolve_withoutFilters_shouldReturnEmpty() throws Exception {
         mockMvc.perform(get("/echo")).andExpect(content().string(""));
     }

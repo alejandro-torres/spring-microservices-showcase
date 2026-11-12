@@ -56,24 +56,24 @@ class CategoryControllerTest {
     private JwtDecoder jwtDecoder;
 
     @Test
-    @DisplayName("POST devuelve 201 y GET por id devuelve la categoría")
+    @DisplayName("POST returns 201 and GET by id returns the category")
     void createAndFind_shouldWork() throws Exception {
-        given(categoryService.create("Portátiles", null)).willReturn(laptops());
+        given(categoryService.create("Laptops", null)).willReturn(laptops());
         given(categoryService.findById(1L)).willReturn(laptops());
 
         mockMvc.perform(post("/api/v1/categories").with(TestJwt.catalogManager())
                         .contentType(MediaType.APPLICATION_JSON).content("""
-                                {"name":"Portátiles"}
+                                {"name":"Laptops"}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(header().string(HttpHeaders.LOCATION, endsWith("/api/v1/categories/1")));
         mockMvc.perform(get("/api/v1/categories/1").with(TestJwt.customer()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Portátiles"));
+                .andExpect(jsonPath("$.name").value("Laptops"));
     }
 
     @Test
-    @DisplayName("lista categorías con filtros y los productos de una categoría ordenados por nombre")
+    @DisplayName("lists categories with filters and a category's products sorted by name")
     void listings_shouldWork() throws Exception {
         given(categoryService.findAll(anyList(), any(PageQuery.class), anyBoolean()))
                 .willReturn(PageResult.of(List.of(laptops()), 0, 10, 1));
@@ -82,21 +82,21 @@ class CategoryControllerTest {
 
         mockMvc.perform(get("/api/v1/categories").with(TestJwt.customer()).param("filter", "name:like:port"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].name").value("Portátiles"));
+                .andExpect(jsonPath("$.content[0].name").value("Laptops"));
         mockMvc.perform(get("/api/v1/categories/1/products").with(TestJwt.customer()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].categoryName").value("Portátiles"));
+                .andExpect(jsonPath("$.content[0].categoryName").value("Laptops"));
     }
 
     @Test
-    @DisplayName("PUT actualiza y DELETE devuelve 409 si la categoría tiene productos")
+    @DisplayName("PUT updates and DELETE returns 409 if the category has products")
     void updateAndDelete_shouldWork() throws Exception {
-        given(categoryService.update(1L, "Ordenadores", null, 0L)).willReturn(laptops());
-        willThrow(new CategoryHasProductsException("Portátiles")).given(categoryService).delete(1L);
+        given(categoryService.update(1L, "Computers", null, 0L)).willReturn(laptops());
+        willThrow(new CategoryHasProductsException("Laptops")).given(categoryService).delete(1L);
 
         mockMvc.perform(put("/api/v1/categories/1").with(TestJwt.catalogManager())
                         .contentType(MediaType.APPLICATION_JSON).content("""
-                                {"name":"Ordenadores","version":0}
+                                {"name":"Computers","version":0}
                                 """))
                 .andExpect(status().isOk());
         mockMvc.perform(delete("/api/v1/categories/1").with(TestJwt.catalogManager()))
@@ -105,11 +105,11 @@ class CategoryControllerTest {
     }
 
     @Test
-    @DisplayName("un cliente no puede crear categorías")
+    @DisplayName("a customer cannot create categories")
     void customer_cannotWrite() throws Exception {
         mockMvc.perform(post("/api/v1/categories").with(TestJwt.customer())
                         .contentType(MediaType.APPLICATION_JSON).content("""
-                                {"name":"Nueva"}
+                                {"name":"New"}
                                 """))
                 .andExpect(status().isForbidden());
     }

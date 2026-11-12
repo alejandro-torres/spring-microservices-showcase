@@ -3,7 +3,7 @@ package com.showcase.auth.domain.exception;
 import com.showcase.common.domain.exception.DuplicateResourceException;
 
 /**
- * Ya existe un permiso con ese nombre.
+ * A permission with that name already exists.
  */
 public class PermissionAlreadyExistsException extends DuplicateResourceException {
 

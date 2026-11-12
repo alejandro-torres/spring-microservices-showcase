@@ -8,8 +8,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.rabbitmq.RabbitMQContainer;
 
 /**
- * Contenedores de Docker para los tests de integración (PostgreSQL y RabbitMQ) y para arrancar el servicio en
- * local sin instalar nada ({@link TestCustomerServiceApplication}).
+ * Docker containers for the integration tests (PostgreSQL and RabbitMQ) and to start the service locally
+ * without installing anything ({@link TestCustomerServiceApplication}).
  */
 @TestConfiguration(proxyBeanMethods = false)
 public class TestcontainersConfiguration {
@@ -21,8 +21,8 @@ public class TestcontainersConfiguration {
     }
 
     /**
-     * Solo en los tests de integración. Al arrancar el servicio en local se usa el RabbitMQ compartido de
-     * localhost:5672 ({@link TestCustomerServiceApplication}), para que los servicios se comuniquen entre sí.
+     * Integration tests only. When starting the service locally, the shared RabbitMQ on
+     * localhost:5672 is used ({@link TestCustomerServiceApplication}), so the services can talk to each other.
      */
     @Bean
     @ServiceConnection

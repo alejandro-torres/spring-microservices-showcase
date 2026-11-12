@@ -1,5 +1,5 @@
--- Datos de ejemplo (solo perfil dev): 120 pedidos de los clientes 1-50 con 1-3 líneas de los productos 1-64.
--- Los ids coinciden con los datos de ejemplo de customer-service y product-service.
+-- Sample data (dev profile only): 120 orders of customers 1-50 with 1-3 lines of products 1-64.
+-- The ids match the sample data of customer-service and product-service.
 INSERT INTO orders (customer_id, status, total, shipping_street, shipping_city, shipping_postal_code,
                     shipping_country, created_at, updated_at)
 SELECT 1 + (n % 50),
@@ -16,7 +16,7 @@ FROM generate_series(1, 120) AS n;
 INSERT INTO order_items (order_id, product_id, product_name, unit_price, quantity)
 SELECT o.id,
        1 + (o.id * 7 + line * 13) % 64,
-       'Producto ' || (1 + (o.id * 7 + line * 13) % 64),
+       'Product ' || (1 + (o.id * 7 + line * 13) % 64),
        round((9.99 + ((o.id * 31 + line * 17) % 500))::NUMERIC, 2),
        1 + (o.id + line) % 3
 FROM orders o

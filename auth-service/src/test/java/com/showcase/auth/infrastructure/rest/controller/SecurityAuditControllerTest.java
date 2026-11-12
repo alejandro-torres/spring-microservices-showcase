@@ -49,7 +49,7 @@ class SecurityAuditControllerTest {
     private JwtDecoder jwtDecoder;
 
     @Test
-    @DisplayName("un ADMIN consulta la auditoría filtrando por tipo de evento, ordenada por fecha descendente")
+    @DisplayName("an ADMIN views the audit log filtering by event type, sorted by descending date")
     void admin_shouldListAuditFiltered() throws Exception {
         var event = new SecurityAuditEvent(1L, SecurityEventType.ACCOUNT_LOCKED, "ana", "10.0.0.7", "curl",
                 "trace-1", null, Instant.parse("2026-10-14T12:00:00Z"));
@@ -69,15 +69,15 @@ class SecurityAuditControllerTest {
     }
 
     @Test
-    @DisplayName("sin el rol ADMIN devuelve 403, aunque tenga user:read")
+    @DisplayName("without the ADMIN role it returns 403, even with user:read")
     void nonAdmin_shouldReturn403() throws Exception {
-        mockMvc.perform(get("/api/v1/security-audit").with(TestJwt.withPermissions("lector", "user:read")))
+        mockMvc.perform(get("/api/v1/security-audit").with(TestJwt.withPermissions("reader", "user:read")))
                 .andExpect(status().isForbidden());
         verify(auditService, never()).findAll(anyList(), any());
     }
 
     @Test
-    @DisplayName("rechaza un tipo de evento inexistente")
+    @DisplayName("rejects an event type that does not exist")
     void unknownEventType_shouldReturn400() throws Exception {
         mockMvc.perform(get("/api/v1/security-audit").with(TestJwt.admin()).param("filter", "eventType:eq:HACKED"))
                 .andExpect(status().isBadRequest())

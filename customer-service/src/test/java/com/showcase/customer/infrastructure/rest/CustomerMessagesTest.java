@@ -16,10 +16,10 @@ class CustomerMessagesTest {
 
     @ParameterizedTest
     @EnumSource(CustomerErrorCode.class)
-    @DisplayName("todos los códigos de error de customer-service tienen mensaje en español y en inglés")
-    void allCodes_shouldHaveSpanishAndEnglishMessages(CustomerErrorCode errorCode) throws IOException {
+    @DisplayName("all customer-service error codes have a message in English and Spanish")
+    void allCodes_shouldHaveEnglishAndSpanishMessages(CustomerErrorCode errorCode) throws IOException {
         assertThat(load("messages.properties")).containsKey(errorCode.messageKey());
-        assertThat(load("messages_en.properties")).containsKey(errorCode.messageKey());
+        assertThat(load("messages_es.properties")).containsKey(errorCode.messageKey());
     }
 
     private Properties load(String path) throws IOException {

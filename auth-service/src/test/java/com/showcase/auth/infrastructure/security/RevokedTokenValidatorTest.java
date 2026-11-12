@@ -23,7 +23,7 @@ class RevokedTokenValidatorTest {
     }
 
     @Test
-    @DisplayName("acepta un token no revocado y rechaza uno revocado con invalid_token")
+    @DisplayName("accepts an unrevoked token and rejects a revoked one with invalid_token")
     void validate_shouldCheckRevocation() {
         given(revocationService.isRevoked("jti-1", "ana", ISSUED_AT)).willReturn(false, true);
 
@@ -35,10 +35,10 @@ class RevokedTokenValidatorTest {
     }
 
     @Test
-    @DisplayName("si Redis no responde rechaza el token (fail closed)")
+    @DisplayName("if Redis does not respond it rejects the token (fail closed)")
     void validate_whenStoreUnavailable_shouldReject() {
         given(revocationService.isRevoked("jti-1", "ana", ISSUED_AT))
-                .willThrow(new IllegalStateException("Redis no disponible"));
+                .willThrow(new IllegalStateException("Redis unavailable"));
 
         assertThat(validator.validate(jwt()).hasErrors()).isTrue();
     }

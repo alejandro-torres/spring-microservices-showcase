@@ -25,7 +25,7 @@ class RegisteredClientsInitializerTest {
             null, Set.of("authorization_code", "refresh_token"), Set.of("http://127.0.0.1:3000/callback"),
             Set.of("openid"));
     private static final AuthSecurityProperties.Client INTERNAL = new AuthSecurityProperties.Client(
-            "internal-service", null, "secreto", Set.of("client_credentials"), Set.of(), Set.of("internal"));
+            "internal-service", null, "secret", Set.of("client_credentials"), Set.of(), Set.of("internal"));
     private static final AuthSecurityProperties.Client INTERNAL_WITHOUT_SECRET = new AuthSecurityProperties.Client(
             "internal-service", null, "", Set.of("client_credentials"), Set.of(), Set.of("internal"));
 
@@ -39,7 +39,7 @@ class RegisteredClientsInitializerTest {
     }
 
     @Test
-    @DisplayName("registra un cliente público con PKCE obligatorio, sin secreto y con rotación de refresh tokens")
+    @DisplayName("registers a public client with mandatory PKCE, no secret and refresh token rotation")
     void run_publicClient_shouldRequirePkce() {
         initializer(WEB).run(null);
 
@@ -56,18 +56,18 @@ class RegisteredClientsInitializerTest {
     }
 
     @Test
-    @DisplayName("guarda el secreto de un cliente confidencial cifrado con BCrypt")
+    @DisplayName("stores a confidential client's secret hashed with BCrypt")
     void run_confidentialClient_shouldHashSecret() {
         initializer(INTERNAL).run(null);
 
         var captor = ArgumentCaptor.forClass(RegisteredClient.class);
         verify(repository).save(captor.capture());
-        assertThat(captor.getValue().getClientSecret()).isNotEqualTo("secreto");
-        assertThat(passwordEncoder.matches("secreto", captor.getValue().getClientSecret())).isTrue();
+        assertThat(captor.getValue().getClientSecret()).isNotEqualTo("secret");
+        assertThat(passwordEncoder.matches("secret", captor.getValue().getClientSecret())).isTrue();
     }
 
     @Test
-    @DisplayName("no registra clientes que ya existen ni clientes client_credentials sin secreto")
+    @DisplayName("does not register clients that already exist or client_credentials clients without a secret")
     void run_existingOrWithoutSecret_shouldSkip() {
         given(repository.findByClientId("web-client")).willReturn(
                 initializer(WEB).toRegisteredClient(WEB));
@@ -78,9 +78,9 @@ class RegisteredClientsInitializerTest {
     }
 
     @Test
-    @DisplayName("sincroniza las redirect URIs de un cliente existente y conserva su id y su configuración")
+    @DisplayName("synchronizes the redirect URIs of an existing client and keeps its id and configuration")
     void run_existingWithOtherRedirectUris_shouldUpdateOnlyRedirectUris() {
-        // given: el cliente se registró cuando solo tenía la URI del frontend
+        // given: the client registered when it only had the frontend URI
         RegisteredClient existing = initializer(WEB).toRegisteredClient(WEB);
         given(repository.findByClientId("web-client")).willReturn(existing);
         var withSwagger = new AuthSecurityProperties.Client("web-client", "Web", null,

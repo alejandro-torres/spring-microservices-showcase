@@ -40,7 +40,7 @@ class UserEventPublisherImplTest {
     class Publish {
 
         @Test
-        @DisplayName("guarda user.registered con el nombre para el perfil de cliente")
+        @DisplayName("saves user.registered with the name for the customer profile")
         void publish_registered_shouldAppend() {
             publisher.publish(new UserRegisteredEvent(10L, "ana", "ana@example.com", "Ana", "García", NOW));
 
@@ -58,7 +58,7 @@ class UserEventPublisherImplTest {
         }
 
         @Test
-        @DisplayName("guarda account.locked con la fecha de desbloqueo")
+        @DisplayName("saves account.locked with the unlock date")
         void publish_locked_shouldAppend() {
             Instant until = NOW.plusSeconds(900);
 

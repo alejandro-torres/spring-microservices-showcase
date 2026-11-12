@@ -14,8 +14,8 @@ import org.springframework.web.servlet.LocaleResolver;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Escribe un {@code ErrorResponseDTO} directamente en la respuesta. Lo usan los filtros de Spring
- * Security, que se ejecutan antes que Spring MVC y por eso no pasan por el GlobalExceptionHandler.
+ * Writes an {@code ErrorResponseDTO} directly to the response. Used by the Spring Security filters,
+ * which run before Spring MVC and therefore do not go through the GlobalExceptionHandler.
  */
 @RequiredArgsConstructor
 public class SecurityErrorResponseWriter {

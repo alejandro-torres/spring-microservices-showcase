@@ -3,11 +3,11 @@ package com.showcase.order.application.service;
 import com.showcase.order.domain.model.Order;
 
 /**
- * Parte transaccional de crear un pedido, separada de {@link OrderService} para que las llamadas a otros
- * servicios se hagan antes de abrir la transacción (ver {@code OrderServiceImpl}).
+ * Transactional part of creating an order, separate from {@link OrderService} so that calls to other
+ * services happen before opening the transaction (see {@code OrderServiceImpl}).
  */
 public interface OrderWriter {
 
-    /** Guarda el pedido y su {@code OrderCreatedEvent} en la misma transacción. */
+    /** Saves the order and its {@code OrderCreatedEvent} in the same transaction. */
     Order create(Order order);
 }

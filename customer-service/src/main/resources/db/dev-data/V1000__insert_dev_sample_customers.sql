@@ -1,9 +1,9 @@
--- SOLO PERFIL dev: 50 clientes de ejemplo con una o dos direcciones. Cada 12º está borrado.
+-- dev PROFILE ONLY: 50 sample customers with one or two addresses. Every 12th is deleted.
 INSERT INTO customers (user_id, first_name, last_name, email, phone, active, created_at, updated_at)
 SELECT 1 + n,
        (ARRAY['Ana','Luis','Marta','Jorge','Lucía','Pablo','Elena','Sergio','Carmen','Javier'])[1 + n % 10],
        (ARRAY['García','Martínez','López','Sánchez','Pérez','Gómez','Ruiz','Díaz','Moreno','Álvarez'])[1 + (n * 7) % 10],
-       'cliente' || lpad(n::text, 2, '0') || '@showcase.dev',
+       'customer' || lpad(n::text, 2, '0') || '@showcase.dev',
        '+34 600 000 ' || lpad(n::text, 3, '0'),
        n % 12 <> 0,
        TIMESTAMPTZ '2026-01-01 09:00:00+00' + (n || ' days')::interval,
@@ -16,5 +16,5 @@ SELECT c.id, 'Calle Mayor ' || c.id, (ARRAY['Madrid','Barcelona','Valencia','Sev
 FROM customers c;
 
 INSERT INTO addresses (customer_id, street, city, postal_code, country, main)
-SELECT c.id, 'Avenida del Puerto ' || c.id, 'Málaga', '29001', 'ES', FALSE
+SELECT c.id, 'Harbor Avenue ' || c.id, 'Málaga', '29001', 'ES', FALSE
 FROM customers c WHERE c.id % 3 = 0;

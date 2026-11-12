@@ -3,16 +3,16 @@ package com.showcase.auth.domain.repository;
 import java.time.Instant;
 
 /**
- * Autorizaciones OAuth2 guardadas por el servidor de autorización (códigos, access y refresh tokens emitidos).
- * Puerto de salida solo para su limpieza: el resto lo gestiona Spring Authorization Server.
+ * OAuth2 authorizations stored by the authorization server (codes, access and refresh tokens issued).
+ * Outbound port for their cleanup only: Spring Authorization Server manages everything else.
  */
 public interface AuthorizationRepository {
 
     /**
-     * Borra las autorizaciones en las que ya ha caducado todo lo que contienen (código, access token, refresh
-     * token...): ya no sirven para nada.
+     * Deletes the authorizations in which everything they hold has expired (code, access token, refresh
+     * token...): they are no longer of any use.
      *
-     * @return cuántas se han borrado
+     * @return how many were deleted
      */
     int deleteFullyExpiredBefore(Instant now);
 }

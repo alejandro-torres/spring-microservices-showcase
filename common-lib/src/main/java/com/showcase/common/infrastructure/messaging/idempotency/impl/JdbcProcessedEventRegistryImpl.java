@@ -11,10 +11,10 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Registra el evento en {@code processed_event} con {@code INSERT ... ON CONFLICT DO NOTHING}. Si dos réplicas
- * reciben el mismo mensaje a la vez, el segundo INSERT espera a que la primera transacción termine y no inserta
- * nada: solo una procesa el evento. Si el cambio de negocio falla, el rollback se lleva también el registro y el
- * reintento lo procesa como nuevo.
+ * Registers the event in {@code processed_event} with {@code INSERT ... ON CONFLICT DO NOTHING}. If two replicas
+ * receive the same message at once, the second INSERT waits for the first transaction to end and inserts
+ * nothing: only one processes the event. If the business change fails, the rollback also takes the registration
+ * and the retry processes it as new.
  */
 @RequiredArgsConstructor
 public class JdbcProcessedEventRegistryImpl implements ProcessedEventRegistry {
@@ -28,7 +28,7 @@ public class JdbcProcessedEventRegistryImpl implements ProcessedEventRegistry {
     private final JdbcClient jdbcClient;
     private final Clock clock;
 
-    /** {@code MANDATORY}: fuera de la transacción del caso de uso no protegería de nada. */
+    /** {@code MANDATORY}: outside the use case's transaction it would protect from nothing. */
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public boolean registerIfAbsent(UUID eventId, String eventType) {

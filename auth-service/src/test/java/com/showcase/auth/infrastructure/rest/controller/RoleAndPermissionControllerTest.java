@@ -67,14 +67,14 @@ class RoleAndPermissionControllerTest {
     class Roles {
 
         @Test
-        @DisplayName("POST devuelve 201 con los permisos del rol")
+        @DisplayName("POST returns 201 with the role's permissions")
         void create_shouldReturn201() throws Exception {
-            given(roleService.create("ADMIN", "Administración", Set.of(1L, 2L))).willReturn(adminRole());
+            given(roleService.create("ADMIN", "Administration", Set.of(1L, 2L))).willReturn(adminRole());
 
             perform(post("/api/v1/roles")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
-                                    {"name":"ADMIN","description":"Administración","permissionIds":[1,2]}
+                                    {"name":"ADMIN","description":"Administration","permissionIds":[1,2]}
                                     """))
                     .andExpect(status().isCreated())
                     .andExpect(header().string(HttpHeaders.LOCATION, endsWith("/api/v1/roles/1")))
@@ -83,7 +83,7 @@ class RoleAndPermissionControllerTest {
         }
 
         @Test
-        @DisplayName("GET paginado filtra por permiso y PUT actualiza")
+        @DisplayName("Paginated GET filters by permission and PUT updates")
         void findAllAndUpdate_shouldWork() throws Exception {
             given(roleService.findAll(anyList(), any(PageQuery.class), anyBoolean()))
                     .willReturn(PageResult.of(List.of(adminRole()), 0, 10, 1));
@@ -101,7 +101,7 @@ class RoleAndPermissionControllerTest {
         }
 
         @Test
-        @DisplayName("DELETE devuelve 409 si el rol está asignado a usuarios")
+        @DisplayName("DELETE returns 409 if the role is assigned to users")
         void delete_roleInUse_shouldReturn409() throws Exception {
             willThrow(new RoleInUseException("ADMIN", 3L)).given(roleService).delete(1L);
 
@@ -109,7 +109,7 @@ class RoleAndPermissionControllerTest {
                     .andExpect(status().isConflict())
                     .andExpect(jsonPath("$.code").value("ROLE_IN_USE"))
                     .andExpect(jsonPath("$.message")
-                            .value("El rol 'ADMIN' está asignado a 3 usuarios activos y no se puede borrar."));
+                            .value("Role 'ADMIN' is assigned to 3 active users and cannot be deleted."));
         }
     }
 
@@ -118,15 +118,15 @@ class RoleAndPermissionControllerTest {
     class Permissions {
 
         @Test
-        @DisplayName("POST devuelve 201 y GET por id devuelve el permiso")
+        @DisplayName("POST returns 201 and GET by id returns the permission")
         void createAndFind_shouldWork() throws Exception {
-            given(permissionService.create("report:read", "Ver informes")).willReturn(permission(20L, "report:read"));
+            given(permissionService.create("report:read", "View reports")).willReturn(permission(20L, "report:read"));
             given(permissionService.findById(20L)).willReturn(permission(20L, "report:read"));
 
             perform(post("/api/v1/permissions")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
-                                    {"name":"report:read","description":"Ver informes"}
+                                    {"name":"report:read","description":"View reports"}
                                     """))
                     .andExpect(status().isCreated())
                     .andExpect(header().string(HttpHeaders.LOCATION, endsWith("/api/v1/permissions/20")));
@@ -136,7 +136,7 @@ class RoleAndPermissionControllerTest {
         }
 
         @Test
-        @DisplayName("rechaza un operador no permitido para el campo")
+        @DisplayName("rejects an operator not allowed for the field")
         void findAll_withOperatorNotAllowed_shouldReturn400() throws Exception {
             perform(get("/api/v1/permissions").param("filter", "name:gte:a"))
                     .andExpect(status().isBadRequest())
@@ -144,15 +144,15 @@ class RoleAndPermissionControllerTest {
         }
 
         @Test
-        @DisplayName("PUT devuelve 200 y DELETE devuelve 409 si un rol lo usa")
+        @DisplayName("PUT returns 200 and DELETE returns 409 if a role uses it")
         void updateAndDelete_shouldWork() throws Exception {
-            given(permissionService.update(20L, "Consultar", 0L)).willReturn(permission(20L, "report:read"));
+            given(permissionService.update(20L, "Read", 0L)).willReturn(permission(20L, "report:read"));
             willThrow(new PermissionInUseException("report:read", 1L)).given(permissionService).delete(20L);
 
             perform(put("/api/v1/permissions/20")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
-                                    {"description":"Consultar","version":0}
+                                    {"description":"Read","version":0}
                                     """))
                     .andExpect(status().isOk());
             perform(delete("/api/v1/permissions/20"))

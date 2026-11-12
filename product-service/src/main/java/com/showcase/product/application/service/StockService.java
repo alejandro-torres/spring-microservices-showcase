@@ -4,14 +4,14 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Reserva y devolución de stock para la saga de pedidos (puerto de entrada de los listeners). {@code eventId}
- * hace idempotente cada operación: un mensaje repetido no vuelve a tocar el stock.
+ * Stock reservation and return for the order saga (inbound port of the listeners). {@code eventId}
+ * makes each operation idempotent: a repeated message does not touch the stock again.
  */
 public interface StockService {
 
-    /** Reserva todas las líneas o ninguna, y publica el resultado (reservado o fallido). */
+    /** Reserves all the lines or none, and publishes the result (reserved or failed). */
     void reserve(UUID eventId, Long orderId, List<StockLine> lines);
 
-    /** Devuelve al stock las unidades de un pedido cancelado (compensación). */
+    /** Returns the units of a cancelled order to the stock (compensation). */
     void release(UUID eventId, Long orderId, List<StockLine> lines);
 }

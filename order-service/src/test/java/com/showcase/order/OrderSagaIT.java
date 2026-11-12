@@ -38,8 +38,8 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * La saga por RabbitMQ real: el outbox publica {@code order.created} y {@code order.cancelled}, y este test hace
- * de product-service enviando las respuestas al exchange {@code product.events}.
+ * The saga through real RabbitMQ: the outbox publishes {@code order.created} and {@code order.cancelled}, and this
+ * test plays product-service, sending the responses to the {@code product.events} exchange.
  */
 @SpringBootTest(properties = {
         "showcase.messaging.outbox.initial-delay=0s",
@@ -47,7 +47,7 @@ import tools.jackson.databind.json.JsonMapper;
 @Import(TestcontainersConfiguration.class)
 class OrderSagaIT {
 
-    /** Cola del test que recibe todo lo que publica order-service. */
+    /** Test queue that receives everything order-service publishes. */
     private static final String ORDER_EVENTS_PROBE = "it.order-events";
     private static final String STOCK_RESERVED_DLQ = "order-service.stock-reserved.dlq";
     private static final Duration TIMEOUT = Duration.ofSeconds(15);
@@ -83,11 +83,11 @@ class OrderSagaIT {
     }
 
     @Nested
-    @DisplayName("creación del pedido")
+    @DisplayName("order creation")
     class Creation {
 
         @Test
-        @DisplayName("publica order.created con las líneas y lo confirma al recibir stock.reserved")
+        @DisplayName("publishes order.created with the lines and confirms it on receiving stock.reserved")
         void createdOrder_whenStockReserved_shouldBeConfirmed() {
             // given
             Order order = createPendingOrder();
@@ -109,7 +109,7 @@ class OrderSagaIT {
         }
 
         @Test
-        @DisplayName("lo rechaza con el motivo al recibir stock.reservation-failed")
+        @DisplayName("rejects it with the reason on receiving stock.reservation-failed")
         void createdOrder_whenReservationFails_shouldBeRejected() {
             // given
             Order order = createPendingOrder();
@@ -125,11 +125,11 @@ class OrderSagaIT {
     }
 
     @Nested
-    @DisplayName("fiabilidad")
+    @DisplayName("reliability")
     class Reliability {
 
         @Test
-        @DisplayName("un mensaje duplicado se procesa una sola vez")
+        @DisplayName("a duplicate message is processed only once")
         void duplicateMessage_shouldBeProcessedOnce() {
             // given
             Order order = createPendingOrder();
@@ -137,30 +137,30 @@ class OrderSagaIT {
             sendFromProductService("stock.reserved", eventId, new StockReservedMessageDTO(order.getId()));
             awaitStatus(order.getId(), OrderStatus.CONFIRMED);
 
-            // when: RabbitMQ entrega "al menos una vez", así que el mismo evento puede llegar otra vez
+            // when: RabbitMQ delivers "at least once", so the same event can arrive again
             sendFromProductService("stock.reserved", eventId, new StockReservedMessageDTO(order.getId()));
 
-            // then: no falla ni va a la DLQ (confirmar otra vez un pedido CONFIRMED sí fallaría)
+            // then: it neither fails nor goes to the DLQ (confirming a CONFIRMED order again would fail)
             assertThat(rabbitTemplate.receive(STOCK_RESERVED_DLQ, 2_000)).isNull();
             assertThat(jdbcClient.sql("SELECT count(*) FROM processed_event WHERE event_id = :id")
                     .param("id", eventId).query(Long.class).single()).isEqualTo(1);
         }
 
         @Test
-        @DisplayName("una respuesta de un pedido que no existe va a la DLQ sin reintentos")
+        @DisplayName("a response for an order that does not exist goes to the DLQ without retries")
         void unknownOrder_shouldGoToDeadLetterQueue() {
             // when
             UUID eventId = UUID.randomUUID();
             sendFromProductService("stock.reserved", eventId, new StockReservedMessageDTO(999_999L));
 
-            // then: sin reintentos (1 s + 2 s + 4 s) llega enseguida
+            // then: without retries (1 s + 2 s + 4 s) it arrives immediately
             Message dead = rabbitTemplate.receive(STOCK_RESERVED_DLQ, 3_000);
             assertThat(dead).isNotNull();
             assertThat(dead.getMessageProperties().getMessageId()).isEqualTo(eventId.toString());
         }
 
         @Test
-        @DisplayName("un mensaje con JSON mal formado va a la DLQ")
+        @DisplayName("a message with malformed JSON goes to the DLQ")
         void malformedMessage_shouldGoToDeadLetterQueue() {
             // when
             Message message = MessageBuilder.withBody("{not json".getBytes(StandardCharsets.UTF_8))
@@ -175,11 +175,11 @@ class OrderSagaIT {
     }
 
     @Nested
-    @DisplayName("cancelación")
+    @DisplayName("cancellation")
     class Cancellation {
 
         @Test
-        @DisplayName("cancelar un pedido confirmado publica order.cancelled para devolver el stock")
+        @DisplayName("cancelling a confirmed order publishes order.cancelled to return the stock")
         void cancelConfirmedOrder_shouldPublishOrderCancelled() {
             // given
             Order order = createPendingOrder();
@@ -211,7 +211,7 @@ class OrderSagaIT {
         rabbitTemplate.send("product.events", routingKey, message);
     }
 
-    /** Siguiente evento del tipo indicado que publica order-service para ese pedido (descarta los demás). */
+    /** Next event of the given type that order-service publishes for that order (discards the others). */
     private JsonNode nextOrderEvent(String eventType, Long orderId) {
         long deadline = System.currentTimeMillis() + TIMEOUT.toMillis();
         while (System.currentTimeMillis() < deadline) {
@@ -223,7 +223,7 @@ class OrderSagaIT {
                 }
             }
         }
-        throw new AssertionError("No se ha publicado ningún " + eventType);
+        throw new AssertionError("No event was published: " + eventType);
     }
 
     private void awaitStatus(Long orderId, OrderStatus expected) {

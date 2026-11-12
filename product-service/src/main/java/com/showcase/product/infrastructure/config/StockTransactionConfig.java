@@ -7,9 +7,9 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Transacciones programáticas de la reserva y devolución de stock. {@code StockServiceImpl} las abre DESPUÉS de
- * conseguir el lock distribuido (lock → transacción → commit → unlock), algo que {@code @Transactional} no permite
- * porque abriría la transacción antes que el lock.
+ * Programmatic transactions for stock reservation and return. {@code StockServiceImpl} opens them AFTER
+ * acquiring the distributed lock (lock → transaction → commit → unlock), which {@code @Transactional} does not allow
+ * because it would open the transaction before the lock.
  */
 @Configuration(proxyBeanMethods = false)
 public class StockTransactionConfig {
@@ -18,8 +18,8 @@ public class StockTransactionConfig {
     public static final String RELEASE_STOCK = "releaseStockTransaction";
 
     /**
-     * REPEATABLE_READ: en PostgreSQL, actualizar una fila que otra transacción confirmada ha modificado falla con
-     * un error de serialización (y el mensaje se reintenta). Timeout de 5 s: nunca bloquea una conexión más.
+     * REPEATABLE_READ: in PostgreSQL, updating a row that another committed transaction has modified fails with
+     * a serialization error (and the message is retried). 5 s timeout: it never holds a connection longer.
      */
     @Bean(RESERVE_STOCK)
     public TransactionTemplate reserveStockTransaction(PlatformTransactionManager transactionManager) {

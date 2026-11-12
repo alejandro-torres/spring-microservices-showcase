@@ -8,11 +8,11 @@ import com.showcase.customer.domain.model.Customer;
 import java.util.List;
 
 /**
- * Casos de uso de clientes y sus direcciones (puerto de entrada).
+ * Use cases for customers and their addresses (inbound port).
  */
 public interface CustomerService {
 
-    /** Crea el cliente con sus direcciones iniciales en una sola transacción. */
+    /** Creates the customer with their initial addresses in a single transaction. */
     Customer create(Long userId, String firstName, String lastName, String email, String phone,
                     List<Address> addresses);
 

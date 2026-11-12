@@ -13,7 +13,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
 /**
- * Respuesta 401 en el formato común cuando la petición no trae credenciales o el token no es válido.
+ * 401 response in the common format when the request has no credentials or the token is invalid.
  */
 @RequiredArgsConstructor
 public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
@@ -27,13 +27,13 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
     public void commence(HttpServletRequest request, HttpServletResponse response,
                          AuthenticationException authException) throws IOException {
         boolean invalidToken = isOAuth2Exception(authException);
-        log.debug("Petición no autenticada a {}: {}", request.getRequestURI(), authException.getMessage());
+        log.debug("Unauthenticated request to {}: {}", request.getRequestURI(), authException.getMessage());
         response.setHeader(HttpHeaders.WWW_AUTHENTICATE, invalidToken ? "Bearer error=\"invalid_token\"" : "Bearer");
         writer.write(request, response, HttpStatus.UNAUTHORIZED,
                 invalidToken ? CommonErrorCode.INVALID_TOKEN : CommonErrorCode.UNAUTHORIZED);
     }
 
-    // Comparación por nombre para no obligar a tener OAuth2 en el classpath de todos los servicios.
+    // Compared by name so as not to force OAuth2 on the classpath of all services.
     private static boolean isOAuth2Exception(Throwable exception) {
         for (Class<?> type = exception.getClass(); type != null; type = type.getSuperclass()) {
             if (OAUTH2_EXCEPTION.equals(type.getName())) {

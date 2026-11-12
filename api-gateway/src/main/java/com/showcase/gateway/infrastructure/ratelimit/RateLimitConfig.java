@@ -14,22 +14,20 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 /**
- * A quién se le cuentan las peticiones en el rate limiting (token bucket en Redis, compartido por todas las
- * réplicas del gateway):
+ * Who requests are counted against in rate limiting (token bucket in Redis, shared by all gateway replicas):
  * <ul>
- *   <li>Usuario autenticado: su {@code sub} del JWT, así un usuario no puede saltarse el límite cambiando de IP.</li>
- *   <li>Rutas públicas (login, registro): la IP del cliente.</li>
+ *   <li>Authenticated user: the JWT {@code sub}, so a user cannot dodge the limit by changing IP.</li>
+ *   <li>Public routes (login, registration): the client IP.</li>
  * </ul>
- * La IP es la de la conexión. {@code X-Forwarded-For} solo se tiene en cuenta si hay proxies de confianza delante
- * del gateway ({@code showcase.rate-limit.trusted-proxy-hops}), y solo la entrada que añadió el último de ellos:
- * si se leyera la cabecera sin más, un cliente podría inventarse una IP distinta en cada intento y saltarse el
- * límite del login.
+ * The IP is that of the connection. {@code X-Forwarded-For} is only considered if there are trusted proxies in front
+ * of the gateway ({@code showcase.rate-limit.trusted-proxy-hops}), and only the entry added by the last of them:
+ * if the header were read as is, a client could invent a different IP on each attempt and bypass the login limit.
  */
 @Configuration(proxyBeanMethods = false)
 @RequiredArgsConstructor
 public class RateLimitConfig {
 
-    /** Proxies de confianza delante del gateway (0: el gateway recibe directamente a los clientes). */
+    /** Trusted proxies in front of the gateway (0: the gateway receives clients directly). */
     @Value("${showcase.rate-limit.trusted-proxy-hops:0}")
     private final int trustedProxyHops;
 
@@ -43,9 +41,9 @@ public class RateLimitConfig {
     }
 
     /**
-     * Por IP, para el login (todavía no hay usuario autenticado). El prefijo propio es necesario: Redis guarda el
-     * cubo por ruta y clave, y en la ruta de login también actúa el límite general con la clave {@code ip:};
-     * con la misma clave, los dos límites compartirían un cubo con parámetros distintos.
+     * By IP, for the login (there is no authenticated user yet). Its own prefix is necessary: Redis stores the
+     * bucket by route and key, and on the login route the general limit also applies with the {@code ip:} key;
+     * with the same key, the two limits would share a bucket with different parameters.
      */
     @Bean
     public KeyResolver loginKeyResolver() {

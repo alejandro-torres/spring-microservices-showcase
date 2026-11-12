@@ -22,9 +22,9 @@ import org.springframework.security.web.authentication.LoginUrlAuthenticationEnt
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 
 /**
- * Servidor de autorización OAuth2: endpoints {@code /oauth2/authorize}, {@code /oauth2/token},
- * {@code /oauth2/jwks}, {@code /oauth2/revoke} y los de OpenID Connect. Clientes, autorizaciones y
- * consentimientos se guardan en PostgreSQL, así que sobreviven a reinicios y se comparten entre réplicas.
+ * OAuth2 authorization server: endpoints {@code /oauth2/authorize}, {@code /oauth2/token},
+ * {@code /oauth2/jwks}, {@code /oauth2/revoke} and the OpenID Connect ones. Clients, authorizations and
+ * consents are stored in PostgreSQL, so they survive restarts and are shared between replicas.
  */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(AuthSecurityProperties.class)
@@ -39,7 +39,7 @@ public class AuthorizationServerConfig {
                     authorizationServer.oidc(Customizer.withDefaults());
                 })
                 .authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated())
-                // Un navegador sin sesión va al formulario de login del flujo authorization_code.
+                // A browser without a session goes to the login form of the authorization_code flow.
                 .exceptionHandling(exceptions -> exceptions.defaultAuthenticationEntryPointFor(
                         new LoginUrlAuthenticationEntryPoint("/login"), new MediaTypeRequestMatcher(MediaType.TEXT_HTML)));
         return http.build();

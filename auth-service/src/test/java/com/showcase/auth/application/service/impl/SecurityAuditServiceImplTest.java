@@ -57,7 +57,7 @@ class SecurityAuditServiceImplTest {
         }
 
         @Test
-        @DisplayName("guarda el evento con la IP, el user-agent, el traceId y la fecha del Clock")
+        @DisplayName("saves the event with the IP, the user-agent, the traceId and the Clock's date")
         void record_shouldSaveEventWithRequestMetadata() {
             given(requestMetadataProvider.current())
                     .willReturn(new RequestMetadata("10.0.0.7", "Mozilla/5.0", "trace-1", null));
@@ -74,7 +74,7 @@ class SecurityAuditServiceImplTest {
         }
 
         @Test
-        @DisplayName("anota quién hizo la operación cuando es otro usuario (p. ej. un ADMIN)")
+        @DisplayName("records who performed the operation when it is another user (e.g. an ADMIN)")
         void record_byAnotherUser_shouldAddActor() {
             given(requestMetadataProvider.current()).willReturn(new RequestMetadata(null, null, null, "admin"));
 
@@ -84,7 +84,7 @@ class SecurityAuditServiceImplTest {
         }
 
         @Test
-        @DisplayName("no repite el actor cuando el usuario actúa sobre sí mismo")
+        @DisplayName("does not repeat the actor when the user acts on themselves")
         void record_bySameUser_shouldNotAddActor() {
             given(requestMetadataProvider.current()).willReturn(new RequestMetadata(null, null, null, "ana"));
 
@@ -99,12 +99,12 @@ class SecurityAuditServiceImplTest {
     class Event {
 
         @Test
-        @DisplayName("recorta los datos externos demasiado largos y usa 'desconocido' si no hay usuario")
+        @DisplayName("trims external data that is too long and uses 'unknown' if there is no user")
         void event_shouldTruncateAndDefaultUsername() {
             var event = SecurityAuditEvent.of(SecurityEventType.LOGIN_FAILURE, " ", null, "x".repeat(400),
                     null, "y".repeat(600), NOW);
 
-            assertThat(event.username()).isEqualTo("desconocido");
+            assertThat(event.username()).isEqualTo("unknown");
             assertThat(event.userAgent()).hasSize(255);
             assertThat(event.details()).hasSize(500);
         }

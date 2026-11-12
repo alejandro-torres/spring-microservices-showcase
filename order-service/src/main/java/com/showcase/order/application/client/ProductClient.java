@@ -3,11 +3,11 @@ package com.showcase.order.application.client;
 import java.util.Optional;
 
 /**
- * Consulta de productos en product-service. La implementación decide el transporte (Feign) y la resiliencia
- * (circuit breaker); si el servicio no responde lanza ExternalServiceException (503).
+ * Product lookup in product-service. The implementation decides the transport (Feign) and the resilience
+ * (circuit breaker); if the service does not respond it throws ExternalServiceException (503).
  */
 public interface ProductClient {
 
-    /** Vacío si el producto no existe o está borrado. */
+    /** Empty if the product does not exist or has been deleted. */
     Optional<ProductInfo> findById(Long productId);
 }

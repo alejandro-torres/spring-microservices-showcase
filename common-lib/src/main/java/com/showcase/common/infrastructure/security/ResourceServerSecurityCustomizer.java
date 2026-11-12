@@ -6,10 +6,10 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 
 /**
- * Configuración común de las APIs REST como resource server: JWT emitido por auth-service con sus roles
- * y permisos, sin sesión, sin CSRF (el token va en una cabecera) y errores 401/403 en el formato común.
+ * Common configuration of the REST APIs as a resource server: JWT issued by auth-service with its roles
+ * and permissions, no session, no CSRF (the token goes in a header) and 401/403 errors in the common format.
  *
- * <p>Cada servicio define qué rutas protege y cuáles son públicas, y aplica el resto con
+ * <p>Each service defines which routes it protects and which are public, and applies the rest with
  * {@link #customize(HttpSecurity)}.
  */
 @RequiredArgsConstructor

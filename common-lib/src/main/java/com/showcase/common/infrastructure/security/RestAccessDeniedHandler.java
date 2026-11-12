@@ -12,7 +12,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;
 
 /**
- * Respuesta 403 en el formato común cuando el usuario está autenticado pero no tiene permiso.
+ * 403 response in the common format when the user is authenticated but lacks permission.
  */
 @RequiredArgsConstructor
 public class RestAccessDeniedHandler implements AccessDeniedHandler {

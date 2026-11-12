@@ -21,7 +21,7 @@ class DiscoveryServiceIT {
     class EurekaServer {
 
         @Test
-        @DisplayName("arranca, está sano y expone el registro de aplicaciones (vacío)")
+        @DisplayName("starts, is healthy and exposes the application registry (empty)")
         void registry_shouldBeAvailable() {
             // given
             RestClient client = RestClient.create("http://localhost:" + port);

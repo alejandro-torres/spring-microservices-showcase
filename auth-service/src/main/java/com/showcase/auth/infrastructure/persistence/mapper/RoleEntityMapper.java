@@ -11,7 +11,7 @@ public interface RoleEntityMapper {
 
     Role toDomain(RoleEntity entity);
 
-    /** Los permisos los asigna el repositorio con referencias a las entidades existentes. */
+    /** The repository assigns the permissions with references to the existing entities. */
     @Mapping(target = "permissions", ignore = true)
     RoleEntity toEntity(Role role);
 

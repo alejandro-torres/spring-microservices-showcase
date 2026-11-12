@@ -19,7 +19,7 @@ class GatewayErrorWriterTest {
     class Path {
 
         @Test
-        @DisplayName("en el fallback del circuit breaker devuelve la ruta que llamó el cliente, no /fallback/...")
+        @DisplayName("in the circuit breaker fallback it returns the path the client called, not /fallback/...")
         void path_afterForwardToFallback_shouldReturnOriginalPath() {
             // given
             MockServerWebExchange exchange =
@@ -37,7 +37,7 @@ class GatewayErrorWriterTest {
         }
 
         @Test
-        @DisplayName("sin reenvío interno devuelve la ruta de la petición")
+        @DisplayName("without an internal forward it returns the request path")
         void path_withoutOriginalUrl_shouldReturnRequestPath() {
             // given
             MockServerWebExchange exchange =

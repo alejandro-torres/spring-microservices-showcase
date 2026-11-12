@@ -15,7 +15,7 @@ public interface CustomerRestMapper {
 
     AddressResponseDTO toResponse(Address address);
 
-    /** Las direcciones nuevas se crean con su factoría del dominio, que valida los campos. */
+    /** New addresses are created with their domain factory, which validates the fields. */
     default Address toDomain(AddressRequestDTO request) {
         return Address.create(request.street(), request.city(), request.postalCode(), request.country());
     }

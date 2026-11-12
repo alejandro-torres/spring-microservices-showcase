@@ -12,7 +12,7 @@
 
     <artifactId>common-lib</artifactId>
     <name>common-lib</name>
-    <description>Código compartido: excepciones, paginación, filtros dinámicos y gestión de errores</description>
+    <description>Shared code: exceptions, pagination, dynamic filters and error handling</description>
 
     <dependencies>
         <dependency>
@@ -20,7 +20,7 @@
             <artifactId>jackson-annotations</artifactId>
         </dependency>
 
-        <!-- Opcionales: solo las usan los servicios web (MVC); el gateway (WebFlux) no las arrastra -->
+        <!-- Optional: only used by the web services (MVC); the gateway (WebFlux) does not pull them in -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc</artifactId>
@@ -36,7 +36,7 @@
             <artifactId>spring-tx</artifactId>
             <optional>true</optional>
         </dependency>
-        <!-- Opcionales: errores 401/403 en el formato común y conversión de roles y permisos del JWT -->
+        <!-- Optional: 401/403 errors in the common format and conversion of JWT roles and permissions -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
@@ -47,13 +47,13 @@
             <artifactId>spring-boot-starter-security-oauth2-resource-server</artifactId>
             <optional>true</optional>
         </dependency>
-        <!-- Opcional: solo para los servicios con JPA (GenericSpecificationBuilder) -->
+        <!-- Optional: only for services with JPA (GenericSpecificationBuilder) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
             <optional>true</optional>
         </dependency>
-        <!-- Opcional: documentación OpenAPI común (esquema Bearer y respuestas de error estándar) -->
+        <!-- Optional: common OpenAPI documentation (Bearer scheme and standard error responses) -->
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
@@ -65,7 +65,7 @@
             <artifactId>events-contract</artifactId>
         </dependency>
 
-        <!-- Opcionales: outbox, consumo idempotente, reintentos y DLQ para los servicios con RabbitMQ -->
+        <!-- Optional: outbox, idempotent consumption, retries and DLQ for services with RabbitMQ -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-amqp</artifactId>
@@ -76,7 +76,7 @@
             <artifactId>spring-boot-starter-jdbc</artifactId>
             <optional>true</optional>
         </dependency>
-        <!-- Opcionales: propagar la traza por el outbox y spans con @Observed -->
+        <!-- Optional: trace propagation through the outbox and spans with @Observed -->
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-tracing</artifactId>
@@ -92,7 +92,7 @@
             <artifactId>spring-boot-starter-aspectj</artifactId>
             <optional>true</optional>
         </dependency>
-        <!-- Opcionales: tareas programadas con una sola réplica a la vez (ShedLock sobre la base de datos) -->
+        <!-- Optional: scheduled tasks with a single replica at a time (ShedLock on the database) -->
         <dependency>
             <groupId>net.javacrumbs.shedlock</groupId>
             <artifactId>shedlock-spring</artifactId>

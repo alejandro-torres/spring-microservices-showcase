@@ -14,7 +14,7 @@ class DomainExceptionTest {
     class Constructor {
 
         @Test
-        @DisplayName("guarda el código de error y los parámetros del mensaje")
+        @DisplayName("stores the error code and the message parameters")
         void constructor_withArgs_shouldKeepCodeAndArgs() {
             // when
             var exception = new ResourceNotFoundException(CommonErrorCode.RESOURCE_NOT_FOUND, "Product", 25L);
@@ -25,7 +25,7 @@ class DomainExceptionTest {
         }
 
         @Test
-        @DisplayName("genera un mensaje técnico con el código y los parámetros para los logs")
+        @DisplayName("generates a technical message with the code and parameters for the logs")
         void constructor_withArgs_shouldBuildTechnicalMessage() {
             // when
             var exception = new BusinessRuleException(CommonErrorCode.DATA_CONFLICT, 7);
@@ -35,7 +35,7 @@ class DomainExceptionTest {
         }
 
         @Test
-        @DisplayName("usa solo el código como mensaje cuando no hay parámetros")
+        @DisplayName("uses only the code as the message when there are no parameters")
         void constructor_withoutArgs_shouldUseCodeAsMessage() {
             // when
             var exception = new ForbiddenException(CommonErrorCode.FORBIDDEN);
@@ -46,7 +46,7 @@ class DomainExceptionTest {
         }
 
         @Test
-        @DisplayName("conserva la causa original")
+        @DisplayName("keeps the original cause")
         void constructor_withCause_shouldKeepCause() {
             // given
             var cause = new IllegalStateException("timeout");
@@ -60,7 +60,7 @@ class DomainExceptionTest {
         }
 
         @Test
-        @DisplayName("admite parámetros nulos")
+        @DisplayName("allows null parameters")
         void constructor_withNullArg_shouldAcceptIt() {
             // when
             var exception = new InvalidRequestException(CommonErrorCode.INVALID_PARAMETER, "sort", null);
@@ -70,7 +70,7 @@ class DomainExceptionTest {
         }
 
         @Test
-        @DisplayName("rechaza un código de error nulo")
+        @DisplayName("rejects a null error code")
         void constructor_withNullCode_shouldFail() {
             assertThatThrownBy(() -> new UnauthorizedException(null))
                     .isInstanceOf(NullPointerException.class)
@@ -83,25 +83,25 @@ class DomainExceptionTest {
     class GetArgs {
 
         @Test
-        @DisplayName("devuelve una lista que no se puede modificar")
+        @DisplayName("returns a list that cannot be modified")
         void getArgs_shouldBeUnmodifiable() {
             // given
             var exception = new DuplicateResourceException(CommonErrorCode.DATA_CONFLICT, "name");
 
             // when / then
-            assertThatThrownBy(() -> exception.getArgs().add("otro"))
+            assertThatThrownBy(() -> exception.getArgs().add("other"))
                     .isInstanceOf(UnsupportedOperationException.class);
         }
 
         @Test
-        @DisplayName("no le afectan los cambios en el array original")
+        @DisplayName("changes to the original array do not affect it")
         void getArgs_shouldBeIndependentFromOriginalArray() {
             // given
             Object[] args = {"original"};
             var exception = new DuplicateResourceException(CommonErrorCode.DATA_CONFLICT, args);
 
             // when
-            args[0] = "cambiado";
+            args[0] = "changed";
 
             // then
             assertThat(exception.getArgs()).containsExactly("original");

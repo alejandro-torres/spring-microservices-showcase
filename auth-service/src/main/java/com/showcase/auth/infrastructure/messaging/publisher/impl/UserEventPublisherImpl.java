@@ -10,7 +10,7 @@ import com.showcase.events.EventTypes;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-/** Guarda los eventos de usuarios en el outbox; el {@code OutboxPublisher} los envía a {@code auth.events}. */
+/** Stores user events in the outbox; the {@code OutboxPublisher} sends them to {@code auth.events}. */
 @Component
 @RequiredArgsConstructor
 public class UserEventPublisherImpl implements UserEventPublisher {

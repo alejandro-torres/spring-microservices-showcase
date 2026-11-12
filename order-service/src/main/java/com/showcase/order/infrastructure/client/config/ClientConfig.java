@@ -16,8 +16,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Clientes Feign hacia product-service y customer-service. Los timeouts están en
- * {@code spring.cloud.openfeign.client.config} y el circuit breaker en {@code showcase.clients.circuit-breaker}.
+ * Feign clients to product-service and customer-service. The timeouts are in
+ * {@code spring.cloud.openfeign.client.config} and the circuit breaker in {@code showcase.clients.circuit-breaker}.
  */
 @Configuration(proxyBeanMethods = false)
 @EnableFeignClients(basePackages = "com.showcase.order.infrastructure.client.feign")
@@ -35,8 +35,8 @@ public class ClientConfig {
     }
 
     /**
-     * 401/403 no son fallos del servicio remoto (son del token del usuario): no deben abrir el circuito.
-     * Los 404 tampoco, porque los clientes los convierten en un Optional vacío dentro de la llamada protegida.
+     * 401/403 are not failures of the remote service (they come from the user's token): they must not open the circuit.
+     * Neither are 404s, because the clients turn them into an empty Optional inside the protected call.
      */
     @Bean
     public CircuitBreakerRegistry circuitBreakerRegistry(CircuitBreakerProperties properties) {
@@ -50,7 +50,7 @@ public class ClientConfig {
                 .build());
     }
 
-    /** Estado de cada circuit breaker (cerrado, abierto, medio abierto) y sus llamadas, para Prometheus. */
+    /** State of each circuit breaker (closed, open, half-open) and its calls, for Prometheus. */
     @Bean
     public MeterBinder circuitBreakerMetrics(CircuitBreakerRegistry circuitBreakerRegistry) {
         return TaggedCircuitBreakerMetrics.ofCircuitBreakerRegistry(circuitBreakerRegistry);

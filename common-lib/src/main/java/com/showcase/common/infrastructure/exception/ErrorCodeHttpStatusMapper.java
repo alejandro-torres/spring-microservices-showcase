@@ -5,8 +5,8 @@ import com.showcase.common.domain.exception.ErrorCode;
 import org.springframework.http.HttpStatus;
 
 /**
- * Traduce la categoría de un {@link ErrorCode} al código HTTP de la respuesta.
- * Es el único sitio donde el dominio de errores se cruza con HTTP.
+ * Translates the category of an {@link ErrorCode} to the response's HTTP code.
+ * It is the only place where the error domain meets HTTP.
  */
 public class ErrorCodeHttpStatusMapper {
 

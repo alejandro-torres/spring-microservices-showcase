@@ -1,8 +1,8 @@
 package com.showcase.auth.application.metrics;
 
 /**
- * Métricas de negocio y de seguridad de auth-service (puerto de salida); la implementación con Micrometer está en
- * la infraestructura.
+ * Business and security metrics of auth-service (outbound port); the Micrometer implementation is in the
+ * infrastructure.
  */
 public interface AuthMetrics {
 

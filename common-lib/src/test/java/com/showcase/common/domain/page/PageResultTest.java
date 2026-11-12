@@ -17,7 +17,7 @@ class PageResultTest {
     @DisplayName("of")
     class Of {
 
-        @ParameterizedTest(name = "página {0} de {1} elementos con total {2} → {3} páginas")
+        @ParameterizedTest(name = "page {0} of {1} elements with total {2} → {3} pages")
         @CsvSource({
                 "0, 10, 57, 6, true, false",
                 "5, 10, 57, 6, false, true",
@@ -26,7 +26,7 @@ class PageResultTest {
                 "0, 10, 0, 0, true, true",
                 "1, 10, 20, 2, false, true"
         })
-        @DisplayName("calcula el total de páginas y los indicadores de primera y última")
+        @DisplayName("computes the total pages and the first and last flags")
         void of_shouldComputePagination(int page, int size, long total, int expectedPages,
                                         boolean expectedFirst, boolean expectedLast) {
             // when
@@ -40,7 +40,7 @@ class PageResultTest {
         }
 
         @Test
-        @DisplayName("hace una copia que no se puede modificar del contenido")
+        @DisplayName("makes an unmodifiable copy of the content")
         void of_shouldCopyContent() {
             // given
             var content = new ArrayList<>(List.of("a", "b"));
@@ -55,7 +55,7 @@ class PageResultTest {
         }
 
         @Test
-        @DisplayName("rechaza un contenido nulo")
+        @DisplayName("rejects null content")
         void of_withNullContent_shouldFail() {
             assertThatThrownBy(() -> PageResult.of(null, 0, 10, 0)).isInstanceOf(NullPointerException.class);
         }
@@ -66,7 +66,7 @@ class PageResultTest {
     class Empty {
 
         @Test
-        @DisplayName("devuelve una página vacía con la página y el tamaño de la consulta")
+        @DisplayName("returns an empty page with the query's page and size")
         void empty_shouldUseQueryPageAndSize() {
             // when
             var result = PageResult.<String>empty(new PageQuery(3, 20, "id", SortDirection.ASC));
@@ -85,7 +85,7 @@ class PageResultTest {
     class Map {
 
         @Test
-        @DisplayName("convierte el contenido y conserva los datos de paginación")
+        @DisplayName("converts the content and keeps the pagination data")
         void map_shouldConvertContentAndKeepPagination() {
             // given
             var result = PageResult.of(List.of(1, 2, 3), 1, 3, 9);

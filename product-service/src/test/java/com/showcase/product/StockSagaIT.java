@@ -35,8 +35,8 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Lado de product-service de la saga por RabbitMQ real: este test hace de order-service enviando
- * {@code order.created} y {@code order.cancelled}, y escucha las respuestas en {@code product.events}.
+ * product-service's side of the saga through real RabbitMQ: this test plays order-service, sending
+ * {@code order.created} and {@code order.cancelled}, and listens for the responses on {@code product.events}.
  */
 @SpringBootTest(properties = {
         "showcase.messaging.outbox.initial-delay=0s",
@@ -75,9 +75,9 @@ class StockSagaIT {
         amqpAdmin.declareBinding(new Binding(PRODUCT_EVENTS_PROBE, Binding.DestinationType.QUEUE, "product.events",
                 "stock.*", null));
         String suffix = UUID.randomUUID().toString().substring(0, 8);
-        Long categoryId = categoryService.create("Periféricos " + suffix, null).getId();
-        mouseId = productService.create("Ratón " + suffix, null, new BigDecimal("12.50"), 5, categoryId).getId();
-        keyboardId = productService.create("Teclado " + suffix, null, new BigDecimal("30.00"), 1, categoryId).getId();
+        Long categoryId = categoryService.create("Peripherals " + suffix, null).getId();
+        mouseId = productService.create("Mouse " + suffix, null, new BigDecimal("12.50"), 5, categoryId).getId();
+        keyboardId = productService.create("Keyboard " + suffix, null, new BigDecimal("30.00"), 1, categoryId).getId();
     }
 
     @Nested
@@ -85,7 +85,7 @@ class StockSagaIT {
     class OrderCreated {
 
         @Test
-        @DisplayName("con stock suficiente reserva todas las líneas y responde stock.reserved")
+        @DisplayName("with enough stock it reserves all the lines and responds stock.reserved")
         void orderCreated_withStock_shouldReserveAndReply() {
             // given
             long orderId = ORDER_IDS.incrementAndGet();
@@ -103,7 +103,7 @@ class StockSagaIT {
         }
 
         @Test
-        @DisplayName("si falta stock en una línea no toca ninguna y responde stock.reservation-failed")
+        @DisplayName("if a line lacks stock none is touched and it responds stock.reservation-failed")
         void orderCreated_withoutStock_shouldReplyFailure() {
             // given
             long orderId = ORDER_IDS.incrementAndGet();
@@ -122,7 +122,7 @@ class StockSagaIT {
         }
 
         @Test
-        @DisplayName("un order.created duplicado no reserva dos veces")
+        @DisplayName("a duplicate order.created does not reserve twice")
         void orderCreated_duplicate_shouldReserveOnce() {
             // given
             long orderId = ORDER_IDS.incrementAndGet();
@@ -145,7 +145,7 @@ class StockSagaIT {
     class OrderCancelled {
 
         @Test
-        @DisplayName("devuelve el stock reservado (también de un producto ya borrado) y responde stock.released")
+        @DisplayName("returns the reserved stock (also of an already deleted product) and responds stock.released")
         void orderCancelled_shouldReleaseStock() {
             // given
             long orderId = ORDER_IDS.incrementAndGet();
@@ -174,7 +174,7 @@ class StockSagaIT {
         rabbitTemplate.send("order.events", routingKey, message);
     }
 
-    /** Siguiente respuesta de product-service sobre ese pedido (descarta las de otros tests). */
+    /** Next response from product-service about that order (discards those of other tests). */
     private JsonNode nextReply(long orderId) {
         long deadline = System.currentTimeMillis() + TIMEOUT.toMillis();
         while (System.currentTimeMillis() < deadline) {
@@ -186,6 +186,6 @@ class StockSagaIT {
                 }
             }
         }
-        throw new AssertionError("product-service no ha respondido al pedido " + orderId);
+        throw new AssertionError("product-service has not responded to order " + orderId);
     }
 }

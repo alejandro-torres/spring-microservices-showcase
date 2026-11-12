@@ -4,7 +4,7 @@ import com.showcase.common.domain.exception.DomainException;
 import java.time.Instant;
 
 /**
- * La cuenta está bloqueada por demasiados intentos de login fallidos (423).
+ * The account is locked after too many failed login attempts (423).
  */
 public class AccountLockedException extends DomainException {
 

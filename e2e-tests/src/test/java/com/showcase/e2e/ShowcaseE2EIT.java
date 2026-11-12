@@ -14,13 +14,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 /**
- * De extremo a extremo contra el sistema completo (docker compose), todo a través del gateway:
+ * End to end against the full system (docker compose), everything through the gateway:
  * <pre>
  * docker compose up -d --build
  * ./mvnw -Pe2e -pl e2e-tests verify
  * </pre>
- * La URL del gateway se cambia con {@code -De2e.base-url=...}. Usa el usuario {@code admin} de los datos de
- * ejemplo del perfil {@code dev}.
+ * The gateway URL is changed with {@code -De2e.base-url=...}. It uses the {@code admin} user from the sample
+ * data of the {@code dev} profile.
  */
 class ShowcaseE2EIT {
 
@@ -36,38 +36,38 @@ class ShowcaseE2EIT {
     }
 
     @Nested
-    @DisplayName("pedido de punta a punta")
+    @DisplayName("order from end to end")
     @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
     class OrderFlow {
 
         @Test
         @Order(1)
-        @DisplayName("token de auth-service → producto → cliente → pedido confirmado por la saga → cancelación que "
-                + "devuelve el stock")
+        @DisplayName("auth-service token → product → customer → order confirmed by the saga → cancellation that "
+                + "returns the stock")
         void fullOrderSaga() throws Exception {
             String suffix = UUID.randomUUID().toString().substring(0, 8);
 
-            // given: un producto con 3 unidades y un cliente con dirección
+            // given: a product with 3 units and a customer with an address
             var category = admin.post("/api/v1/categories", """
                     {"name":"E2E %s"}""".formatted(suffix));
             assertThat(category.status()).isEqualTo(201);
             var product = admin.post("/api/v1/products", """
-                    {"name":"Producto E2E %s","price":19.90,"stock":3,"categoryId":%d}"""
+                    {"name":"Product E2E %s","price":19.90,"stock":3,"categoryId":%d}"""
                     .formatted(suffix, category.body().get("id").asLong()));
             assertThat(product.status()).isEqualTo(201);
             long productId = product.body().get("id").asLong();
             var customer = admin.post("/api/v1/customers", """
-                    {"firstName":"Cliente","lastName":"E2E","email":"e2e.%s@example.com",
-                     "addresses":[{"street":"Gran Vía 1","city":"Madrid","postalCode":"28013","country":"ES"}]}"""
+                    {"firstName":"Customer","lastName":"E2E","email":"e2e.%s@example.com",
+                     "addresses":[{"street":"Main Street 1","city":"Madrid","postalCode":"28013","country":"ES"}]}"""
                     .formatted(suffix));
             assertThat(customer.status()).isEqualTo(201);
 
-            // when: se crea un pedido de 2 unidades
+            // when: an order of 2 units is created
             var order = admin.post("/api/v1/orders", """
                     {"customerId":%d,"items":[{"productId":%d,"quantity":2}]}"""
                     .formatted(customer.body().get("id").asLong(), productId));
 
-            // then: nace PENDING, con traza, y la saga lo confirma y descuenta el stock
+            // then: it starts PENDING, with a trace, and the saga confirms it and deducts the stock
             assertThat(order.status()).isEqualTo(201);
             assertThat(order.body().get("status").asString()).isEqualTo("PENDING");
             assertThat(order.traceId()).isNotBlank();
@@ -77,10 +77,10 @@ class ShowcaseE2EIT {
                             .isEqualTo("CONFIRMED"));
             assertThat(admin.get("/api/v1/products/" + productId).body().get("stock").asInt()).isEqualTo(1);
 
-            // when: se cancela
+            // when: it is cancelled
             var cancelled = admin.put("/api/v1/orders/" + orderId + "/cancel", null);
 
-            // then: la compensación devuelve las 2 unidades
+            // then: the compensation returns the 2 units
             assertThat(cancelled.status()).isEqualTo(200);
             assertThat(cancelled.body().get("status").asString()).isEqualTo("CANCELLED");
             await().atMost(SAGA_TIMEOUT).pollInterval(Duration.ofSeconds(1)).untilAsserted(() ->
@@ -90,17 +90,17 @@ class ShowcaseE2EIT {
 
         @Test
         @Order(2)
-        @DisplayName("un pedido que pide más stock del que hay se rechaza antes de crearlo (422 INSUFFICIENT_STOCK)")
+        @DisplayName("an order requesting more stock than available is rejected before creating it (422 INSUFFICIENT_STOCK)")
         void orderWithoutStock_shouldBeRejected() throws Exception {
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             var category = admin.post("/api/v1/categories", """
-                    {"name":"E2E sin stock %s"}""".formatted(suffix));
+                    {"name":"E2E out of stock %s"}""".formatted(suffix));
             long productId = admin.post("/api/v1/products", """
-                    {"name":"Sin stock %s","price":5.00,"stock":1,"categoryId":%d}"""
+                    {"name":"Out of stock %s","price":5.00,"stock":1,"categoryId":%d}"""
                     .formatted(suffix, category.body().get("id").asLong())).body().get("id").asLong();
             long customerId = admin.post("/api/v1/customers", """
-                    {"firstName":"Sin","lastName":"Stock","email":"e2e.nostock.%s@example.com",
-                     "addresses":[{"street":"Calle 1","city":"Lugo","postalCode":"27001","country":"ES"}]}"""
+                    {"firstName":"No","lastName":"Stock","email":"e2e.nostock.%s@example.com",
+                     "addresses":[{"street":"Street 1","city":"Lugo","postalCode":"27001","country":"ES"}]}"""
                     .formatted(suffix)).body().get("id").asLong();
 
             var order = admin.post("/api/v1/orders", """
@@ -113,11 +113,11 @@ class ShowcaseE2EIT {
     }
 
     @Nested
-    @DisplayName("seguridad en el gateway")
+    @DisplayName("gateway security")
     class GatewaySecurity {
 
         @Test
-        @DisplayName("sin token la API responde 401 en el formato común")
+        @DisplayName("without a token the API responds 401 in the common format")
         void withoutToken_shouldReturn401() throws Exception {
             var response = new ShowcaseClient(BASE_URL).get("/api/v1/orders");
 

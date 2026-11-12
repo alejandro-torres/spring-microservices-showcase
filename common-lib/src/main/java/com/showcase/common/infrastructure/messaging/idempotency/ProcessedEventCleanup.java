@@ -12,9 +12,9 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.scheduling.annotation.Scheduled;
 
 /**
- * Borra de {@code processed_event} los eventos procesados hace más de {@code retention}: RabbitMQ solo repite un
- * mensaje mientras no se confirma (minutos como mucho, con los reintentos), así que pasados unos días la tabla
- * solo crece. Con ShedLock solo la ejecuta una réplica.
+ * Deletes from {@code processed_event} the events processed more than {@code retention} ago: RabbitMQ only repeats a
+ * message while it is unacknowledged (minutes at most, with retries), so after a few days the table only grows.
+ * With ShedLock only one replica runs it.
  */
 @RequiredArgsConstructor
 public class ProcessedEventCleanup {
@@ -29,10 +29,10 @@ public class ProcessedEventCleanup {
     @SchedulerLock(name = "processedEventCleanup", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
     public void deleteOldEvents() {
         int deleted = deleteProcessedBefore(Instant.now(clock).minus(retention));
-        log.info("Limpieza de processed_event: {} eventos de hace más de {} borrados", deleted, retention);
+        log.info("processed_event cleanup: {} events older than {} deleted", deleted, retention);
     }
 
-    /** Visible para los tests. */
+    /** Visible for tests. */
     int deleteProcessedBefore(Instant limit) {
         return jdbcClient.sql("DELETE FROM processed_event WHERE processed_at < :limit")
                 .param("limit", Timestamp.from(limit))

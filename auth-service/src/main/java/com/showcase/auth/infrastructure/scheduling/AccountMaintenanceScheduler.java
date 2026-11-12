@@ -9,8 +9,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Adaptador de entrada de las tareas programadas de auth-service, como un controller: solo llama al servicio.
- * Con varias réplicas, ShedLock garantiza que cada tarea la ejecuta una sola a la vez.
+ * Inbound adapter for auth-service's scheduled tasks, like a controller: it only calls the service.
+ * With several replicas, ShedLock guarantees that only one runs each task at a time.
  */
 @Component
 @RequiredArgsConstructor
@@ -26,14 +26,14 @@ public class AccountMaintenanceScheduler {
     public void unlockExpiredAccounts() {
         int unlocked = maintenanceService.unlockExpiredAccounts();
         if (unlocked > 0) {
-            log.info("Desbloqueo automático: {} cuentas desbloqueadas", unlocked);
+            log.info("Automatic unlock: {} accounts unlocked", unlocked);
         }
     }
 
     @Scheduled(cron = "${showcase.scheduling.authorization-cleanup.cron:0 0 4 * * *}")
     @SchedulerLock(name = "expiredAuthorizationCleanup", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
     public void deleteExpiredAuthorizations() {
-        log.info("Limpieza de tokens caducados: {} autorizaciones OAuth2 borradas",
+        log.info("Expired token cleanup: {} OAuth2 authorizations deleted",
                 maintenanceService.deleteExpiredAuthorizations());
     }
 }

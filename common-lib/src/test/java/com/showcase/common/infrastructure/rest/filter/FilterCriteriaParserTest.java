@@ -58,39 +58,39 @@ class FilterCriteriaParserTest {
     }
 
     @Nested
-    @DisplayName("parse con filtros válidos")
+    @DisplayName("parse with valid filters")
     class ValidFilters {
 
         @ParameterizedTest
         @NullAndEmptySource
-        @DisplayName("devuelve una lista vacía si no hay filtros")
+        @DisplayName("returns an empty list if there are no filters")
         void parse_withoutFilters_shouldReturnEmpty(List<String> raw) {
             assertThat(parser.parse(raw, FIELDS)).isEmpty();
         }
 
         @Test
-        @DisplayName("convierte varios filtros en criterios con valores tipados")
+        @DisplayName("converts several filters to criteria with typed values")
         void parse_withSeveralFilters_shouldReturnTypedCriteria() {
             // when
             var criteria = parser.parse(
-                    List.of("name:like:portatil", "price:between:100,500", "categoryId:in:1,2,3"), FIELDS);
+                    List.of("name:like:laptop", "price:between:100,500", "categoryId:in:1,2,3"), FIELDS);
 
             // then
             assertThat(criteria).containsExactly(
-                    FilterCriterion.of("name", LIKE, "portatil"),
+                    FilterCriterion.of("name", LIKE, "laptop"),
                     FilterCriterion.of("price", BETWEEN, new BigDecimal("100"), new BigDecimal("500")),
                     FilterCriterion.of("categoryId", IN, 1L, 2L, 3L));
         }
 
         @Test
-        @DisplayName("admite ':' dentro del valor (fechas con hora)")
+        @DisplayName("allows ':' inside the value (dates with time)")
         void parse_withColonInValue_shouldKeepIt() {
             assertThat(parseOne("createdAt:gte:2026-10-01T10:30:00Z"))
                     .isEqualTo(FilterCriterion.of("createdAt", GTE, Instant.parse("2026-10-01T10:30:00Z")));
         }
 
         @Test
-        @DisplayName("convierte cada tipo soportado")
+        @DisplayName("converts each supported type")
         void parse_shouldConvertEachSupportedType() {
             var uuid = UUID.randomUUID();
             assertThat(parseOne("stock:gte:5").value()).isEqualTo(5);
@@ -101,26 +101,26 @@ class FilterCriteriaParserTest {
         }
 
         @Test
-        @DisplayName("acepta los operadores sin valor")
+        @DisplayName("accepts valueless operators")
         void parse_withNoValueOperator_shouldReturnEmptyValues() {
             assertThat(parseOne("phone:isNull")).isEqualTo(FilterCriterion.of("phone", IS_NULL));
             assertThat(parseOne("phone:isNotNull:")).isEqualTo(FilterCriterion.of("phone", IS_NOT_NULL));
         }
 
         @Test
-        @DisplayName("ignora los espacios alrededor del campo, el operador y el valor")
+        @DisplayName("ignores spaces around the field, the operator and the value")
         void parse_withSpaces_shouldTrimThem() {
             assertThat(parseOne(" price : gte : 100 ")).isEqualTo(FilterCriterion.of("price", GTE, new BigDecimal("100")));
         }
 
         @Test
-        @DisplayName("acepta un rango con los dos extremos iguales")
+        @DisplayName("accepts a range with both ends equal")
         void parse_withEqualRangeBounds_shouldAcceptIt() {
             assertThat(parseOne("price:between:100,100").values()).hasSize(2);
         }
 
         @Test
-        @DisplayName("acepta exactamente el número máximo de filtros")
+        @DisplayName("accepts exactly the maximum number of filters")
         void parse_withMaxFilters_shouldAcceptThem() {
             var raw = Collections.nCopies(FilterCriteriaParser.DEFAULT_MAX_FILTERS, "price:gte:1");
             assertThat(parser.parse(raw, FIELDS)).hasSize(FilterCriteriaParser.DEFAULT_MAX_FILTERS);
@@ -128,18 +128,18 @@ class FilterCriteriaParserTest {
     }
 
     @Nested
-    @DisplayName("parse con filtros inválidos")
+    @DisplayName("parse with invalid filters")
     class InvalidFilters {
 
         @ParameterizedTest
         @ValueSource(strings = {"price", ":gte:10", "price::10", " ", "price:"})
-        @DisplayName("rechaza un formato distinto de campo:operador:valor con INVALID_FILTER_FORMAT")
+        @DisplayName("rejects a format other than field:operator:value with INVALID_FILTER_FORMAT")
         void parse_withBadFormat_shouldThrowInvalidFormat(String raw) {
             assertFails(raw, CommonErrorCode.INVALID_FILTER_FORMAT);
         }
 
         @Test
-        @DisplayName("rechaza un campo que no está en la lista blanca con FILTER_FIELD_NOT_ALLOWED")
+        @DisplayName("rejects a field not on the whitelist with FILTER_FIELD_NOT_ALLOWED")
         void parse_withUnknownField_shouldThrowFieldNotAllowed() {
             assertThatThrownBy(() -> parser.parse(List.of("passwordHash:eq:x"), FIELDS))
                     .isInstanceOf(InvalidFilterException.class)
@@ -149,7 +149,7 @@ class FilterCriteriaParserTest {
 
         @ParameterizedTest
         @ValueSource(strings = {"price:like:10", "name:gte:a", "price:equals:10", "active:in:true"})
-        @DisplayName("rechaza un operador desconocido o no permitido para el campo con FILTER_OPERATOR_NOT_ALLOWED")
+        @DisplayName("rejects an unknown operator or one not allowed for the field with FILTER_OPERATOR_NOT_ALLOWED")
         void parse_withOperatorNotAllowed_shouldThrow(String raw) {
             assertFails(raw, CommonErrorCode.FILTER_OPERATOR_NOT_ALLOWED);
         }
@@ -161,13 +161,13 @@ class FilterCriteriaParserTest {
                 "createdAt:gte:ayer", "birthDate:eq:17/05/1990", "externalId:eq:123", "phone:isNull:x",
                 "stock:gte:99999999999"
         })
-        @DisplayName("rechaza valores que no se pueden convertir o no encajan con el operador con INVALID_FILTER_VALUE")
+        @DisplayName("rejects values that cannot be converted or do not fit the operator with INVALID_FILTER_VALUE")
         void parse_withInvalidValue_shouldThrowInvalidValue(String raw) {
             assertFails(raw, CommonErrorCode.INVALID_FILTER_VALUE);
         }
 
         @Test
-        @DisplayName("rechaza más filtros del máximo con TOO_MANY_FILTERS")
+        @DisplayName("rejects more filters than the maximum with TOO_MANY_FILTERS")
         void parse_withTooManyFilters_shouldThrow() {
             var raw = Collections.nCopies(FilterCriteriaParser.DEFAULT_MAX_FILTERS + 1, "price:gte:1");
             assertThatThrownBy(() -> parser.parse(raw, FIELDS))
@@ -181,7 +181,7 @@ class FilterCriteriaParserTest {
     class Constructor {
 
         @Test
-        @DisplayName("permite configurar el máximo de filtros y rechaza valores menores que 1")
+        @DisplayName("allows configuring the maximum filters and rejects values below 1")
         void constructor_shouldValidateMaxFilters() {
             var strict = new FilterCriteriaParser(1);
             assertThatThrownBy(() -> strict.parse(List.of("price:gte:1", "price:lte:2"), FIELDS))

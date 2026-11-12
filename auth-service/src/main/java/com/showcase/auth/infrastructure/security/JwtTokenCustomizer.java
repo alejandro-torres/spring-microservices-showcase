@@ -11,15 +11,15 @@ import org.springframework.security.oauth2.server.authorization.token.OAuth2Toke
 import org.springframework.stereotype.Component;
 
 /**
- * Añade al token de acceso de un usuario sus roles y permisos ({@code roles}, {@code permissions}),
- * para que cualquier servicio pueda autorizar con {@code @PreAuthorize} sin consultar a auth-service.
- * Los tokens entre servicios (client_credentials) solo llevan el scope.
+ * Adds a user's roles and permissions ({@code roles}, {@code permissions}) to their access token,
+ * so any service can authorize with {@code @PreAuthorize} without asking auth-service.
+ * Service-to-service tokens (client_credentials) only carry the scope.
  */
 @Component
 public class JwtTokenCustomizer implements OAuth2TokenCustomizer<JwtEncodingContext> {
 
     private static final String ROLE_PREFIX = "ROLE_";
-    // Spring Security 7 añade autoridades FACTOR_* (factor de autenticación usado); no son permisos.
+    // Spring Security 7 adds FACTOR_* authorities (authentication factor used); they are not permissions.
     private static final String FACTOR_PREFIX = "FACTOR_";
 
     @Override

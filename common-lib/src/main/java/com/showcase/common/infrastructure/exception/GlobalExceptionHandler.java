@@ -31,11 +31,11 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
- * Convierte cualquier excepción en una respuesta {@link ErrorResponseDTO} con un código HTTP estándar.
- * El cliente nunca recibe detalles internos de Java: el detalle técnico solo va al log, con el traceId.
+ * Converts any exception into an {@link ErrorResponseDTO} response with a standard HTTP code.
+ * The client never receives internal Java details: the technical detail only goes to the log, with the traceId.
  *
- * <p>Va con la menor precedencia para que los handlers específicos (datos, validación, seguridad o los
- * de cada servicio) se evalúen antes que su {@code @ExceptionHandler(Exception.class)} de último recurso.
+ * <p>It has the lowest precedence so that the specific handlers (data, validation, security or each
+ * service's own) are evaluated before its last-resort {@code @ExceptionHandler(Exception.class)}.
  */
 @RestControllerAdvice
 @Order(Ordered.LOWEST_PRECEDENCE)
@@ -51,14 +51,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleDomain(DomainException ex, HttpServletRequest request) {
         HttpStatus status = statusMapper.toStatus(ex.getErrorCode());
         if (status.is5xxServerError()) {
-            log.error("Error de dominio {} en {}", ex.getErrorCode().code(), request.getRequestURI(), ex);
+            log.error("Domain error {} in {}", ex.getErrorCode().code(), request.getRequestURI(), ex);
         } else {
-            log.warn("Error de dominio {} en {}: {}", ex.getErrorCode().code(), request.getRequestURI(), ex.getMessage());
+            log.warn("Domain error {} in {}: {}", ex.getErrorCode().code(), request.getRequestURI(), ex.getMessage());
         }
         return responses.create(status, ex.getErrorCode(), ex.getArgs(), request);
     }
 
-    /** Errores de @Valid en el cuerpo y de binding de objetos (MethodArgumentNotValidException hereda de esta). */
+    /** @Valid errors in the body and object binding errors (MethodArgumentNotValidException inherits from this one). */
     @ExceptionHandler(BindException.class)
     public ResponseEntity<ErrorResponseDTO> handleBind(BindException ex, HttpServletRequest request) {
         List<FieldErrorDTO> errors = new ArrayList<>();
@@ -69,7 +69,7 @@ public class GlobalExceptionHandler {
         return validationError(errors, request);
     }
 
-    /** Errores de validación en parámetros de los métodos (@RequestParam @Max(100), @PathVariable @Positive...). */
+    /** Validation errors in method parameters (@RequestParam @Max(100), @PathVariable @Positive...). */
     @ExceptionHandler(HandlerMethodValidationException.class)
     public ResponseEntity<ErrorResponseDTO> handleMethodValidation(HandlerMethodValidationException ex,
                                                                    HttpServletRequest request) {
@@ -86,7 +86,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponseDTO> handleNotReadable(HttpMessageNotReadableException ex,
                                                               HttpServletRequest request) {
-        log.warn("Cuerpo ilegible en {}: {}", request.getRequestURI(), ex.getMessage());
+        log.warn("Unreadable body in {}: {}", request.getRequestURI(), ex.getMessage());
         return responses.create(HttpStatus.BAD_REQUEST, CommonErrorCode.MALFORMED_REQUEST, List.of(), request);
     }
 
@@ -143,15 +143,15 @@ public class GlobalExceptionHandler {
                 List.of(String.valueOf(ex.getContentType())), request);
     }
 
-    /** Último recurso: cualquier error inesperado sale como 500 genérico, sin detalles de Java. */
+    /** Last resort: any unexpected error comes out as a generic 500, with no Java details. */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDTO> handleUnexpected(Exception ex, HttpServletRequest request) {
-        log.error("Error inesperado en {} {}", request.getMethod(), request.getRequestURI(), ex);
+        log.error("Unexpected error in {} {}", request.getMethod(), request.getRequestURI(), ex);
         return responses.create(HttpStatus.INTERNAL_SERVER_ERROR, CommonErrorCode.INTERNAL_ERROR, List.of(), request);
     }
 
     private ResponseEntity<ErrorResponseDTO> validationError(List<FieldErrorDTO> errors, HttpServletRequest request) {
-        log.warn("Petición no válida en {}: {} errores de validación", request.getRequestURI(), errors.size());
+        log.warn("Invalid request at {}: {} validation errors", request.getRequestURI(), errors.size());
         return responses.create(HttpStatus.BAD_REQUEST, CommonErrorCode.VALIDATION_ERROR, List.of(), errors, request);
     }
 }

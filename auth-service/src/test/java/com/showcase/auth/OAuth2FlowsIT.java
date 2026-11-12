@@ -34,8 +34,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Flujos OAuth2 reales contra la aplicación completa: login con contraseña en PostgreSQL,
- * authorization_code con PKCE, client_credentials y uso del JWT en la API.
+ * Real OAuth2 flows against the full application: password login in PostgreSQL,
+ * authorization_code with PKCE, client_credentials and use of the JWT in the API.
  */
 @SpringBootTest(properties = "INTERNAL_CLIENT_SECRET=internal-test-secret")
 @AutoConfigureMockMvc
@@ -43,7 +43,7 @@ import tools.jackson.databind.json.JsonMapper;
 class OAuth2FlowsIT {
 
     private static final String REDIRECT_URI = "http://127.0.0.1:3000/callback";
-    private static final String PASSWORD = "Secreta-Test-123";
+    private static final String PASSWORD = "Secret-Test-123";
 
     @Autowired
     private MockMvc mockMvc;
@@ -62,15 +62,16 @@ class OAuth2FlowsIT {
         userService.create(username, username + "@example.com", PASSWORD, roleIds);
     }
 
-    /** Recorre authorization_code + PKCE como un navegador y devuelve la respuesta JSON de /oauth2/token. */
+    /** Walks through authorization_code + PKCE like a browser and returns the JSON response of /oauth2/token. */
     private String authorizationCodeFlow(String username, String password) throws Exception {
         String verifier = randomVerifier();
         String challenge = Base64.getUrlEncoder().withoutPadding().encodeToString(
                 MessageDigest.getInstance("SHA-256").digest(verifier.getBytes(StandardCharsets.US_ASCII)));
         var session = new MockHttpSession();
 
-        // 1. El navegador pide autorización sin sesión: el servidor guarda la petición y redirige al login.
-        //    Los parámetros van en la query string: el servidor de autorización solo los lee de ahí.
+        // 1. The browser requests authorization without a session: the server stores the request and redirects to the
+        // login.
+        //    The parameters go in the query string: the authorization server only reads them from there.
         URI authorizeUri = UriComponentsBuilder.fromPath("/oauth2/authorize")
                 .queryParam("response_type", "code")
                 .queryParam("client_id", "web-client")
@@ -83,23 +84,24 @@ class OAuth2FlowsIT {
         mockMvc.perform(get(authorizeUri).session(session).accept(MediaType.TEXT_HTML))
                 .andExpect(status().is3xxRedirection());
 
-        // 2. El usuario envía el formulario de login; se le devuelve a la petición de autorización guardada.
+        // 2. The user submits the login form and is sent back to the stored authorization request.
         String afterLogin = mockMvc.perform(post("/login").session(session).with(csrf())
                         .param("username", username)
                         .param("password", password))
                 .andExpect(status().is3xxRedirection())
                 .andReturn().getResponse().getRedirectedUrl();
 
-        // 3. Ya autenticado, el servidor redirige a la aplicación con el código (302: parte normal del flujo).
+        // 3. Once authenticated, the server redirects to the application with the code (302: a normal part of the
+        // flow).
         String callback = mockMvc.perform(get(URI.create(afterLogin)).session(session).accept(MediaType.TEXT_HTML))
                 .andExpect(status().is3xxRedirection())
                 .andReturn().getResponse().getRedirectedUrl();
         Map<String, List<String>> params = UriComponentsBuilder.fromUriString(callback).build().getQueryParams();
         assertThat(callback).startsWith(REDIRECT_URI);
         assertThat(params.get("state")).containsExactly("estado-123");
-        assertThat(params).as("redirección con el código: %s", callback).containsKey("code");
+        assertThat(params).as("redirect with the code: %s", callback).containsKey("code");
 
-        // 4. La aplicación canjea el código demostrando que tiene el code_verifier (PKCE).
+        // 4. The application redeems the code by proving it holds the code_verifier (PKCE).
         return mockMvc.perform(post("/oauth2/token")
                         .param("grant_type", "authorization_code")
                         .param("code", params.get("code").getFirst())
@@ -123,17 +125,17 @@ class OAuth2FlowsIT {
     }
 
     @Nested
-    @DisplayName("authorization_code con PKCE")
+    @DisplayName("authorization_code with PKCE")
     class AuthorizationCode {
 
         @Test
-        @DisplayName("un ADMIN obtiene un JWT con sus roles y permisos y puede usar la API")
+        @DisplayName("an ADMIN gets a JWT with their roles and permissions and can use the API")
         void admin_shouldGetTokenWithRolesAndUseApi() throws Exception {
             createUser("flow.admin", "ADMIN");
 
             String response = authorizationCodeFlow("flow.admin", PASSWORD);
             String accessToken = JsonPath.read(response, "$.access_token");
-            // Buena práctica de OAuth 2.1: los clientes públicos (navegador) no reciben refresh token.
+            // OAuth 2.1 best practice: public clients (browser) do not get a refresh token.
             assertThat(response).doesNotContain("refresh_token");
 
             Map<String, Object> claims = claims(accessToken);
@@ -150,15 +152,15 @@ class OAuth2FlowsIT {
         }
 
         @Test
-        @DisplayName("un usuario registrado (rol USER) accede a /me pero no al listado de usuarios")
+        @DisplayName("a registered user (USER role) can access /me but not the user listing")
         void registeredUser_shouldOnlyAccessOwnData() throws Exception {
             mockMvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content("""
-                            {"username":"nuevo.cliente","email":"nuevo@example.com","password":"%s",
-                             "firstName":"Nuevo","lastName":"Cliente"}
+                            {"username":"new.customer","email":"new@example.com","password":"%s",
+                             "firstName":"New","lastName":"Customer"}
                             """.formatted(PASSWORD)))
                     .andExpect(status().isCreated());
 
-            String accessToken = JsonPath.read(authorizationCodeFlow("nuevo.cliente", PASSWORD), "$.access_token");
+            String accessToken = JsonPath.read(authorizationCodeFlow("new.customer", PASSWORD), "$.access_token");
 
             mockMvc.perform(get("/api/v1/users/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
                     .andExpect(status().isOk())
@@ -169,22 +171,22 @@ class OAuth2FlowsIT {
         }
 
         @Test
-        @DisplayName("una contraseña incorrecta no completa el login")
+        @DisplayName("a wrong password does not complete the login")
         void wrongPassword_shouldFailLogin() throws Exception {
             createUser("flow.wrong", "USER");
 
-            mockMvc.perform(post("/login").with(csrf()).param("username", "flow.wrong").param("password", "incorrecta"))
+            mockMvc.perform(post("/login").with(csrf()).param("username", "flow.wrong").param("password", "wrong"))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(result -> assertThat(result.getResponse().getRedirectedUrl()).contains("/login?error"));
         }
     }
 
     @Nested
-    @DisplayName("client_credentials y validación de tokens")
+    @DisplayName("client_credentials and token validation")
     class ClientCredentialsAndValidation {
 
         @Test
-        @DisplayName("un servicio obtiene un token con scope internal y sin roles de usuario")
+        @DisplayName("a service gets a token with the internal scope and no user roles")
         void clientCredentials_shouldIssueServiceToken() throws Exception {
             String response = mockMvc.perform(post("/oauth2/token")
                             .with(httpBasic("internal-service", "internal-test-secret"))
@@ -199,16 +201,16 @@ class OAuth2FlowsIT {
         }
 
         @Test
-        @DisplayName("rechaza un secreto de cliente incorrecto")
+        @DisplayName("rejects a wrong client secret")
         void clientCredentials_withWrongSecret_shouldReturn401() throws Exception {
             mockMvc.perform(post("/oauth2/token")
-                            .with(httpBasic("internal-service", "incorrecto"))
+                            .with(httpBasic("internal-service", "wrong"))
                             .param("grant_type", "client_credentials"))
                     .andExpect(status().isUnauthorized());
         }
 
         @Test
-        @DisplayName("la API rechaza peticiones sin token o con un token manipulado, en el formato común")
+        @DisplayName("the API rejects requests with no token or a tampered token, in the common format")
         void api_withoutOrWithInvalidToken_shouldReturn401() throws Exception {
             mockMvc.perform(get("/api/v1/users"))
                     .andExpect(status().isUnauthorized())
@@ -219,7 +221,7 @@ class OAuth2FlowsIT {
         }
 
         @Test
-        @DisplayName("publica las claves públicas (JWKS) y la configuración OpenID sin autenticación")
+        @DisplayName("publishes the public keys (JWKS) and the OpenID configuration without authentication")
         void publicEndpoints_shouldBeAvailable() throws Exception {
             mockMvc.perform(get("/oauth2/jwks"))
                     .andExpect(status().isOk())

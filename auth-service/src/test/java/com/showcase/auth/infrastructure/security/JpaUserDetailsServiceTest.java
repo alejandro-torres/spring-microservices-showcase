@@ -27,7 +27,7 @@ class JpaUserDetailsServiceTest {
             new JpaUserDetailsService(userRepository, Clock.fixed(NOW, ZoneOffset.UTC));
 
     @Test
-    @DisplayName("carga el usuario con ROLE_* y los permisos de sus roles, normalizando el username")
+    @DisplayName("loads the user with ROLE_* and their roles' permissions, normalizing the username")
     void loadUserByUsername_shouldMapRolesAndPermissions() {
         given(userRepository.findByUsername("ana")).willReturn(Optional.of(user(10L, "ana", adminRole())));
 
@@ -41,7 +41,7 @@ class JpaUserDetailsServiceTest {
     }
 
     @Test
-    @DisplayName("marca como deshabilitado al usuario con enabled = false")
+    @DisplayName("marks the user as disabled with enabled = false")
     void loadUserByUsername_disabledUser_shouldBeDisabled() {
         var ana = user(10L, "ana");
         ana.update("ana@example.com", false);
@@ -51,7 +51,7 @@ class JpaUserDetailsServiceTest {
     }
 
     @Test
-    @DisplayName("marca la cuenta como bloqueada mientras no caduque el bloqueo")
+    @DisplayName("marks the account as locked while the lock has not expired")
     void loadUserByUsername_lockedUser_shouldBeLocked() {
         var ana = user(10L, "ana");
         ana.registerFailedLogin(1, Duration.ofMinutes(15), NOW.minusSeconds(60));
@@ -61,10 +61,10 @@ class JpaUserDetailsServiceTest {
     }
 
     @Test
-    @DisplayName("no revela si el usuario existe: mismo mensaje genérico")
+    @DisplayName("does not reveal whether the user exists: same generic message")
     void loadUserByUsername_missingUser_shouldThrowGenericMessage() {
-        assertThatThrownBy(() -> userDetailsService.loadUserByUsername("nadie"))
+        assertThatThrownBy(() -> userDetailsService.loadUserByUsername("nobody"))
                 .isInstanceOf(UsernameNotFoundException.class)
-                .hasMessage("Credenciales no válidas");
+                .hasMessage("Invalid credentials");
     }
 }

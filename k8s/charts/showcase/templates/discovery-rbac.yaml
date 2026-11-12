@@ -1,5 +1,5 @@
-# Descubrimiento de servicios sin Eureka: el gateway y order-service (Spring Cloud Kubernetes) leen de la API de
-# Kubernetes los Services y sus endpoints (las IP de las réplicas listas) de este namespace. Solo lectura.
+# Service discovery without Eureka: the gateway and order-service (Spring Cloud Kubernetes) read from the
+# Kubernetes API the Services and their endpoints (the IPs of the ready replicas) of this namespace. Read-only.
 apiVersion: v1
 kind: ServiceAccount
 metadata:

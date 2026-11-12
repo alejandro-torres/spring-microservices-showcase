@@ -10,9 +10,9 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 /**
- * Adaptador de entrada de las respuestas de product-service en la saga. Igual que un controller: convierte el
- * mensaje y llama a la interfaz de servicio, sin lógica de negocio ni transacción propia. Si el servicio lanza
- * una excepción, Spring AMQP reintenta o manda el mensaje a la DLQ; el ACK solo se hace si todo ha ido bien.
+ * Inbound adapter for product-service's responses in the saga. Like a controller: it converts the message and
+ * calls the service interface, with no business logic or transaction of its own. If the service throws an
+ * exception, Spring AMQP retries or sends the message to the DLQ; the ACK only happens if everything went well.
  */
 @Component
 @RequiredArgsConstructor

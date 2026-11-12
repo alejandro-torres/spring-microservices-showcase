@@ -9,7 +9,7 @@ import org.springframework.data.auditing.DateTimeProvider;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 /**
- * Auditoría JPA: rellena created_at y updated_at con el Clock inyectado.
+ * JPA auditing: fills created_at and updated_at with the injected Clock.
  */
 @Configuration(proxyBeanMethods = false)
 @EnableJpaAuditing(dateTimeProviderRef = "auditingDateTimeProvider")

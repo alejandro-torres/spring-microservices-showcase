@@ -1,5 +1,5 @@
 package com.showcase.order.domain.event;
 
-/** Producto y unidades de una línea, lo único que necesita saber product-service para reservar stock. */
+/** Product and units of a line, all product-service needs to know to reserve stock. */
 public record OrderEventLine(Long productId, int quantity) {
 }

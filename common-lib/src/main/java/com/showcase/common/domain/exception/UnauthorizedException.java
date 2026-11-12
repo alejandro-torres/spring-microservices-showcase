@@ -1,7 +1,7 @@
 package com.showcase.common.domain.exception;
 
 /**
- * Credenciales inválidas o sesión caducada.
+ * Invalid credentials or expired session.
  */
 public class UnauthorizedException extends DomainException {
 

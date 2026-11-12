@@ -17,8 +17,8 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 /**
- * Lista blanca de filtros y campos de ordenación de cada recurso. Lo que no aparece aquí
- * no se puede usar en {@code filter} ni en {@code sort} (p. ej. nunca el hash de la contraseña).
+ * Whitelist of each resource's filters and sort fields. Anything not listed here
+ * cannot be used in {@code filter} or {@code sort} (e.g. never the password hash).
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class AuthQueryFields {

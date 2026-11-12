@@ -15,21 +15,21 @@ class SortDirectionTest {
 
     @ParameterizedTest
     @CsvSource({"asc, ASC", "ASC, ASC", "desc, DESC", "' Desc ', DESC"})
-    @DisplayName("convierte el texto sin distinguir mayúsculas ni espacios")
+    @DisplayName("converts the text ignoring case and spaces")
     void from_withValidValue_shouldConvert(String value, SortDirection expected) {
         assertThat(SortDirection.from(value)).isEqualTo(expected);
     }
 
     @ParameterizedTest
     @NullAndEmptySource
-    @DisplayName("usa ASC cuando no se indica")
+    @DisplayName("uses ASC when not specified")
     void from_withoutValue_shouldReturnAsc(String value) {
         assertThat(SortDirection.from(value)).isEqualTo(SortDirection.ASC);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"up", "ascending", "1"})
-    @DisplayName("rechaza valores desconocidos con INVALID_PAGINATION")
+    @DisplayName("rejects unknown values with INVALID_PAGINATION")
     void from_withInvalidValue_shouldThrow(String value) {
         assertThatThrownBy(() -> SortDirection.from(value))
                 .isInstanceOf(InvalidRequestException.class)

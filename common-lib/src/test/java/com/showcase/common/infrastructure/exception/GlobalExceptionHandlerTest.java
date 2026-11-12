@@ -43,8 +43,8 @@ class GlobalExceptionHandlerTest {
         var responses = new ErrorResponseFactory(
                 new ErrorMessageResolver(new StaticMessageSource()), Clock.fixed(NOW, ZoneOffset.UTC));
         var localeResolver = new AcceptHeaderLocaleResolver();
-        localeResolver.setDefaultLocale(SPANISH);
-        localeResolver.setSupportedLocales(List.of(SPANISH, Locale.ENGLISH));
+        localeResolver.setDefaultLocale(Locale.ENGLISH);
+        localeResolver.setSupportedLocales(List.of(Locale.ENGLISH, SPANISH));
 
         mockMvc = MockMvcBuilders.standaloneSetup(new ErrorTestController())
                 .setControllerAdvice(
@@ -65,11 +65,11 @@ class GlobalExceptionHandlerTest {
     }
 
     @Nested
-    @DisplayName("excepciones de dominio")
+    @DisplayName("domain exceptions")
     class DomainExceptions {
 
         @Test
-        @DisplayName("devuelve 404 con el formato común, el mensaje en español y el traceId")
+        @DisplayName("returns 404 with the common format, the message in English and the traceId")
         void notFound_shouldReturn404WithCommonFormat() throws Exception {
             // given
             MDC.put("traceId", "a1b2c3d4e5");
@@ -81,40 +81,40 @@ class GlobalExceptionHandlerTest {
                     .andExpect(jsonPath("$.status").value(404))
                     .andExpect(jsonPath("$.error").value("Not Found"))
                     .andExpect(jsonPath("$.code").value("RESOURCE_NOT_FOUND"))
-                    .andExpect(jsonPath("$.message").value("No se ha encontrado el recurso Product con id 25000."))
+                    .andExpect(jsonPath("$.message").value("Product with id 25000 was not found."))
                     .andExpect(jsonPath("$.path").value("/test/not-found"))
                     .andExpect(jsonPath("$.traceId").value("a1b2c3d4e5"))
                     .andExpect(jsonPath("$.errors").doesNotExist());
         }
 
         @Test
-        @DisplayName("traduce el mensaje al inglés con Accept-Language en, sin cambiar el código")
-        void notFound_withEnglish_shouldTranslateMessageOnly() throws Exception {
-            perform(get("/test/not-found").header(HttpHeaders.ACCEPT_LANGUAGE, "en-US,en;q=0.9"))
+        @DisplayName("translates the message to Spanish with Accept-Language es, without changing the code")
+        void notFound_withSpanish_shouldTranslateMessageOnly() throws Exception {
+            perform(get("/test/not-found").header(HttpHeaders.ACCEPT_LANGUAGE, "es-ES,es;q=0.9"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.code").value("RESOURCE_NOT_FOUND"))
-                    .andExpect(jsonPath("$.message").value("Product with id 25000 was not found."));
+                    .andExpect(jsonPath("$.message").value("No se ha encontrado el recurso Product con id 25000."));
         }
 
         @Test
-        @DisplayName("usa el español con un idioma no soportado y omite el traceId si no hay traza")
-        void notFound_withUnsupportedLanguage_shouldUseSpanish() throws Exception {
+        @DisplayName("uses English with an unsupported language and omits the traceId if there is no trace")
+        void notFound_withUnsupportedLanguage_shouldUseEnglish() throws Exception {
             perform(get("/test/not-found").header(HttpHeaders.ACCEPT_LANGUAGE, "fr"))
-                    .andExpect(jsonPath("$.message").value("No se ha encontrado el recurso Product con id 25000."))
+                    .andExpect(jsonPath("$.message").value("Product with id 25000 was not found."))
                     .andExpect(jsonPath("$.traceId").doesNotExist());
         }
 
         @Test
-        @DisplayName("devuelve 422 para una regla de negocio y el mensaje genérico si no hay traducción")
+        @DisplayName("returns 422 for a business rule and the generic message if there is no translation")
         void businessRule_shouldReturn422() throws Exception {
             perform(get("/test/business-rule"))
                     .andExpect(status().isUnprocessableContent())
                     .andExpect(jsonPath("$.code").value("INSUFFICIENT_STOCK"))
-                    .andExpect(jsonPath("$.message").value("Se ha producido un error al procesar la petición."));
+                    .andExpect(jsonPath("$.message").value("An error occurred while processing the request."));
         }
 
         @Test
-        @DisplayName("devuelve 503 cuando falla un servicio externo")
+        @DisplayName("returns 503 when an external service fails")
         void externalService_shouldReturn503() throws Exception {
             perform(get("/test/external"))
                     .andExpect(status().isServiceUnavailable())
@@ -123,62 +123,62 @@ class GlobalExceptionHandlerTest {
     }
 
     @Nested
-    @DisplayName("validación")
+    @DisplayName("validation")
     class Validation {
 
         @Test
-        @DisplayName("devuelve 400 VALIDATION_ERROR con la lista de campos inválidos traducida")
+        @DisplayName("returns 400 VALIDATION_ERROR with the translated list of invalid fields")
         void invalidBody_shouldReturnFieldErrors() throws Exception {
             perform(post("/test/body")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{\"name\":\"\",\"code\":\"ab\",\"quantity\":-1}"))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
-                    .andExpect(jsonPath("$.message").value("La petición contiene datos no válidos."))
+                    .andExpect(jsonPath("$.message").value("The request contains invalid data."))
                     .andExpect(jsonPath("$.errors", hasSize(3)))
                     .andExpect(jsonPath("$.errors[*].field", containsInAnyOrder("name", "code", "quantity")))
-                    .andExpect(jsonPath("$.errors[?(@.field=='code')].message").value("debe tener entre 3 y 10 caracteres"))
-                    .andExpect(jsonPath("$.errors[?(@.field=='quantity')].message").value("debe ser mayor que 0"));
+                    .andExpect(jsonPath("$.errors[?(@.field=='code')].message").value("must be between 3 and 10 characters long"))
+                    .andExpect(jsonPath("$.errors[?(@.field=='quantity')].message").value("must be greater than 0"));
         }
 
         @Test
-        @DisplayName("traduce los errores de campo al inglés")
-        void invalidBody_withEnglish_shouldTranslateFieldErrors() throws Exception {
+        @DisplayName("translates the field errors to Spanish")
+        void invalidBody_withSpanish_shouldTranslateFieldErrors() throws Exception {
             perform(post("/test/body")
-                    .header(HttpHeaders.ACCEPT_LANGUAGE, "en")
+                    .header(HttpHeaders.ACCEPT_LANGUAGE, "es")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{\"name\":\"ok\",\"code\":\"ab\",\"quantity\":1}"))
                     .andExpect(jsonPath("$.errors[0].field").value("code"))
-                    .andExpect(jsonPath("$.errors[0].message").value("must be between 3 and 10 characters long"));
+                    .andExpect(jsonPath("$.errors[0].message").value("debe tener entre 3 y 10 caracteres"));
         }
 
         @Test
-        @DisplayName("devuelve 400 VALIDATION_ERROR si falla la validación de un parámetro")
+        @DisplayName("returns 400 VALIDATION_ERROR if a parameter's validation fails")
         void invalidParam_shouldReturnValidationError() throws Exception {
             perform(get("/test/param").param("size", "500"))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                     .andExpect(jsonPath("$.errors[0].field").value("size"))
-                    .andExpect(jsonPath("$.errors[0].message").value("debe ser menor o igual que 100"));
+                    .andExpect(jsonPath("$.errors[0].message").value("must be less than or equal to 100"));
         }
 
         @Test
-        @DisplayName("devuelve 400 VALIDATION_ERROR para una ConstraintViolationException")
+        @DisplayName("returns 400 VALIDATION_ERROR for a ConstraintViolationException")
         void constraintViolation_shouldReturnValidationError() throws Exception {
             perform(get("/test/constraint-violation"))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                     .andExpect(jsonPath("$.errors", hasSize(3)))
-                    .andExpect(jsonPath("$.errors[?(@.field=='name')].message").value("es obligatorio y no puede estar vacío"));
+                    .andExpect(jsonPath("$.errors[?(@.field=='name')].message").value("is required and cannot be blank"));
         }
     }
 
     @Nested
-    @DisplayName("errores de la petición HTTP")
+    @DisplayName("HTTP request errors")
     class RequestErrors {
 
         @Test
-        @DisplayName("devuelve 400 MALFORMED_REQUEST con un JSON mal formado")
+        @DisplayName("returns 400 MALFORMED_REQUEST with malformed JSON")
         void malformedJson_shouldReturn400() throws Exception {
             perform(post("/test/body").contentType(MediaType.APPLICATION_JSON).content("{\"name\":"))
                     .andExpect(status().isBadRequest())
@@ -186,16 +186,16 @@ class GlobalExceptionHandlerTest {
         }
 
         @Test
-        @DisplayName("devuelve 400 INVALID_PARAMETER si un parámetro no tiene el tipo esperado")
+        @DisplayName("returns 400 INVALID_PARAMETER if a parameter does not have the expected type")
         void typeMismatch_shouldReturn400() throws Exception {
             perform(get("/test/typed/abc"))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("INVALID_PARAMETER"))
-                    .andExpect(jsonPath("$.message").value("El parámetro 'id' tiene un valor no válido: abc."));
+                    .andExpect(jsonPath("$.message").value("Parameter 'id' has an invalid value: abc."));
         }
 
         @Test
-        @DisplayName("devuelve 400 MISSING_PARAMETER si falta un parámetro obligatorio")
+        @DisplayName("returns 400 MISSING_PARAMETER if a required parameter is missing")
         void missingParameter_shouldReturn400() throws Exception {
             perform(get("/test/required"))
                     .andExpect(status().isBadRequest())
@@ -203,7 +203,7 @@ class GlobalExceptionHandlerTest {
         }
 
         @Test
-        @DisplayName("devuelve 405 con la cabecera Allow si el método no está permitido")
+        @DisplayName("returns 405 with the Allow header if the method is not allowed")
         void methodNotAllowed_shouldReturn405WithAllowHeader() throws Exception {
             perform(delete("/test/not-found"))
                     .andExpect(status().isMethodNotAllowed())
@@ -212,28 +212,28 @@ class GlobalExceptionHandlerTest {
         }
 
         @Test
-        @DisplayName("devuelve 415 si el tipo de contenido no está soportado")
+        @DisplayName("returns 415 if the content type is not supported")
         void unsupportedMediaType_shouldReturn415() throws Exception {
-            perform(post("/test/body").contentType(MediaType.TEXT_PLAIN).content("hola"))
+            perform(post("/test/body").contentType(MediaType.TEXT_PLAIN).content("hello"))
                     .andExpect(status().isUnsupportedMediaType())
                     .andExpect(jsonPath("$.code").value("UNSUPPORTED_MEDIA_TYPE"));
         }
 
         @Test
-        @DisplayName("devuelve 404 ENDPOINT_NOT_FOUND para una ruta que no existe")
+        @DisplayName("returns 404 ENDPOINT_NOT_FOUND for a path that does not exist")
         void unknownPath_shouldReturn404() throws Exception {
-            perform(get("/no-existe"))
+            perform(get("/does-not-exist"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.code").value("ENDPOINT_NOT_FOUND"));
         }
     }
 
     @Nested
-    @DisplayName("errores de datos e inesperados")
+    @DisplayName("data and unexpected errors")
     class DataAndUnexpectedErrors {
 
         @Test
-        @DisplayName("devuelve 409 CONCURRENT_MODIFICATION con un fallo de bloqueo optimista")
+        @DisplayName("returns 409 CONCURRENT_MODIFICATION with an optimistic locking failure")
         void optimisticLock_shouldReturn409() throws Exception {
             perform(get("/test/optimistic-lock"))
                     .andExpect(status().isConflict())
@@ -241,7 +241,7 @@ class GlobalExceptionHandlerTest {
         }
 
         @Test
-        @DisplayName("devuelve 409 DATA_CONFLICT sin mostrar el mensaje SQL")
+        @DisplayName("returns 409 DATA_CONFLICT without showing the SQL message")
         void dataIntegrity_shouldReturn409WithoutSql() throws Exception {
             perform(get("/test/data-integrity"))
                     .andExpect(status().isConflict())
@@ -250,14 +250,14 @@ class GlobalExceptionHandlerTest {
         }
 
         @Test
-        @DisplayName("devuelve 500 genérico sin detalles de Java para un error inesperado")
+        @DisplayName("returns a generic 500 without Java details for an unexpected error")
         void unexpected_shouldReturnGeneric500() throws Exception {
             perform(get("/test/unexpected"))
                     .andExpect(status().isInternalServerError())
                     .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
-                    .andExpect(jsonPath("$.message").value("Error interno del servidor."))
+                    .andExpect(jsonPath("$.message").value("Internal server error."))
                     .andExpect(jsonPath("$.message", not(containsString("NullPointerException"))))
-                    .andExpect(jsonPath("$.message", not(containsString("secreto"))))
+                    .andExpect(jsonPath("$.message", not(containsString("secret"))))
                     .andExpect(jsonPath("$.trace").doesNotExist());
         }
     }

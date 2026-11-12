@@ -8,7 +8,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
-/** Las líneas se sincronizan a mano en el repositorio (ver {@code OrderRepositoryImpl}). */
+/** The lines are synchronized by hand in the repository (see {@code OrderRepositoryImpl}). */
 @Mapper(componentModel = "spring")
 public interface OrderEntityMapper {
 

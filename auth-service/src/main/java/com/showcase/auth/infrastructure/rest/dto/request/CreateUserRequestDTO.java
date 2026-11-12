@@ -9,8 +9,8 @@ import jakarta.validation.constraints.Size;
 import java.util.Set;
 
 /**
- * Alta de usuario. La política de contraseñas completa (mayúsculas, símbolos, historial) llega con
- * la parte de seguridad; aquí solo se exige la longitud.
+ * User creation. The full password policy (uppercase, symbols, history) comes with
+ * the security part; only the length is required here.
  */
 public record CreateUserRequestDTO(
         @NotBlank @Size(min = 3, max = 30) @Pattern(regexp = "^[A-Za-z0-9._-]+$") String username,
@@ -18,7 +18,7 @@ public record CreateUserRequestDTO(
         @NotBlank @StrongPassword String password,
         Set<@Positive Long> roleIds) {
 
-    /** Evita que la contraseña aparezca en los logs si se imprime el DTO. */
+    /** Keeps the password out of the logs if the DTO is printed. */
     @Override
     public String toString() {
         return "CreateUserRequestDTO[username=" + username + ", email=" + email + ", roleIds=" + roleIds + "]";

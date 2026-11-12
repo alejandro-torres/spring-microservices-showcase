@@ -29,7 +29,7 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class OrderRepositoryImpl implements OrderRepository {
 
-    /** {@code productId} filtra los pedidos que contienen ese producto (join con las líneas). */
+    /** {@code productId} filters the orders containing that product (join with the lines). */
     static final FilterMapping MAPPING = FilterMapping.of(Map.of("productId", "items.productId"));
 
     private final OrderJpaRepository jpaRepository;
@@ -46,9 +46,9 @@ public class OrderRepositoryImpl implements OrderRepository {
     }
 
     /**
-     * Sincroniza por producto: actualiza las líneas que siguen, borra las que ya no están y añade las nuevas.
-     * Borrar todas y volver a insertarlas rompería la restricción única (order_id, product_id), porque
-     * Hibernate ejecuta los INSERT antes que los DELETE de los huérfanos.
+     * Synchronizes by product: updates the lines that remain, deletes those no longer present and adds the new ones.
+     * Deleting them all and reinserting them would break the unique constraint (order_id, product_id), because
+     * Hibernate runs the INSERTs before the orphan DELETEs.
      */
     private static void syncItems(List<OrderItem> items, OrderEntity entity) {
         Set<Long> productIds = items.stream().map(OrderItem::productId).collect(Collectors.toSet());

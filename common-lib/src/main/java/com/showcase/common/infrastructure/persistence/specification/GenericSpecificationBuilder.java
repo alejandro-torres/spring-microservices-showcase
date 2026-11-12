@@ -18,15 +18,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
 
 /**
- * Convierte los {@link FilterCriterion} del dominio en una {@link Specification} de JPA que combina
- * todas las condiciones con AND. Se escribe una sola vez y la reutilizan todos los repositorios.
+ * Converts the domain's {@link FilterCriterion} into a JPA {@link Specification} that combines
+ * all the conditions with AND. It is written once and reused by all repositories.
  *
  * <ul>
- *   <li>Los paths con punto ({@code category.name}, {@code roles.name}) se resuelven con joins; si el
- *       join es a una colección se aplica {@code DISTINCT} para no duplicar filas ni falsear el count.</li>
- *   <li>{@code like} y {@code startsWith} no distinguen mayúsculas ni tildes ({@code unaccent} de PostgreSQL)
- *       y escapan {@code %} y {@code _} del valor del usuario.</li>
- *   <li>Por defecto solo devuelve registros activos (borrado lógico).</li>
+ *   <li>Dotted paths ({@code category.name}, {@code roles.name}) are resolved with joins; if the
+ *       join is to a collection, {@code DISTINCT} is applied so as not to duplicate rows or skew the count.</li>
+ *   <li>{@code like} and {@code startsWith} ignore case and accents (PostgreSQL's {@code unaccent})
+ *       and escape {@code %} and {@code _} in the user's value.</li>
+ *   <li>By default it only returns active records (soft delete).</li>
  * </ul>
  */
 @RequiredArgsConstructor
@@ -36,8 +36,8 @@ public class GenericSpecificationBuilder {
     private static final char ESCAPE = '\\';
 
     /**
-     * Si {@code like} y {@code startsWith} ignoran las tildes con {@code unaccent} de PostgreSQL (la extensión la
-     * crean las migraciones de cada servicio). Sin PostgreSQL (p. ej. H2), false.
+     * Whether {@code like} and {@code startsWith} ignore accents with PostgreSQL's {@code unaccent} (the extension is
+     * created by each service's migrations). Without PostgreSQL (e.g. H2), false.
      */
     private final boolean useUnaccent;
 
@@ -75,7 +75,7 @@ public class GenericSpecificationBuilder {
         };
     }
 
-    // Recorre el path creando joins para cada tramo intermedio (category.name → join category, get name).
+    // Walks the path creating joins for each intermediate segment (category.name → join category, get name).
     private static Path<Object> resolvePath(Root<?> root, CriteriaQuery<?> query, String dottedPath) {
         String[] segments = dottedPath.split("\\.");
         From<?, ?> from = root;

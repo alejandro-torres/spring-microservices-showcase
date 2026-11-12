@@ -43,16 +43,16 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
     }
 
     /**
-     * {@code noRollbackFor}: cuando este intento bloquea la cuenta se lanza AccountLockedException para avisar
-     * al llamador, pero el contador y la fecha de bloqueo ya modificados tienen que guardarse igualmente.
-     * Sin {@code noRollbackFor}, la excepción haría rollback y el bloqueo no llegaría nunca a aplicarse.
+     * {@code noRollbackFor}: when this attempt locks the account, AccountLockedException is thrown to warn
+     * the caller, but the counter and lock date already modified must be saved anyway.
+     * Without {@code noRollbackFor}, the exception would roll back and the lock would never be applied.
      */
     @Override
     @Transactional(noRollbackFor = AccountLockedException.class)
     public void onFailure(String username) {
         Optional<User> found = findUser(username);
         if (found.isEmpty()) {
-            // Usuario inexistente: se audita igual (puede ser un ataque), pero no hay cuenta que bloquear.
+            // Unknown user: audited all the same (it may be an attack), but there is no account to lock.
             auditService.record(SecurityEventType.LOGIN_FAILURE, normalize(username), "unknown user");
             metrics.loginFailed();
             return;
@@ -66,8 +66,8 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
                 lockedNow ? "attempts=" + policy.maxFailedAttempts() : "attempts=" + user.getFailedAttempts());
         if (lockedNow) {
             auditService.record(SecurityEventType.ACCOUNT_LOCKED, user.getUsername(), "until=" + user.getLockedUntil());
-            // Gracias a noRollbackFor, el evento del outbox (y la métrica) también se confirman aunque se lance la
-            // excepción.
+            // Thanks to noRollbackFor, the outbox event (and the metric) also commit even though the exception is
+            // thrown.
             eventPublisher.publish(new AccountLockedEvent(user.getId(), user.getUsername(), user.getLockedUntil(),
                     now));
             metrics.accountLocked();
@@ -80,7 +80,7 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
         return normalized.isEmpty() ? Optional.empty() : userRepository.findByUsername(normalized);
     }
 
-    // Sin validar el formato: en un login fallido puede llegar cualquier texto.
+    // Without validating the format: any text can arrive in a failed login.
     private static String normalize(String username) {
         return username == null ? "" : username.trim().toLowerCase(Locale.ROOT);
     }

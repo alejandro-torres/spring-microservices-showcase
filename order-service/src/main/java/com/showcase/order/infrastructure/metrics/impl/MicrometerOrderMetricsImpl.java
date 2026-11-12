@@ -8,8 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
- * Contador {@code showcase.orders} con la etiqueta {@code event} (created, confirmed, rejected, cancelled) y, en
- * los rechazados, {@code reason}. Se incrementa después del commit: un pedido cuya transacción falla no cuenta.
+ * {@code showcase.orders} counter with the {@code event} tag (created, confirmed, rejected, cancelled) and, for
+ * rejected ones, {@code reason}. It is incremented after the commit: an order whose transaction fails does not count.
  */
 @Component
 @RequiredArgsConstructor
@@ -41,7 +41,7 @@ public class MicrometerOrderMetricsImpl implements OrderMetrics {
 
     private void increment(String event, String reason) {
         Counter counter = Counter.builder(NAME)
-                .description("Pedidos por evento del ciclo de vida")
+                .description("Orders by lifecycle event")
                 .tag("event", event)
                 .tag("reason", reason)
                 .register(registry);

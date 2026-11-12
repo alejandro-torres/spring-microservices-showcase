@@ -30,9 +30,9 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 /**
- * De extremo a extremo: PostgreSQL real, Feign real contra un servidor HTTP falso (product y customer),
- * circuit breaker y reenvío del token del usuario. Las respuestas de la saga se simulan llamando al servicio
- * (el recorrido completo por RabbitMQ está en {@code OrderSagaIT}).
+ * End to end: real PostgreSQL, real Feign against a fake HTTP server (product and customer),
+ * circuit breaker and forwarding of the user's token. The saga responses are simulated by calling the service
+ * (the full path through RabbitMQ is in {@code OrderSagaIT}).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -70,17 +70,17 @@ class OrderApiIT {
     }
 
     @Test
-    @DisplayName("recorre el ciclo de vida de un pedido consultando clientes y productos por Feign")
+    @DisplayName("walks through the lifecycle of an order, querying customers and products via Feign")
     void fullOrderFlow() throws Exception {
         REMOTE.respond("/api/v1/customers/3", """
                 {"id":3,"firstName":"Ana","email":"ana@example.com","addresses":[
-                 {"id":1,"street":"Calle 1","city":"Lugo","postalCode":"27001","country":"ES","main":false},
-                 {"id":2,"street":"Gran Vía 1","city":"Madrid","postalCode":"28013","country":"ES","main":true}]}
+                 {"id":1,"street":"Street 1","city":"Lugo","postalCode":"27001","country":"ES","main":false},
+                 {"id":2,"street":"Main Street 1","city":"Madrid","postalCode":"28013","country":"ES","main":true}]}
                 """);
         REMOTE.respond("/api/v1/products/10", """
-                {"id":10,"name":"Ratón","price":12.50,"stock":5,"categoryName":"Periféricos"}""");
+                {"id":10,"name":"Mouse","price":12.50,"stock":5,"categoryName":"Peripherals"}""");
         REMOTE.respond("/api/v1/products/11", """
-                {"id":11,"name":"Teclado","price":30.00,"stock":1}""");
+                {"id":11,"name":"Keyboard","price":30.00,"stock":1}""");
 
         var created = as(post("/api/v1/orders"), """
                 {"customerId":3,"items":[{"productId":10,"quantity":2},{"productId":11,"quantity":1}]}""")
@@ -88,13 +88,13 @@ class OrderApiIT {
                 .andExpect(jsonPath("$.status").value("PENDING"))
                 .andExpect(jsonPath("$.total").value(55.0))
                 .andExpect(jsonPath("$.shippingAddress.city").value("Madrid"))
-                .andExpect(jsonPath("$.items[0].productName").value("Ratón"));
+                .andExpect(jsonPath("$.items[0].productName").value("Mouse"));
         long id = read(created, "$.id");
         long mouseLineId = read(created, "$.items[0].id");
-        // El token del usuario se reenvía a los otros servicios (spring-security-test usa el valor "token").
+        // The user's token is forwarded to the other services (spring-security-test uses the value "token").
         assertThat(REMOTE.lastAuthorization()).isEqualTo("Bearer token");
 
-        // Errores de negocio con datos remotos: producto inexistente y stock insuficiente.
+        // Business errors with remote data: missing product and insufficient stock.
         as(post("/api/v1/orders"), "{\"customerId\":3,\"items\":[{\"productId\":99,\"quantity\":1}]}")
                 .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("PRODUCT_NOT_FOUND"));
         as(post("/api/v1/orders"), "{\"customerId\":3,\"items\":[{\"productId\":11,\"quantity\":2}]}")
@@ -102,47 +102,47 @@ class OrderApiIT {
         as(post("/api/v1/orders"), "{\"customerId\":4,\"items\":[{\"productId\":10,\"quantity\":1}]}")
                 .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("CUSTOMER_NOT_FOUND"));
 
-        // PUT solo cambia la dirección: las líneas (ya enviadas a product-service) no se tocan.
+        // PUT only changes the address: the lines (already sent to product-service) are not touched.
         as(put("/api/v1/orders/" + id), """
-                {"street":"Calle Mayor 5","city":"Sevilla","postalCode":"41001","country":"ES","version":0}""")
+                {"street":"High Street 5","city":"Sevilla","postalCode":"41001","country":"ES","version":0}""")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.shippingAddress.city").value("Sevilla"))
                 .andExpect(jsonPath("$.total").value(55.0))
                 .andExpect(jsonPath("$.items[0].id").value(mouseLineId));
         as(put("/api/v1/orders/" + id), """
-                {"street":"Calle Mayor 5","city":"Sevilla","postalCode":"41001","country":"ES","version":0}""")
+                {"street":"High Street 5","city":"Sevilla","postalCode":"41001","country":"ES","version":0}""")
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("CONCURRENT_MODIFICATION"));
 
-        // Un pedido pendiente tiene la saga en curso: no se puede cancelar.
+        // A pending order has its saga running: it cannot be cancelled.
         mockMvc.perform(put("/api/v1/orders/" + id + "/cancel").with(TestJwt.manager()))
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.code").value("ORDER_NOT_CANCELLABLE"));
 
-        // Filtros: por producto (join con las líneas) y pedidos del cliente.
+        // Filters: by product (join with the lines) and the customer's orders.
         mockMvc.perform(get("/api/v1/orders").with(TestJwt.reader()).param("filter", "productId:eq:10")
                         .param("filter", "status:eq:PENDING"))
                 .andExpect(jsonPath("$.content[?(@.id == " + id + ")]").exists());
         mockMvc.perform(get("/api/v1/orders/by-customer/3").with(TestJwt.reader()))
                 .andExpect(jsonPath("$.content[0].id").value(id));
 
-        // Solo se borran pedidos cerrados.
+        // Only closed orders are deleted.
         mockMvc.perform(delete("/api/v1/orders/" + id).with(TestJwt.admin()))
                 .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("ORDER_NOT_DELETABLE"));
 
-        // product-service rechaza la reserva: el pedido queda REJECTED con el motivo y ya se puede borrar.
+        // product-service rejects the reservation: the order stays REJECTED with the reason and can now be deleted.
         sagaService.reject(UUID.randomUUID(), id, "INSUFFICIENT_STOCK");
         mockMvc.perform(get("/api/v1/orders/" + id).with(TestJwt.admin()))
                 .andExpect(jsonPath("$.status").value("REJECTED"))
                 .andExpect(jsonPath("$.rejectionReason").value("INSUFFICIENT_STOCK"));
         as(put("/api/v1/orders/" + id), """
-                {"street":"Calle Mayor 5","city":"Sevilla","postalCode":"41001","country":"ES","version":2}""")
+                {"street":"High Street 5","city":"Sevilla","postalCode":"41001","country":"ES","version":2}""")
                 .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("ORDER_NOT_MODIFIABLE"));
         mockMvc.perform(delete("/api/v1/orders/" + id).with(TestJwt.admin())).andExpect(status().isNoContent());
         mockMvc.perform(get("/api/v1/orders/" + id).with(TestJwt.admin())).andExpect(status().isNotFound());
     }
 
     @Test
-    @DisplayName("si customer-service falla responde 503 sin detalles y el pedido no se guarda")
+    @DisplayName("if customer-service fails it responds 503 with no details and the order is not saved")
     void remoteServiceDown_shouldReturn503() throws Exception {
         REMOTE.setDown(true);
         try {

@@ -9,12 +9,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Lista blanca de campos filtrables de un recurso. Cada recurso declara la suya
- * (p. ej. {@code ProductFilterFields}); lo que no está aquí no se puede filtrar.
+ * Whitelist of a resource's filterable fields. Each resource declares its own
+ * (e.g. {@code ProductFilterFields}); anything not here cannot be filtered.
  */
 public interface FilterFields {
 
-    /** Campos filtrables indexados por su nombre público. */
+    /** Filterable fields indexed by their public name. */
     Map<String, FilterableField> fields();
 
     default Optional<FilterableField> find(String name) {
@@ -25,7 +25,7 @@ public interface FilterFields {
         Map<String, FilterableField> byName = Arrays.stream(fields)
                 .collect(Collectors.toMap(FilterableField::name, Function.identity(),
                         (a, b) -> {
-                            throw new IllegalArgumentException("Campo filtrable repetido: " + a.name());
+                            throw new IllegalArgumentException("Repeated filterable field: " + a.name());
                         },
                         LinkedHashMap::new));
         Map<String, FilterableField> unmodifiable = Collections.unmodifiableMap(byName);

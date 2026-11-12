@@ -69,7 +69,7 @@ class OrderControllerTest {
     class Create {
 
         @Test
-        @DisplayName("devuelve 201 con el total y las líneas calculadas")
+        @DisplayName("returns 201 with the computed total and lines")
         void create_shouldReturn201() throws Exception {
             given(orderService.create(3L, List.of(new OrderLine(10L, 2), new OrderLine(11L, 1)))).willReturn(pending());
 
@@ -84,7 +84,7 @@ class OrderControllerTest {
         }
 
         @Test
-        @DisplayName("devuelve 400 con una cantidad no válida o sin líneas")
+        @DisplayName("returns 400 with an invalid quantity or no lines")
         void create_withInvalidBody_shouldReturn400() throws Exception {
             mockMvc.perform(post("/api/v1/orders").with(TestJwt.manager()).contentType(MediaType.APPLICATION_JSON)
                             .content(CREATE_BODY.replace("\"quantity\":2", "\"quantity\":0")))
@@ -96,7 +96,7 @@ class OrderControllerTest {
         }
 
         @Test
-        @DisplayName("devuelve 503 si otro servicio no está disponible")
+        @DisplayName("returns 503 if another service is unavailable")
         void create_withServiceDown_shouldReturn503() throws Exception {
             given(orderService.create(eq(3L), anyList()))
                     .willThrow(new ExternalServiceException(CommonErrorCode.SERVICE_UNAVAILABLE));
@@ -108,7 +108,7 @@ class OrderControllerTest {
         }
 
         @Test
-        @DisplayName("devuelve 403 sin el permiso order:write")
+        @DisplayName("returns 403 without the order:write permission")
         void create_withoutPermission_shouldReturn403() throws Exception {
             mockMvc.perform(post("/api/v1/orders").with(TestJwt.reader())
                             .contentType(MediaType.APPLICATION_JSON).content(CREATE_BODY))
@@ -121,7 +121,7 @@ class OrderControllerTest {
     class Read {
 
         @Test
-        @DisplayName("lista con filtros por estado")
+        @DisplayName("lists with status filters")
         void findAll_withStatusFilter_shouldReturnPage() throws Exception {
             given(orderService.findAll(anyList(), any(), eq(false))).willReturn(PageResult.of(List.of(pending()), 0, 10, 1));
 
@@ -131,7 +131,7 @@ class OrderControllerTest {
         }
 
         @Test
-        @DisplayName("by-customer añade el filtro del cliente y ordena del más reciente al más antiguo")
+        @DisplayName("by-customer adds the customer filter and sorts from most recent to oldest")
         void findByCustomer_shouldFilterByCustomer() throws Exception {
             given(orderService.findAll(anyList(), any(), eq(false))).willReturn(PageResult.of(List.of(), 0, 10, 0));
 
@@ -146,7 +146,7 @@ class OrderControllerTest {
         }
 
         @Test
-        @DisplayName("devuelve 400 con un valor de estado que no existe")
+        @DisplayName("returns 400 with a status value that does not exist")
         void findAll_withUnknownStatus_shouldReturn400() throws Exception {
             mockMvc.perform(get("/api/v1/orders").with(TestJwt.reader()).param("filter", "status:eq:ENVIADO"))
                     .andExpect(status().isBadRequest());
@@ -155,35 +155,35 @@ class OrderControllerTest {
     }
 
     @Nested
-    @DisplayName("PUT y DELETE")
+    @DisplayName("PUT and DELETE")
     class Write {
 
         @Test
-        @DisplayName("PUT cambia la dirección de envío con la versión enviada")
+        @DisplayName("PUT changes the shipping address with the version sent")
         void update_shouldReturn200() throws Exception {
-            var address = new ShippingAddress("Calle Mayor 5", "Sevilla", "41001", "ES");
+            var address = new ShippingAddress("High Street 5", "Sevilla", "41001", "ES");
             given(orderService.update(1L, address, 0L)).willReturn(pending());
 
             mockMvc.perform(put("/api/v1/orders/1").with(TestJwt.manager()).contentType(MediaType.APPLICATION_JSON)
                             .content("""
-                                    {"street":"Calle Mayor 5","city":"Sevilla","postalCode":"41001",
+                                    {"street":"High Street 5","city":"Sevilla","postalCode":"41001",
                                      "country":"ES","version":0}"""))
                     .andExpect(status().isOk());
         }
 
         @Test
-        @DisplayName("PUT devuelve 400 con un país que no son 2 letras en mayúsculas o sin versión")
+        @DisplayName("PUT returns 400 with a country that is not 2 uppercase letters or without a version")
         void update_withInvalidBody_shouldReturn400() throws Exception {
             mockMvc.perform(put("/api/v1/orders/1").with(TestJwt.manager()).contentType(MediaType.APPLICATION_JSON)
                             .content("""
-                                    {"street":"Calle Mayor 5","city":"Sevilla","postalCode":"41001",
+                                    {"street":"High Street 5","city":"Sevilla","postalCode":"41001",
                                      "country":"spain"}"""))
                     .andExpect(status().isBadRequest());
             verify(orderService, never()).update(any(), any(), any());
         }
 
         @Test
-        @DisplayName("PUT /cancel devuelve el pedido cancelado")
+        @DisplayName("PUT /cancel returns the cancelled order")
         void cancel_shouldReturnCancelled() throws Exception {
             given(orderService.cancel(1L)).willReturn(order(OrderStatus.CANCELLED));
 
@@ -193,7 +193,7 @@ class OrderControllerTest {
         }
 
         @Test
-        @DisplayName("PUT /cancel de un pedido pendiente devuelve 422 ORDER_NOT_CANCELLABLE")
+        @DisplayName("PUT /cancel of a pending order returns 422 ORDER_NOT_CANCELLABLE")
         void cancel_pending_shouldReturn422() throws Exception {
             given(orderService.cancel(1L)).willThrow(
                     new BusinessRuleException(OrderErrorCode.ORDER_NOT_CANCELLABLE, 1L, OrderStatus.PENDING));
@@ -204,7 +204,7 @@ class OrderControllerTest {
         }
 
         @Test
-        @DisplayName("DELETE es solo para ADMIN")
+        @DisplayName("DELETE is ADMIN only")
         void delete_shouldRequireAdmin() throws Exception {
             mockMvc.perform(delete("/api/v1/orders/1").with(TestJwt.manager()))
                     .andExpect(status().isForbidden());

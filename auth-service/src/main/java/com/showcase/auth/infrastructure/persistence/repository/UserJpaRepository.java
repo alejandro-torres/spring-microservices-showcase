@@ -13,14 +13,14 @@ import org.springframework.data.repository.query.Param;
 
 public interface UserJpaRepository extends JpaRepository<UserEntity, Long>, JpaSpecificationExecutor<UserEntity> {
 
-    /** Carga el usuario con sus roles y permisos en una sola consulta (sin N+1). */
+    /** Loads the user with their roles and permissions in a single query (no N+1). */
     @EntityGraph(attributePaths = {"roles", "roles.permissions"})
     Optional<UserEntity> findByIdAndActiveTrue(Long id);
 
     @EntityGraph(attributePaths = {"roles", "roles.permissions"})
     Optional<UserEntity> findByUsernameAndActiveTrue(String username);
 
-    /** Cuentas con un bloqueo ya caducado, en lotes, para desbloquearlas. */
+    /** Accounts with an already expired lock, in batches, to unlock them. */
     @EntityGraph(attributePaths = {"roles", "roles.permissions"})
     List<UserEntity> findByActiveTrueAndLockedUntilLessThanEqualOrderById(Instant now, Limit limit);
 

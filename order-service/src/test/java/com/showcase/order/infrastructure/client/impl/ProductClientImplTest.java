@@ -27,7 +27,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-/** Circuit breaker real (sin Spring) con una ventana pequeña: se abre tras 4 llamadas con al menos 50 % de fallos. */
+/** Real circuit breaker (no Spring) with a small window: it opens after 4 calls with at least 50 % failures. */
 class ProductClientImplTest {
 
     private final ProductFeignClient feignClient = mock(ProductFeignClient.class);
@@ -55,18 +55,18 @@ class ProductClientImplTest {
     class FindById {
 
         @Test
-        @DisplayName("convierte la respuesta en ProductInfo")
+        @DisplayName("converts the response to ProductInfo")
         void findById_shouldMapResponse() {
-            given(feignClient.findById(1L)).willReturn(new ProductClientResponseDTO(1L, "Ratón", BigDecimal.TEN, 3));
+            given(feignClient.findById(1L)).willReturn(new ProductClientResponseDTO(1L, "Mouse", BigDecimal.TEN, 3));
 
             assertThat(client.findById(1L)).hasValueSatisfying(product -> {
-                assertThat(product.name()).isEqualTo("Ratón");
+                assertThat(product.name()).isEqualTo("Mouse");
                 assertThat(product.stock()).isEqualTo(3);
             });
         }
 
         @Test
-        @DisplayName("un 404 devuelve vacío y no cuenta como fallo del servicio")
+        @DisplayName("a 404 returns empty and does not count as a service failure")
         void findById_notFound_shouldReturnEmpty() {
             given(feignClient.findById(1L)).willThrow(new RemoteResourceNotFoundException("findById"));
 
@@ -77,7 +77,7 @@ class ProductClientImplTest {
         }
 
         @Test
-        @DisplayName("un timeout se convierte en 503")
+        @DisplayName("a timeout becomes 503")
         void findById_timeout_shouldThrowServiceUnavailable() {
             given(feignClient.findById(1L)).willThrow(timeout());
 
@@ -87,7 +87,7 @@ class ProductClientImplTest {
         }
 
         @Test
-        @DisplayName("tras varios fallos el circuito se abre y ya no se llama al servicio")
+        @DisplayName("after several failures the circuit opens and the service is no longer called")
         void findById_repeatedFailures_shouldOpenCircuit() {
             given(feignClient.findById(1L)).willThrow(timeout());
             for (int i = 0; i < 4; i++) {
@@ -101,7 +101,7 @@ class ProductClientImplTest {
         }
 
         @Test
-        @DisplayName("un 403 se propaga tal cual y no abre el circuito")
+        @DisplayName("a 403 propagates as is and does not open the circuit")
         void findById_forbidden_shouldNotOpenCircuit() {
             given(feignClient.findById(1L)).willThrow(new ForbiddenException(CommonErrorCode.FORBIDDEN));
 

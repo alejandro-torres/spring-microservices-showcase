@@ -1,8 +1,8 @@
 package com.showcase.common.domain.exception;
 
 /**
- * La operación choca con el estado actual del recurso: modificación concurrente
- * (versión distinta) o dependencias activas que impiden borrarlo.
+ * The operation clashes with the current state of the resource: concurrent modification
+ * (different version) or active dependencies that prevent deleting it.
  */
 public class ConflictException extends DomainException {
 

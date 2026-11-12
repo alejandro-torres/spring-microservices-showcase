@@ -13,18 +13,18 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
 /**
- * Traduce entre la paginación del dominio ({@link PageQuery}, {@link PageResult}) y la de
- * Spring Data ({@link Pageable}, {@link Page}). Solo lo usan los {@code *RepositoryImpl}.
+ * Translates between the domain's pagination ({@link PageQuery}, {@link PageResult}) and
+ * Spring Data's ({@link Pageable}, {@link Page}). Only the {@code *RepositoryImpl} classes use it.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SpringDataPageAdapter {
 
-    /** El campo de ordenación pasa por el mismo {@link FilterMapping} que los filtros (nombre público → path JPA). */
+    /** The sort field goes through the same {@link FilterMapping} as the filters (public name → JPA path). */
     public static Pageable toPageable(PageQuery query, FilterMapping mapping) {
         Sort.Direction direction = query.direction() == SortDirection.DESC ? Sort.Direction.DESC : Sort.Direction.ASC;
         Sort sort = Sort.by(direction, mapping.toPath(query.sort()));
         if (!"id".equals(query.sort())) {
-            // Desempate estable: sin él, filas con el mismo valor pueden repetirse o saltarse entre páginas.
+            // Stable tie-breaker: without it, rows with the same value can repeat or be skipped between pages.
             sort = sort.and(Sort.by(Sort.Direction.ASC, "id"));
         }
         return PageRequest.of(query.page(), query.size(), sort);

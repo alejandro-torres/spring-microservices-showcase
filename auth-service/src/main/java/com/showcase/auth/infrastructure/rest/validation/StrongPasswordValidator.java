@@ -6,10 +6,10 @@ import jakarta.validation.ConstraintValidatorContext;
 public class StrongPasswordValidator implements ConstraintValidator<StrongPassword, String> {
 
     static final int MIN_LENGTH = 8;
-    /** BCrypt solo usa los primeros 72 bytes: una contraseña más larga daría una falsa sensación de seguridad. */
+    /** BCrypt only uses the first 72 bytes: a longer password would give a false sense of security. */
     static final int MAX_LENGTH = 72;
 
-    /** Un valor nulo lo rechaza {@code @NotBlank}; aquí solo se valida la fortaleza. */
+    /** {@code @NotBlank} rejects a null value; only the strength is validated here. */
     @Override
     public boolean isValid(String password, ConstraintValidatorContext context) {
         if (password == null) {

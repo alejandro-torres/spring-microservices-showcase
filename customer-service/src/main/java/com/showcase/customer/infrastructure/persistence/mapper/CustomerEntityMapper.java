@@ -8,7 +8,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
-/** Las direcciones se sincronizan a mano en el repositorio para conservar sus ids. */
+/** Addresses are synchronized by hand in the repository to preserve their ids. */
 @Mapper(componentModel = "spring")
 public interface CustomerEntityMapper {
 

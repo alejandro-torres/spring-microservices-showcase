@@ -32,8 +32,8 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 /**
- * Prueba de extremo a extremo: la aplicación completa con transacciones reales contra PostgreSQL.
- * Los tokens se simulan con spring-security-test (la validación real del JWT se prueba en auth-service).
+ * End-to-end test: the full application with real transactions against PostgreSQL.
+ * Tokens are simulated with spring-security-test (real JWT validation is tested in auth-service).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -66,25 +66,25 @@ class ProductApiIT {
     }
 
     @Test
-    @DisplayName("recorre el catálogo: categoría, productos, filtros, stock y borrados con sus reglas")
+    @DisplayName("walks through the catalog: category, products, filters, stock and deletes with their rules")
     void fullCatalogFlow() throws Exception {
-        long monitors = createCategory("Monitores e2e");
-        long product = createProduct("Monitor 27 pulgadas", "249.90", 4, monitors);
-        createProduct("Monitor 32 pulgadas", "399.00", 0, monitors);
+        long monitors = createCategory("Monitors e2e");
+        long product = createProduct("Monitor 27 inch", "249.90", 4, monitors);
+        createProduct("Monitor 32 inch", "399.00", 0, monitors);
 
-        // Filtros: con stock y por nombre de categoría (join)
+        // Filters: in stock and by category name (join)
         mockMvc.perform(get("/api/v1/products").with(TestJwt.customer())
-                        .param("filter", "categoryName:like:monitores e2e").param("filter", "stock:gt:0"))
+                        .param("filter", "categoryName:like:monitors e2e").param("filter", "stock:gt:0"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(1))
-                .andExpect(jsonPath("$.content[0].name").value("Monitor 27 pulgadas"));
+                .andExpect(jsonPath("$.content[0].name").value("Monitor 27 inch"));
 
-        // Consulta JPQL por categoría, ordenada por precio descendente
+        // JPQL query by category, sorted by descending price
         mockMvc.perform(get("/api/v1/categories/{id}/products", monitors).with(TestJwt.customer())
                         .param("sort", "price").param("direction", "desc"))
-                .andExpect(jsonPath("$.content[0].name").value("Monitor 32 pulgadas"));
+                .andExpect(jsonPath("$.content[0].name").value("Monitor 32 inch"));
 
-        // Ajustes de stock: entrada, y una salida imposible que no cambia nada
+        // Stock adjustments: an incoming one, and an impossible outgoing one that changes nothing
         asAdmin(put("/api/v1/products/{id}/stock", product).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"delta\":6}")).andExpect(jsonPath("$.stock").value(10));
         asAdmin(put("/api/v1/products/{id}/stock", product).contentType(MediaType.APPLICATION_JSON)
@@ -92,17 +92,17 @@ class ProductApiIT {
         mockMvc.perform(get("/api/v1/products/{id}", product).with(TestJwt.customer()))
                 .andExpect(jsonPath("$.stock").value(10));
 
-        // Una categoría con productos no se puede borrar
+        // A category with products cannot be deleted
         asAdmin(delete("/api/v1/categories/{id}", monitors))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("CATEGORY_HAS_PRODUCTS"));
     }
 
     @Test
-    @DisplayName("bloqueo optimista: 10 ajustes simultáneos del mismo producto nunca dejan el stock incoherente")
+    @DisplayName("optimistic locking: 10 simultaneous adjustments of the same product never leave the stock inconsistent")
     void concurrentStockAdjustments_shouldKeepStockConsistent() throws Exception {
         long category = createCategory("Concurrencia e2e");
-        long product = createProduct("Producto concurrido", "10.00", 10, category);
+        long product = createProduct("Busy product", "10.00", 10, category);
 
         ExecutorService executor = Executors.newFixedThreadPool(10);
         List<Callable<Integer>> adjustments = new ArrayList<>();
@@ -122,14 +122,14 @@ class ProductApiIT {
         int finalStock = JsonPath.read(mockMvc.perform(get("/api/v1/products/{id}", product).with(TestJwt.customer()))
                 .andReturn().getResponse().getContentAsString(), "$.stock");
 
-        // Cada petición o se aplica o se rechaza con 409; ningún ajuste se pierde ni se aplica dos veces.
+        // Each request is either applied or rejected with 409; no adjustment is lost or applied twice.
         assertThat(succeeded + conflicts).isEqualTo(10);
         assertThat(succeeded).isPositive();
         assertThat(finalStock).isEqualTo(10 - (int) succeeded);
     }
 
     @Test
-    @DisplayName("la documentación OpenAPI es pública y documenta los errores con ErrorResponseDTO")
+    @DisplayName("the OpenAPI documentation is public and documents errors with ErrorResponseDTO")
     void openApi_shouldBePublicAndDocumentErrors() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
@@ -144,9 +144,9 @@ class ProductApiIT {
     }
 
     @Test
-    @DisplayName("expone las métricas para Prometheus con las etiquetas comunes y el histograma de latencias")
+    @DisplayName("exposes the metrics for Prometheus with the common tags and the latency histogram")
     void prometheus_shouldExposeTaggedMetrics() throws Exception {
-        // given: una petición para que haya datos de latencia
+        // given: a request so that there is latency data
         mockMvc.perform(get("/api/v1/products").with(TestJwt.customer())).andExpect(status().isOk());
 
         // when

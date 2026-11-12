@@ -1,27 +1,27 @@
-# Valores para un clúster real con PostgreSQL, Redis y RabbitMQ gestionados (por ejemplo Amazon RDS / ElastiCache /
-# Amazon MQ, Cloud SQL / Memorystore o Azure Database / Azure Cache). Se combinan con values.yaml:
+# Values for a real cluster with managed PostgreSQL, Redis and RabbitMQ (for example Amazon RDS / ElastiCache /
+# Amazon MQ, Cloud SQL / Memorystore or Azure Database / Azure Cache). They combine with values.yaml:
 #
 #   helm upgrade --install showcase k8s/charts/showcase -n showcase --create-namespace \
-#     -f k8s/charts/showcase/values-prod.yaml --set image.tag=<versión>
+#     -f k8s/charts/showcase/values-prod.yaml --set image.tag=<version>
 #
-# Antes de instalar (ver docs/kubernetes.md):
-#   - En la base de datos: un usuario y una base de datos por servicio, como docker/postgres/init-databases.sh
+# Before installing (see docs/kubernetes.md):
+#   - In the database: one user and one database per service, as in docker/postgres/init-databases.sh
 #     (auth/auth_db, product/product_db, customer/customer_db, order/order_db).
-#   - En RabbitMQ: un usuario por servicio con los permisos de docker/rabbitmq/setup-users.sh.
-#   - Los Secrets de cada microservicio (secrets.create: false), con las mismas claves que crea el chart:
-#     DB_PASSWORD, RABBITMQ_PASSWORD, SPRING_DATA_REDIS_PASSWORD y, en auth-service, INTERNAL_CLIENT_SECRET,
-#     JWT_PRIVATE_KEY y JWT_PUBLIC_KEY. Lo normal es crearlos con External Secrets desde el gestor de secretos de la
-#     nube, para que ninguna contraseña pase por Git ni por la línea de comandos.
-#   - Ingress controller, cert-manager con un ClusterIssuer de Let's Encrypt y metrics-server (k8s/platform sirve de
-#     referencia), y la observabilidad (k8s/observability) si se quiere la misma que en local.
+#   - In RabbitMQ: one user per service with the permissions of docker/rabbitmq/setup-users.sh.
+#   - The Secrets of each microservice (secrets.create: false), with the same keys the chart creates:
+#     DB_PASSWORD, RABBITMQ_PASSWORD, SPRING_DATA_REDIS_PASSWORD and, in auth-service, INTERNAL_CLIENT_SECRET,
+#     JWT_PRIVATE_KEY and JWT_PUBLIC_KEY. The usual way is to create them with External Secrets from the cloud's
+#     secret manager, so that no password goes through Git or the command line.
+#   - Ingress controller, cert-manager with a Let's Encrypt ClusterIssuer and metrics-server (k8s/platform serves as a
+#     reference), and observability (k8s/observability) if you want the same as locally.
 
 image:
-  # Registro donde CI publica las imágenes; la versión se fija en cada despliegue (--set image.tag=...).
+  # Registry where CI publishes the images; the version is set on each deployment (--set image.tag=...).
   repository: registry.example.com/showcase
   tag: ""
   pullPolicy: IfNotPresent
 
-# prod: logs en JSON y el 10 % de las trazas; sin datos de ejemplo.
+# prod: JSON logs and 10 % of the traces; no sample data.
 springProfile: prod
 publicUrl: https://api.example.com
 corsAllowedOrigins: https://app.example.com
@@ -31,7 +31,7 @@ ingress:
   className: traefik
   host: api.example.com
   clusterIssuer: letsencrypt
-  # Red de los pods del clúster (desde donde llega el controlador de Ingress). Ajústala a la del CNI del clúster.
+  # Network of the cluster's pods (where the Ingress controller comes from). Adjust it to the cluster's CNI.
   trustedProxies: 10[.].*
   trustedProxyHops: 1
 
@@ -54,7 +54,7 @@ externalDatabase:
   host: showcase.xxxxxxxx.eu-west-1.rds.amazonaws.com
   port: 5432
   jdbcParams: "?sslmode=require"
-  # Red privada donde están los servicios gestionados (para las NetworkPolicies de salida).
+  # Private network where the managed services are (for the egress NetworkPolicies).
   cidr: 10.0.0.0/16
 externalRedis:
   host: showcase.xxxxxx.cache.amazonaws.com
@@ -68,13 +68,13 @@ externalRabbitmq:
   ssl: true
   cidr: 10.0.0.0/16
 
-# Trazas a Tempo (k8s/observability) en lugar de Zipkin.
+# Traces to Tempo (k8s/observability) instead of Zipkin.
 tracing:
   endpoint: http://tempo.monitoring:9411/api/v2/spans
 zipkin:
   enabled: false
 
-# Más margen de memoria que en local; los límites de CPU se mantienen para que el HPA tenga una referencia estable.
+# More memory headroom than locally; the CPU limits stay so that the HPA has a stable reference.
 defaultResources:
   requests:
     cpu: 250m
@@ -83,7 +83,7 @@ defaultResources:
     cpu: "1"
     memory: 1Gi
 
-# Réplicas: al menos dos de cada servicio para que un nodo caído o una actualización no corten el servicio.
+# Replicas: at least two of each service so that a downed node or an upgrade does not cut the service.
 services:
   auth-service:
     replicas: 2

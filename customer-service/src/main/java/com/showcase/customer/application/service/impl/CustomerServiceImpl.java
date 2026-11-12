@@ -23,7 +23,7 @@ public class CustomerServiceImpl implements CustomerService {
 
     private final CustomerRepository customerRepository;
 
-    /** El cliente y sus direcciones se guardan juntos (cascada): o todo o nada. */
+    /** The customer and their addresses are saved together (cascade): all or nothing. */
     @Override
     @Transactional
     public Customer create(Long userId, String firstName, String lastName, String email, String phone,
@@ -54,7 +54,7 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    @Observed(name = "customer.search", contextualName = "buscar clientes")
+    @Observed(name = "customer.search", contextualName = "search customers")
     public PageResult<Customer> findAll(List<FilterCriterion> filters, PageQuery pageQuery, boolean includeInactive) {
         return customerRepository.findAll(filters, pageQuery, includeInactive);
     }

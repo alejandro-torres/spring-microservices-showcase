@@ -1,7 +1,7 @@
-# Generador de carga para ver el HorizontalPodAutoscaler en acción (k8s/load/hpa-demo.sh).
-# Pide un token del cliente internal-service y lanza peticiones en paralelo directamente a product-service, sin
-# pasar por el gateway (su rate limit cortaría la carga). Las NetworkPolicies de este fichero solo abren ese camino
-# mientras dura la prueba: hpa-demo.sh las borra al terminar.
+# Load generator to see the HorizontalPodAutoscaler in action (k8s/load/hpa-demo.sh).
+# Requests a token for the internal-service client and sends parallel requests directly to product-service, without
+# going through the gateway (its rate limit would cut the load). The NetworkPolicies in this file only open that path
+# during the test: hpa-demo.sh deletes them when done.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:

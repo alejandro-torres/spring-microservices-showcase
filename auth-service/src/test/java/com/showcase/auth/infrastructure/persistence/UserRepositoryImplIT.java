@@ -36,7 +36,7 @@ class UserRepositoryImplIT extends AbstractPersistenceIT {
 
     @BeforeEach
     void loadBaseRoles() {
-        // Los roles ADMIN y USER los crea la migración V3.
+        // The ADMIN and USER roles are created by migration V3.
         var roles = roleRepository.findAll(List.of(), PageQuery.firstPage(), false).content();
         admin = roles.stream().filter(r -> r.getName().equals("ADMIN")).findFirst().orElseThrow();
         user = roles.stream().filter(r -> r.getName().equals("USER")).findFirst().orElseThrow();
@@ -56,7 +56,7 @@ class UserRepositoryImplIT extends AbstractPersistenceIT {
     class Save {
 
         @Test
-        @DisplayName("guarda un usuario nuevo con id, versión 0, fechas de auditoría y roles")
+        @DisplayName("saves a new user with id, version 0, audit dates and roles")
         void save_newUser_shouldAssignIdVersionAndAudit() {
             // when
             var saved = saveUser("ana", user);
@@ -70,7 +70,7 @@ class UserRepositoryImplIT extends AbstractPersistenceIT {
         }
 
         @Test
-        @DisplayName("actualiza un usuario existente e incrementa la versión")
+        @DisplayName("updates an existing user and increments the version")
         void save_existingUser_shouldIncrementVersion() {
             // given
             var saved = saveUser("ana", user);
@@ -78,13 +78,13 @@ class UserRepositoryImplIT extends AbstractPersistenceIT {
             var loaded = userRepository.findById(saved.getId()).orElseThrow();
 
             // when
-            loaded.update("ana.nueva@example.com", false);
+            loaded.update("ana.new@example.com", false);
             loaded.assignRole(admin);
             var updated = userRepository.save(loaded);
 
             // then
             assertThat(updated.getVersion()).isEqualTo(1L);
-            assertThat(updated.getEmail()).isEqualTo("ana.nueva@example.com");
+            assertThat(updated.getEmail()).isEqualTo("ana.new@example.com");
             assertThat(updated.isEnabled()).isFalse();
             assertThat(updated.getRoles()).extracting(Role::getName).containsExactlyInAnyOrder("USER", "ADMIN");
         }
@@ -95,7 +95,7 @@ class UserRepositoryImplIT extends AbstractPersistenceIT {
     class FindById {
 
         @Test
-        @DisplayName("devuelve el usuario con sus roles y los permisos de cada rol")
+        @DisplayName("returns the user with their roles and each role's permissions")
         void findById_shouldLoadRolesAndPermissions() {
             var saved = saveUser("ana", admin);
             clearPersistenceContext();
@@ -107,7 +107,7 @@ class UserRepositoryImplIT extends AbstractPersistenceIT {
         }
 
         @Test
-        @DisplayName("no devuelve usuarios borrados (borrado lógico)")
+        @DisplayName("does not return deleted users (soft delete)")
         void findById_inactiveUser_shouldReturnEmpty() {
             var saved = saveUser("ana", user);
             saved.deactivate();
@@ -119,7 +119,7 @@ class UserRepositoryImplIT extends AbstractPersistenceIT {
     }
 
     @Nested
-    @DisplayName("findAll con paginación y filtros")
+    @DisplayName("findAll with pagination and filters")
     class FindAll {
 
         @BeforeEach
@@ -136,7 +136,7 @@ class UserRepositoryImplIT extends AbstractPersistenceIT {
         }
 
         @Test
-        @DisplayName("pagina con totales y ordenación")
+        @DisplayName("paginates with totals and sorting")
         void findAll_shouldPaginateAndSort() {
             var page = userRepository.findAll(List.of(), new PageQuery(1, 5, "username", SortDirection.ASC), false);
 
@@ -147,7 +147,7 @@ class UserRepositoryImplIT extends AbstractPersistenceIT {
         }
 
         @Test
-        @DisplayName("filtra por el nombre del rol (join con la colección) sin duplicar usuarios")
+        @DisplayName("filters by role name (join with the collection) without duplicating users")
         void findAll_byRole_shouldNotDuplicate() {
             var page = userRepository.findAll(List.of(FilterCriterion.of("role", EQ, "ADMIN")),
                     new PageQuery(0, 10, "username", SortDirection.ASC), false);
@@ -157,7 +157,7 @@ class UserRepositoryImplIT extends AbstractPersistenceIT {
         }
 
         @Test
-        @DisplayName("combina filtros y puede incluir los usuarios borrados")
+        @DisplayName("combines filters and can include deleted users")
         void findAll_withSeveralFiltersAndInactive_shouldWork() {
             var filters = List.of(FilterCriterion.of("username", LIKE, "ADMIN"), FilterCriterion.of("role", EQ, "ADMIN"));
 
@@ -167,22 +167,22 @@ class UserRepositoryImplIT extends AbstractPersistenceIT {
     }
 
     @Nested
-    @DisplayName("consultas de existencia y recuento")
+    @DisplayName("existence and count queries")
     class ExistsAndCount {
 
         @Test
-        @DisplayName("comprueba username y email, excluyendo al propio usuario")
+        @DisplayName("checks username and email, excluding the user themselves")
         void exists_shouldCheckUsernameAndEmail() {
             var saved = saveUser("ana", user);
 
             assertThat(userRepository.existsByUsername("ana")).isTrue();
             assertThat(userRepository.existsByEmail("ana@example.com")).isTrue();
             assertThat(userRepository.existsByEmailAndIdNot("ana@example.com", saved.getId())).isFalse();
-            assertThat(userRepository.existsByUsername("otro")).isFalse();
+            assertThat(userRepository.existsByUsername("other")).isFalse();
         }
 
         @Test
-        @DisplayName("cuenta solo los usuarios activos con un rol")
+        @DisplayName("counts only the active users with a role")
         void countActiveByRoleId_shouldIgnoreInactive() {
             saveUser("ana", admin);
             var deleted = saveUser("bea", admin);

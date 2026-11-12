@@ -42,7 +42,7 @@ class OrderEventPublisherImplTest {
     class Publish {
 
         @Test
-        @DisplayName("guarda order.created en el outbox con el contrato público del mensaje")
+        @DisplayName("saves order.created in the outbox with the message's public contract")
         void publish_orderCreated_shouldAppendToOutbox() {
             // when
             publisher.publish(new OrderCreatedEvent(7L, 3L, LINES, NOW));
@@ -53,7 +53,7 @@ class OrderEventPublisherImplTest {
         }
 
         @Test
-        @DisplayName("guarda order.cancelled en el outbox con las líneas que hay que devolver")
+        @DisplayName("saves order.cancelled in the outbox with the lines to return")
         void publish_orderCancelled_shouldAppendToOutbox() {
             // when
             publisher.publish(new OrderCancelledEvent(7L, LINES, NOW));

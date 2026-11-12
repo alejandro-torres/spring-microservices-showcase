@@ -2,6 +2,6 @@ package com.showcase.product.domain.event;
 
 import java.time.Instant;
 
-/** Se ha devuelto al stock lo que tenía reservado un pedido cancelado. */
+/** What a cancelled order had reserved has been returned to the stock. */
 public record StockReleasedEvent(Long orderId, Instant occurredAt) {
 }

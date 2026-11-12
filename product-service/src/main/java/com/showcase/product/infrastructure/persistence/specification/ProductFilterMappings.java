@@ -6,7 +6,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 /**
- * Traducción de los nombres públicos de filtros y ordenación a los paths JPA.
+ * Translation of the public filter and sort names to JPA paths.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ProductFilterMappings {

@@ -4,7 +4,7 @@ import com.showcase.auth.domain.event.AccountLockedEvent;
 import com.showcase.auth.domain.event.UserDisabledEvent;
 import com.showcase.auth.domain.event.UserRegisteredEvent;
 
-/** Publicación de los eventos de usuarios (puerto de salida), dentro de la transacción del cambio. */
+/** Publishing of user events (outbound port), within the transaction of the change. */
 public interface UserEventPublisher {
 
     void publish(UserRegisteredEvent event);

@@ -1,11 +1,11 @@
 package com.showcase.auth.application.security;
 
 /**
- * Puerto para obtener los datos de la petición en curso sin que la aplicación dependa de la API de Servlet
- * ni de Spring Security.
+ * Port to get the current request's data without the application depending on the Servlet API
+ * or Spring Security.
  */
 public interface RequestMetadataProvider {
 
-    /** Los datos de la petición actual, o {@link RequestMetadata#empty()} si no hay petición (tareas en segundo plano). */
+    /** The current request's data, or {@link RequestMetadata#empty()} if there is no request (background tasks). */
     RequestMetadata current();
 }

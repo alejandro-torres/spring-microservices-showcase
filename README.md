@@ -1,120 +1,120 @@
 # Spring Microservices Showcase
 
-Sistema de microservicios en Java 21 y Spring Boot 4 con **arquitectura hexagonal**, pensado como demostración de lo que se puede construir en sistemas distribuidos con Java.
+A microservices system in Java 21 and Spring Boot 4 with **hexagonal architecture**, built as a demonstration of what can be done with distributed systems in Java.
 
-> Desarrollado por fases, cada una en su propio pull request: de la estructura inicial a la observabilidad y las pruebas de extremo a extremo, y después el despliegue en Kubernetes.
+> Developed in phases, each in its own pull request: from the initial structure to observability and end-to-end tests, and then deployment on Kubernetes.
 
-Se puede arrancar de dos formas: con **Docker Compose** para el desarrollo diario o en un clúster de **Kubernetes** local (kind) con un chart de Helm, como se desplegaría en producción.
+It can be started in two ways: with **Docker Compose** for day-to-day development, or on a local **Kubernetes** cluster (kind) with a Helm chart, as it would be deployed in production.
 
-## Qué incluye
+## What's included
 
-- **4 microservicios de negocio:** `auth-service` (usuarios, roles y OAuth2), `product-service`, `customer-service` y `order-service`.
-- **Infraestructura:** API Gateway (Spring Cloud Gateway) y descubrimiento de servicios (Eureka en Docker Compose, la API de Kubernetes con Spring Cloud Kubernetes en el clúster).
-- **Persistencia:** JPA + PostgreSQL, una base de datos por servicio, migraciones con Flyway.
-- **Listados paginados** con `Page` y **filtros dinámicos** (`?filter=campo:operador:valor`).
-- **Mensajería** con RabbitMQ: patrón outbox, saga de pedidos y colas de errores (DLQ).
-- **Escalado horizontal:** varias réplicas por servicio, ShedLock y locks distribuidos con Redis.
-- **Observabilidad:** métricas con Prometheus, logs con Loki y Grafana Alloy, trazas con Zipkin (Compose) o Tempo (Kubernetes) y dashboards en Grafana, todo enlazado por el `traceId`.
-- **Kubernetes:** chart de Helm con Ingress HTTPS (Traefik y cert-manager), autoescalado (HPA), PodDisruptionBudgets, NetworkPolicies, contenedores sin root y de solo lectura, y rollback con Helm.
-- **Errores** con códigos HTTP estándar, mensajes en español e inglés y sin exponer detalles internos.
-- **Tests** unitarios con JUnit 5 y Mockito, de integración con Testcontainers y de extremo a extremo contra el sistema completo, también en CI sobre un clúster kind.
+- **4 business microservices:** `auth-service` (users, roles and OAuth2), `product-service`, `customer-service` and `order-service`.
+- **Infrastructure:** API Gateway (Spring Cloud Gateway) and service discovery (Eureka on Docker Compose, the Kubernetes API with Spring Cloud Kubernetes on the cluster).
+- **Persistence:** JPA + PostgreSQL, one database per service, migrations with Flyway.
+- **Paginated listings** with `Page` and **dynamic filters** (`?filter=field:operator:value`).
+- **Messaging** with RabbitMQ: outbox pattern, order saga and dead-letter queues (DLQ).
+- **Horizontal scaling:** several replicas per service, ShedLock and distributed locks with Redis.
+- **Observability:** metrics with Prometheus, logs with Loki and Grafana Alloy, traces with Zipkin (Compose) or Tempo (Kubernetes) and dashboards in Grafana, all linked by the `traceId`.
+- **Kubernetes:** Helm chart with HTTPS Ingress (Traefik and cert-manager), autoscaling (HPA), PodDisruptionBudgets, NetworkPolicies, non-root read-only containers, and rollback with Helm.
+- **Errors** with standard HTTP codes, messages in English and Spanish and no internal details exposed.
+- **Tests:** unit tests with JUnit 5 and Mockito, integration tests with Testcontainers and end-to-end tests against the full system, also in CI on a kind cluster.
 
-## Compilar y ejecutar los tests
+## Build and run the tests
 
-Requisitos: **JDK 21** y **Docker** (para los tests de integración con Testcontainers). Maven no hace falta: el proyecto incluye Maven Wrapper.
+Requirements: **JDK 21** and **Docker** (for the Testcontainers integration tests). Maven is not needed: the project includes Maven Wrapper.
 
 ```bash
 ./mvnw verify
 ```
 
-En Windows (PowerShell o CMD) se usa `mvnw.cmd verify`.
+On Windows (PowerShell or CMD) use `mvnw.cmd verify`.
 
-| Qué | Cómo |
+| What | How |
 |---|---|
-| Solo los tests unitarios (`*Test`, JUnit 5 + Mockito, sin Spring ni Docker; segundos) | `./mvnw test` |
-| Unitarios y de integración (`*IT`, con PostgreSQL, Redis y RabbitMQ reales en Testcontainers) | `./mvnw verify` |
-| Cobertura | `./mvnw verify` falla si `domain` y `application` bajan del 80 % de líneas o del 70 % de ramas. Informe de cada módulo en `<módulo>/target/site/jacoco/index.html` e informe agregado de todos en `coverage-report/target/site/jacoco-aggregate/index.html` (sin configuración, DTOs, entidades, clases `*Application` ni el código de MapStruct) |
-| De extremo a extremo contra el sistema en Docker | Con el sistema arrancado (`docker compose up -d --build`): `./mvnw -Pe2e -pl e2e-tests verify` |
-| De extremo a extremo contra Kubernetes | Con el clúster de kind desplegado: `k8s/e2e.sh` (por https://showcase.localhost) |
+| Unit tests only (`*Test`, JUnit 5 + Mockito, no Spring or Docker; seconds) | `./mvnw test` |
+| Unit and integration tests (`*IT`, with real PostgreSQL, Redis and RabbitMQ in Testcontainers) | `./mvnw verify` |
+| Coverage | `./mvnw verify` fails if `domain` and `application` drop below 80 % of lines or 70 % of branches. Per-module report at `<module>/target/site/jacoco/index.html` and aggregated report at `coverage-report/target/site/jacoco-aggregate/index.html` (excluding configuration, DTOs, entities, `*Application` classes and MapStruct code) |
+| End to end against the system in Docker | With the system running (`docker compose up -d --build`): `./mvnw -Pe2e -pl e2e-tests verify` |
+| End to end against Kubernetes | With the kind cluster deployed: `k8s/e2e.sh` (through https://showcase.localhost) |
 
-Las pruebas de extremo a extremo ([e2e-tests](e2e-tests/src/test/java/com/showcase/e2e/ShowcaseE2EIT.java)) hacen lo mismo que un cliente real y todo a través del gateway: login con authorization code + PKCE en el formulario de auth-service, alta de un producto y de un cliente, pedido que la saga confirma descontando el stock, cancelación que lo devuelve y pedido sin stock rechazado con 422.
+The end-to-end tests ([e2e-tests](e2e-tests/src/test/java/com/showcase/e2e/ShowcaseE2EIT.java)) do what a real client does, all through the gateway: login with authorization code + PKCE on the auth-service form, creation of a product and a customer, an order the saga confirms by deducting the stock, a cancellation that returns it, and an out-of-stock order rejected with 422.
 
-## Estructura
+## Structure
 
-| Módulo | Contenido |
+| Module | Contents |
 |---|---|
-| `common-lib` | Excepciones de dominio, paginación (`PageQuery`/`PageResult`), filtros dinámicos (parser y `Specification` de JPA), gestión global de errores y mensajes en español e inglés, y la mensajería común (outbox, consumo idempotente, reintentos y DLQ) |
-| `events-contract` | Contratos de los mensajes de RabbitMQ: el sobre común `EventEnvelopeDTO` y un `*MessageDTO` por evento |
-| `auth-service` | Usuarios, roles y permisos, y servidor de autorización OAuth2 que emite los JWT (puerto 9000) |
-| `product-service` | Catálogo de productos y categorías, y gestión del stock (puerto 8081) |
-| `customer-service` | Clientes y sus direcciones (puerto 8082) |
-| `order-service` | Pedidos y sus líneas; consulta clientes y productos con Feign y Resilience4j (puerto 8083) |
-| `discovery-service` | Registro de servicios con Eureka (puerto 8761) |
-| `api-gateway` | Punto de entrada único: valida el token, enruta, limita la tasa de peticiones y agrega Swagger (puerto 8080) |
-| `coverage-report` | Informe de cobertura de JaCoCo agregado de todos los módulos |
-| `e2e-tests` | Pruebas de extremo a extremo contra el sistema completo, en Docker o en Kubernetes (perfil `e2e`) |
+| `common-lib` | Domain exceptions, pagination (`PageQuery`/`PageResult`), dynamic filters (parser and JPA `Specification`), global error handling and messages in English and Spanish, and the common messaging (outbox, idempotent consumption, retries and DLQ) |
+| `events-contract` | RabbitMQ message contracts: the common `EventEnvelopeDTO` envelope and one `*MessageDTO` per event |
+| `auth-service` | Users, roles and permissions, and the OAuth2 authorization server that issues the JWTs (port 9000) |
+| `product-service` | Catalog of products and categories, and stock management (port 8081) |
+| `customer-service` | Customers and their addresses (port 8082) |
+| `order-service` | Orders and their lines; queries customers and products with Feign and Resilience4j (port 8083) |
+| `discovery-service` | Service registry with Eureka (port 8761) |
+| `api-gateway` | Single entry point: validates the token, routes, rate limits requests and aggregates Swagger (port 8080) |
+| `coverage-report` | Aggregated JaCoCo coverage report of all modules |
+| `e2e-tests` | End-to-end tests against the full system, on Docker or Kubernetes (`e2e` profile) |
 
-| Carpeta | Contenido |
+| Folder | Contents |
 |---|---|
-| `docker/` | Configuración de Docker Compose: scripts de PostgreSQL y RabbitMQ (una base de datos y un usuario por servicio), Prometheus y sus alertas, Loki, Alloy y Grafana (datasources y dashboards) |
-| `k8s/` | Kubernetes: clúster de kind (`kind/`), plataforma (`platform/`: Traefik, cert-manager, metrics-server), chart de Helm (`charts/showcase`, con `values-prod.yaml`), observabilidad (`observability/`), carga para el autoescalado (`load/`) y los scripts `deploy.sh` y `e2e.sh` |
-| `docs/` | Especificación, diagramas UML, ejemplos con curl y guía de operación en Kubernetes |
-| `.github/workflows/` | CI: `ci.yml` (build y tests) y `kubernetes.yml` (despliegue en kind y e2e) |
+| `docker/` | Docker Compose configuration: PostgreSQL and RabbitMQ scripts (one database and one user per service), Prometheus and its alerts, Loki, Alloy and Grafana (datasources and dashboards) |
+| `k8s/` | Kubernetes: kind cluster (`kind/`), platform (`platform/`: Traefik, cert-manager, metrics-server), Helm chart (`charts/showcase`, with `values-prod.yaml`), observability (`observability/`), load for autoscaling (`load/`) and the `deploy.sh` and `e2e.sh` scripts |
+| `docs/` | Specification, UML diagrams, curl examples and the Kubernetes operations guide |
+| `.github/workflows/` | CI: `ci.yml` (build and tests) and `kubernetes.yml` (deployment on kind and e2e) |
 
-## Arrancar todo con Docker
+## Start everything with Docker
 
-Requisito: Docker con Compose. Las imágenes se compilan dentro de Docker, así que no hace falta ni el JDK.
+Requirement: Docker with Compose. The images are compiled inside Docker, so you do not even need the JDK.
 
 ```bash
 docker compose up -d --build
 ```
 
-La primera vez tarda unos minutos (descarga las dependencias y compila los 6 servicios). Las contraseñas salen de un fichero `.env` (copia [.env.example](.env.example)); sin él se usan valores de desarrollo.
+The first run takes a few minutes (it downloads the dependencies and compiles the 6 services). Passwords come from a `.env` file (copy [.env.example](.env.example)); without it, development values are used.
 
-| Consola | URL |
+| Console | URL |
 |---|---|
 | API (gateway) | http://localhost:8080 |
-| Swagger UI de todos los servicios | http://localhost:8080/swagger-ui.html |
+| Swagger UI of all services | http://localhost:8080/swagger-ui.html |
 | Eureka | http://localhost:8761 |
-| RabbitMQ | http://localhost:15672 (usuario `admin`, contraseña `admin-dev` o la de `.env`) |
+| RabbitMQ | http://localhost:15672 (user `admin`, password `admin-dev` or the one in `.env`) |
 | Zipkin | http://localhost:9411 |
 
-Solo el gateway expone la API; los servicios no publican puertos. Hay una base de datos y un usuario de PostgreSQL por servicio, y un usuario de RabbitMQ por servicio con permisos solo sobre sus exchanges y colas ([docker/rabbitmq/setup-users.sh](docker/rabbitmq/setup-users.sh)). El perfil por defecto es `dev` (datos de ejemplo y el 100 % de las trazas); con `SPRING_PROFILES_ACTIVE=prod`, logs en JSON y el 10 % de las trazas.
+Only the gateway exposes the API; the services publish no ports. There is one PostgreSQL database and user per service, and one RabbitMQ user per service with permissions only over its exchanges and queues ([docker/rabbitmq/setup-users.sh](docker/rabbitmq/setup-users.sh)). The default profile is `dev` (sample data and 100 % of the traces); with `SPRING_PROFILES_ACTIVE=prod`, JSON logs and 10 % of the traces.
 
-Los tokens se piden a través del gateway (`http://localhost:8080/oauth2/token`, login en `http://localhost:8080/login`), que es el emisor (`iss`) de los JWT. El gateway reenvía a los servicios las cabeceras `X-Forwarded-*` de los clientes que llegan desde la propia máquina o desde redes privadas (`GATEWAY_TRUSTED_PROXIES`); con un balanceador delante, indica su red ahí y `RATE_LIMIT_TRUSTED_PROXY_HOPS=1` para que el rate limiting use la IP real del cliente.
+Tokens are requested through the gateway (`http://localhost:8080/oauth2/token`, login at `http://localhost:8080/login`), which is the issuer (`iss`) of the JWTs. The gateway forwards to the services the `X-Forwarded-*` headers of clients coming from the machine itself or from private networks (`GATEWAY_TRUSTED_PROXIES`); with a load balancer in front, set its network there and `RATE_LIMIT_TRUSTED_PROXY_HOPS=1` so that rate limiting uses the real client IP.
 
-En [docs/curl-examples.md](docs/curl-examples.md) hay un recorrido completo con `curl`: cómo obtener un token de usuario, listados con filtros, cada código de error, cierre de sesión y cómo seguir un pedido en Zipkin y RabbitMQ.
+[docs/curl-examples.md](docs/curl-examples.md) has a full walkthrough with `curl`: how to get a user token, listings with filters, each error code, logout and how to follow an order in Zipkin and RabbitMQ.
 
-## Arrancar todo en Kubernetes
+## Start everything on Kubernetes
 
-El mismo sistema se despliega en un clúster local de kind (3 nodos dentro de Docker) con un chart de Helm. Requisitos: Docker Desktop con 12 GB de memoria o más, kubectl, kind y Helm.
+The same system is deployed on a local kind cluster (3 nodes inside Docker) with a Helm chart. Requirements: Docker Desktop with 12 GB of memory or more, kubectl, kind and Helm.
 
 ```bash
-k8s/kind/cluster.sh create          # clúster de 3 nodos
-k8s/platform/install.sh             # Traefik (Ingress), cert-manager (HTTPS) y metrics-server
-k8s/observability/install.sh        # opcional: Prometheus, Grafana, Loki, Alloy y Tempo
-k8s/deploy.sh                       # construye las imágenes, las carga en kind e instala el chart
-k8s/e2e.sh                          # e2e por el Ingress
+k8s/kind/cluster.sh create          # 3-node cluster
+k8s/platform/install.sh             # Traefik (Ingress), cert-manager (HTTPS) and metrics-server
+k8s/observability/install.sh        # optional: Prometheus, Grafana, Loki, Alloy and Tempo
+k8s/deploy.sh                       # builds the images, loads them into kind and installs the chart
+k8s/e2e.sh                          # e2e through the Ingress
 ```
 
-| Consola | URL |
+| Console | URL |
 |---|---|
-| API y Swagger | https://showcase.localhost/swagger-ui.html (certificado de una CA local; ver [k8s/README.md](k8s/README.md)) |
+| API and Swagger | https://showcase.localhost/swagger-ui.html (certificate from a local CA; see [k8s/README.md](k8s/README.md)) |
 | Grafana | `kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80` → http://localhost:3000 |
 | RabbitMQ | `kubectl -n showcase port-forward svc/rabbitmq 15672` → http://localhost:15672 |
 
-Diferencias con Docker Compose:
-- No hay Eureka: las réplicas se descubren con la API de Kubernetes.
-- No hay Zipkin: las trazas van a Tempo y se consultan en Grafana.
-- product-service y order-service se autoescalan (3-6 y 2-4 réplicas).
-- Solo el gateway recibe tráfico de fuera, por el Ingress con HTTPS.
-- Las NetworkPolicies limitan con quién habla cada pod.
+Differences from Docker Compose:
+- There is no Eureka: replicas are discovered with the Kubernetes API.
+- There is no Zipkin: traces go to Tempo and are viewed in Grafana.
+- product-service and order-service autoscale (3-6 and 2-4 replicas).
+- Only the gateway receives outside traffic, through the HTTPS Ingress.
+- NetworkPolicies limit who each pod talks to.
 
-Qué se despliega y por qué está en [k8s/README.md](k8s/README.md); cómo escalar, actualizar, volver atrás e investigar fallos, en [docs/kubernetes.md](docs/kubernetes.md).
+What is deployed and why is in [k8s/README.md](k8s/README.md); how to scale, upgrade, roll back and investigate failures, in [docs/kubernetes.md](docs/kubernetes.md).
 
-## Arrancar los servicios uno a uno (desarrollo)
+## Start the services one by one (development)
 
-Para depurar un servicio desde el IDE, cada uno se arranca con `spring-boot:test-run`: levanta su PostgreSQL (y Redis en auth-service) en Docker con Testcontainers. Lo que comparten se arranca una vez:
+To debug a service from the IDE, each one starts with `spring-boot:test-run`: it brings up its PostgreSQL (and Redis in auth-service) in Docker with Testcontainers. What they share is started once:
 
 ```bash
 docker run -d --name showcase-rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
@@ -123,11 +123,11 @@ docker run -d --name showcase-rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-ma
 ./mvnw -pl discovery-service spring-boot:run
 ```
 
-Todos se conectan a ese RabbitMQ (`localhost:5672`, usuario `guest`) y se registran en el Eureka de `localhost:8761`, así que se encuentran entre sí. Las trazas se envían a `localhost:9411` si hay un Zipkin arrancado (`docker run -d -p 9411:9411 openzipkin/zipkin:3`); si no, se descartan. Los tests de integración no necesitan nada de esto: cada uno arranca sus propios contenedores.
+They all connect to that RabbitMQ (`localhost:5672`, user `guest`) and register in the Eureka at `localhost:8761`, so they find each other. Traces are sent to `localhost:9411` if a Zipkin is running (`docker run -d -p 9411:9411 openzipkin/zipkin:3`); otherwise, they are discarded. The integration tests need none of this: each starts its own containers.
 
-## Arrancar auth-service en local
+## Start auth-service locally
 
-No hace falta instalar PostgreSQL ni Redis: el servicio se arranca con los dos en Docker (Testcontainers) y el perfil `dev`, que carga datos de ejemplo. Necesita el RabbitMQ y el Eureka compartidos de la sección anterior.
+There is no need to install PostgreSQL or Redis: the service starts with both in Docker (Testcontainers) and the `dev` profile, which loads sample data. It needs the shared RabbitMQ and Eureka from the previous section.
 
 ```bash
 ./mvnw install -DskipTests
@@ -136,249 +136,249 @@ No hace falta instalar PostgreSQL ni Redis: el servicio se arranca con los dos e
 ./mvnw -pl auth-service spring-boot:test-run -Dspring-boot.run.profiles=dev
 ```
 
-### Autenticación (OAuth2)
+### Authentication (OAuth2)
 
-La API exige un JWT en la cabecera `Authorization: Bearer <token>`. auth-service lo emite:
+The API requires a JWT in the `Authorization: Bearer <token>` header. auth-service issues it:
 
-| Cliente | Flujo | Para qué |
+| Client | Flow | What for |
 |---|---|---|
-| `web-client` | `authorization_code` con PKCE, sin secreto | Aplicaciones de navegador: el usuario inicia sesión en el formulario de auth-service |
-| `internal-service` | `client_credentials` | Llamadas entre microservicios (scope `internal`) |
+| `web-client` | `authorization_code` with PKCE, no secret | Browser applications: the user logs in on the auth-service form |
+| `internal-service` | `client_credentials` | Calls between microservices (`internal` scope) |
 
-El token de un usuario dura 15 minutos y lleva sus roles y permisos (`roles`, `permissions`), que cada servicio comprueba con `@PreAuthorize`. Las claves públicas para validarlo están en `/oauth2/jwks` y la configuración en `/.well-known/openid-configuration`.
+A user's token lasts 15 minutes and carries their roles and permissions (`roles`, `permissions`), which each service checks with `@PreAuthorize`. The public keys to validate it are at `/oauth2/jwks` and the configuration at `/.well-known/openid-configuration`.
 
-Para probar la API desde la terminal, la forma más rápida es un token de servicio (en el perfil `dev`, el secreto de `internal-service` es `internal-dev-secret`):
+To try the API from the terminal, the quickest way is a service token (in the `dev` profile, the `internal-service` secret is `internal-dev-secret`):
 
 ```bash
 curl -u internal-service:internal-dev-secret -d grant_type=client_credentials -d scope=internal http://localhost:9000/oauth2/token
 ```
 
-Ese token identifica al servicio, no a un usuario, así que no tiene permisos de gestión. Para actuar como `admin` hay que seguir el flujo `authorization_code` desde un navegador o un cliente como Postman (con PKCE y `redirect_uri` `http://127.0.0.1:3000/callback`).
+That token identifies the service, not a user, so it has no management permissions. To act as `admin` you have to follow the `authorization_code` flow from a browser or a client such as Postman (with PKCE and `redirect_uri` `http://127.0.0.1:3000/callback`).
 
-Otros endpoints públicos:
+Other public endpoints:
 
 ```bash
-curl -X POST http://localhost:9000/api/v1/auth/register -H "Content-Type: application/json" -d "{\"username\":\"nuevo\",\"email\":\"nuevo@example.com\",\"password\":\"Secreta-123\",\"firstName\":\"Nuevo\",\"lastName\":\"Usuario\"}"
+curl -X POST http://localhost:9000/api/v1/auth/register -H "Content-Type: application/json" -d "{\"username\":\"newuser\",\"email\":\"newuser@example.com\",\"password\":\"Secret-123\",\"firstName\":\"New\",\"lastName\":\"User\"}"
 ```
 ```bash
 curl http://localhost:9000/oauth2/jwks
 ```
 
-En otros entornos, las claves RSA (`JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY`) y el secreto de `internal-service` (`INTERNAL_CLIENT_SECRET`) se pasan por variables de entorno. Sin claves configuradas se genera un par en memoria (los tokens dejan de valer al reiniciar).
+In other environments, the RSA keys (`JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY`) and the `internal-service` secret (`INTERNAL_CLIENT_SECRET`) are passed through environment variables. With no keys configured, a pair is generated in memory (tokens stop being valid on restart).
 
-### Protección de las cuentas
+### Account protection
 
-| Medida | Comportamiento |
+| Measure | Behavior |
 |---|---|
-| Bloqueo por intentos | 5 contraseñas incorrectas seguidas bloquean la cuenta 15 minutos (configurable en `showcase.security.login`). El bloqueo caduca solo o lo quita un ADMIN con `PUT /api/v1/users/{id}/unlock` |
-| Política de contraseñas | De 8 a 72 caracteres, sin espacios, con mayúsculas, minúsculas, números y símbolos. No se pueden reutilizar las 3 últimas |
-| Cambio de contraseña | `PUT /api/v1/users/me/password` con la contraseña actual y la nueva |
-| Cierre de sesión | `POST /api/v1/auth/logout` revoca el token al instante |
-| Revocación automática | Cambiar la contraseña, desactivar o borrar un usuario o quitarle un rol invalida todos sus tokens anteriores |
-| Auditoría | Logins, bloqueos, cambios de roles y de contraseña y revocaciones, con IP, user agent y traceId. La consulta un ADMIN en `GET /api/v1/security-audit` |
+| Lockout after failed attempts | 5 wrong passwords in a row lock the account for 15 minutes (configurable in `showcase.security.login`). The lock expires on its own or an ADMIN removes it with `PUT /api/v1/users/{id}/unlock` |
+| Password policy | 8 to 72 characters, no spaces, with uppercase, lowercase, digits and symbols. The last 3 cannot be reused |
+| Password change | `PUT /api/v1/users/me/password` with the current and new password |
+| Logout | `POST /api/v1/auth/logout` revokes the token instantly |
+| Automatic revocation | Changing the password, deactivating or deleting a user or removing a role invalidates all their previous tokens |
+| Audit log | Logins, lockouts, role and password changes and revocations, with IP, user agent and traceId. An ADMIN views it at `GET /api/v1/security-audit` |
 
-Los tokens revocados se guardan en Redis con caducidad automática. Si Redis no responde, la API rechaza los tokens (es preferible un 401 a aceptar uno que podría estar revocado).
+Revoked tokens are stored in Redis with automatic expiry. If Redis does not respond, the API rejects tokens (a 401 is preferable to accepting one that could be revoked).
 
-### Datos de ejemplo (solo perfil `dev`)
+### Sample data (`dev` profile only)
 
-- Usuario `admin` (roles ADMIN y USER) y 60 usuarios `user01`…`user60`; cada 7º está deshabilitado y cada 10º borrado.
-- Todos tienen la contraseña de desarrollo `Showcase-Dev-2026!`. Estos datos nunca se cargan fuera del perfil `dev`.
+- User `admin` (ADMIN and USER roles) and 60 users `user01`…`user60`; every 7th is disabled and every 10th deleted.
+- They all have the development password `Showcase-Dev-2026!`. This data is never loaded outside the `dev` profile.
 
 ### API
 
-| Recurso | Endpoints | Permisos |
+| Resource | Endpoints | Permissions |
 |---|---|---|
-| Registro | `POST /api/v1/auth/register` con `username`, `email`, `password`, `firstName` y `lastName` (crea un usuario con el rol USER; customer-service crea su perfil de cliente al recibir `user.registered`) | Público |
-| Usuario actual | `GET /api/v1/users/me` | Cualquier usuario autenticado |
-| Usuarios | `POST /api/v1/users`, `GET /api/v1/users/{id}`, `GET /api/v1/users`, `PUT /api/v1/users/{id}`, `DELETE /api/v1/users/{id}`, `POST` y `DELETE /api/v1/users/{id}/roles/{roleId}` | `user:read` / `user:write` |
-| Roles | `POST`, `GET /{id}`, `GET`, `PUT /{id}`, `DELETE /{id}` en `/api/v1/roles` | `role:read` / `role:write` |
-| Permisos | `POST`, `GET /{id}`, `GET`, `PUT /{id}`, `DELETE /{id}` en `/api/v1/permissions` | `permission:read` / `permission:write` |
+| Registration | `POST /api/v1/auth/register` with `username`, `email`, `password`, `firstName` and `lastName` (creates a user with the USER role; customer-service creates their customer profile on receiving `user.registered`) | Public |
+| Current user | `GET /api/v1/users/me` | Any authenticated user |
+| Users | `POST /api/v1/users`, `GET /api/v1/users/{id}`, `GET /api/v1/users`, `PUT /api/v1/users/{id}`, `DELETE /api/v1/users/{id}`, `POST` and `DELETE /api/v1/users/{id}/roles/{roleId}` | `user:read` / `user:write` |
+| Roles | `POST`, `GET /{id}`, `GET`, `PUT /{id}`, `DELETE /{id}` on `/api/v1/roles` | `role:read` / `role:write` |
+| Permissions | `POST`, `GET /{id}`, `GET`, `PUT /{id}`, `DELETE /{id}` on `/api/v1/permissions` | `permission:read` / `permission:write` |
 
-`includeInactive=true` (ver registros borrados) solo está permitido al rol ADMIN.
+`includeInactive=true` (to see deleted records) is only allowed for the ADMIN role.
 
-Los listados admiten `page`, `size` (máximo 100), `sort`, `direction`, `includeInactive` y filtros `filter=campo:operador:valor`:
+Listings accept `page`, `size` (maximum 100), `sort`, `direction`, `includeInactive` and `filter=field:operator:value` filters:
 
-| Recurso | Filtros | Ordenación |
+| Resource | Filters | Sorting |
 |---|---|---|
-| Usuarios | `username`, `email` (eq, like, startsWith), `enabled` (eq), `role` (eq, in), `createdAt` (gte, lte, between) | `id`, `username`, `email`, `createdAt`, `updatedAt` |
+| Users | `username`, `email` (eq, like, startsWith), `enabled` (eq), `role` (eq, in), `createdAt` (gte, lte, between) | `id`, `username`, `email`, `createdAt`, `updatedAt` |
 | Roles | `name` (eq, like, startsWith), `permission` (eq, in), `createdAt` | `id`, `name`, `createdAt` |
-| Permisos | `name` (eq, like, startsWith), `createdAt` | `id`, `name`, `createdAt` |
+| Permissions | `name` (eq, like, startsWith), `createdAt` | `id`, `name`, `createdAt` |
 
-## Arrancar product-service en local
+## Start product-service locally
 
-Con PostgreSQL en Docker y un catálogo de ejemplo (8 categorías y 64 productos):
+With PostgreSQL in Docker and a sample catalog (8 categories and 64 products):
 
 ```bash
 ./mvnw -pl product-service spring-boot:test-run -Dspring-boot.run.profiles=dev
 ```
 
-La API valida los tokens con la clave pública de auth-service (`AUTH_JWK_SET_URI`, por defecto `http://localhost:9000/oauth2/jwks`), así que auth-service tiene que estar arrancado para obtener un token.
+The API validates tokens with auth-service's public key (`AUTH_JWK_SET_URI`, by default `http://localhost:9000/oauth2/jwks`), so auth-service must be running to get a token.
 
-| Recurso | Endpoints | Permisos |
+| Resource | Endpoints | Permissions |
 |---|---|---|
-| Productos | `POST`, `GET /{id}`, `GET`, `PUT /{id}`, `DELETE /{id}` en `/api/v1/products` | `product:read` / `product:write` |
-| Stock | `PUT /api/v1/products/{id}/stock` con `{"delta": -3}` (ajuste manual, nunca deja el stock en negativo) | Rol ADMIN |
-| Categorías | `POST`, `GET /{id}`, `GET`, `PUT /{id}`, `DELETE /{id}` en `/api/v1/categories`, y `GET /{id}/products` | `product:read` / `product:write` |
+| Products | `POST`, `GET /{id}`, `GET`, `PUT /{id}`, `DELETE /{id}` on `/api/v1/products` | `product:read` / `product:write` |
+| Stock | `PUT /api/v1/products/{id}/stock` with `{"delta": -3}` (manual adjustment, never leaves the stock negative) | ADMIN role |
+| Categories | `POST`, `GET /{id}`, `GET`, `PUT /{id}`, `DELETE /{id}` on `/api/v1/categories`, and `GET /{id}/products` | `product:read` / `product:write` |
 
-| Recurso | Filtros | Ordenación |
+| Resource | Filters | Sorting |
 |---|---|---|
-| Productos | `name` (eq, like, startsWith), `price` (eq, gt, gte, lt, lte, between), `stock` (eq, gt, gte, lt, lte), `categoryId` (eq, in), `categoryName` (eq, like), `createdAt` (gte, lte, between) | `id`, `name`, `price`, `stock`, `createdAt`, `updatedAt` |
-| Categorías | `name` (eq, like, startsWith), `createdAt` | `id`, `name`, `createdAt` |
+| Products | `name` (eq, like, startsWith), `price` (eq, gt, gte, lt, lte, between), `stock` (eq, gt, gte, lt, lte), `categoryId` (eq, in), `categoryName` (eq, like), `createdAt` (gte, lte, between) | `id`, `name`, `price`, `stock`, `createdAt`, `updatedAt` |
+| Categories | `name` (eq, like, startsWith), `createdAt` | `id`, `name`, `createdAt` |
 
-Ejemplo: portátiles entre 500 y 1500 € con stock, del más caro al más barato:
+Example: laptops between 500 and 1500 € in stock, from most to least expensive:
 
 ```bash
-curl -H "Authorization: Bearer $TOKEN" "http://localhost:8081/api/v1/products?filter=categoryName:like:portatil&filter=price:between:500,1500&filter=stock:gt:0&sort=price&direction=desc"
+curl -H "Authorization: Bearer $TOKEN" "http://localhost:8081/api/v1/products?filter=categoryName:like:laptop&filter=price:between:500,1500&filter=stock:gt:0&sort=price&direction=desc"
 ```
 
-## Arrancar customer-service en local
+## Start customer-service locally
 
-Con PostgreSQL en Docker y 50 clientes de ejemplo con sus direcciones:
+With PostgreSQL in Docker and 50 sample customers with their addresses:
 
 ```bash
 ./mvnw -pl customer-service spring-boot:test-run -Dspring-boot.run.profiles=dev
 ```
 
-Escucha en el puerto 8082 y valida los tokens igual que product-service.
+It listens on port 8082 and validates tokens just like product-service.
 
-| Recurso | Endpoints | Permisos |
+| Resource | Endpoints | Permissions |
 |---|---|---|
-| Clientes | `POST`, `GET /{id}`, `GET`, `PUT /{id}`, `DELETE /{id}` en `/api/v1/customers`, y `GET /by-user/{userId}` (perfil del usuario de auth-service) | `customer:read` / `customer:write` |
-| Direcciones | `POST /{id}/addresses`, `DELETE /{id}/addresses/{addressId}` y `PUT /{id}/addresses/{addressId}/main` en `/api/v1/customers` | `customer:write` |
+| Customers | `POST`, `GET /{id}`, `GET`, `PUT /{id}`, `DELETE /{id}` on `/api/v1/customers`, and `GET /by-user/{userId}` (profile of the auth-service user) | `customer:read` / `customer:write` |
+| Addresses | `POST /{id}/addresses`, `DELETE /{id}/addresses/{addressId}` and `PUT /{id}/addresses/{addressId}/main` on `/api/v1/customers` | `customer:write` |
 
-Reglas: el email (sin distinguir mayúsculas) y el usuario de auth-service son únicos; un cliente tiene como máximo 5 direcciones y, si tiene alguna, exactamente una es la principal (la primera que se añade, y si se borra, la siguiente).
+Rules: the email (case-insensitive) and the auth-service user are unique; a customer has at most 5 addresses and, if they have any, exactly one is the primary (the first one added, and if deleted, the next one).
 
-| Recurso | Filtros | Ordenación |
+| Resource | Filters | Sorting |
 |---|---|---|
-| Clientes | `firstName`, `lastName`, `email` (eq, like, startsWith), `city` (eq, like; cualquiera de sus direcciones), `userId` (eq), `createdAt` (gte, lte, between) | `id`, `firstName`, `lastName`, `email`, `createdAt` |
+| Customers | `firstName`, `lastName`, `email` (eq, like, startsWith), `city` (eq, like; any of their addresses), `userId` (eq), `createdAt` (gte, lte, between) | `id`, `firstName`, `lastName`, `email`, `createdAt` |
 
-## Arrancar order-service en local
+## Start order-service locally
 
-Con PostgreSQL en Docker y 120 pedidos de ejemplo (de los clientes y productos de ejemplo de los otros servicios):
+With PostgreSQL in Docker and 120 sample orders (of the sample customers and products of the other services):
 
 ```bash
 ./mvnw -pl order-service spring-boot:test-run -Dspring-boot.run.profiles=dev
 ```
 
-Escucha en el puerto 8083. Para crear pedidos consulta customer-service (dirección de envío) y product-service (nombre, precio y stock) con Feign, así que los dos tienen que estar arrancados. Feign los busca en Eureka y reparte las llamadas entre sus réplicas; `CUSTOMER_SERVICE_URL` y `PRODUCT_SERVICE_URL` fijan una URL concreta (solo para pruebas).
+It listens on port 8083. To create orders it queries customer-service (shipping address) and product-service (name, price and stock) with Feign, so both must be running. Feign looks them up in Eureka and distributes the calls among their replicas; `CUSTOMER_SERVICE_URL` and `PRODUCT_SERVICE_URL` set a specific URL (for testing only).
 
-| Recurso | Endpoints | Permisos |
+| Resource | Endpoints | Permissions |
 |---|---|---|
-| Pedidos | `POST`, `GET /{id}`, `GET`, `PUT /{id}` (cambia la dirección de envío de un pedido no cerrado) en `/api/v1/orders` | `order:read` / `order:write` |
-| Pedidos de un cliente | `GET /api/v1/orders/by-customer/{customerId}` (paginado, del más reciente al más antiguo) | `order:read` |
-| Cancelar | `PUT /api/v1/orders/{id}/cancel` (solo pedidos confirmados; un pedido pendiente responde 422 `ORDER_NOT_CANCELLABLE`) | `order:write` |
-| Borrar | `DELETE /api/v1/orders/{id}` (borrado lógico de pedidos cancelados o rechazados) | `order:write` y rol ADMIN |
+| Orders | `POST`, `GET /{id}`, `GET`, `PUT /{id}` (changes the shipping address of an order that is not closed) on `/api/v1/orders` | `order:read` / `order:write` |
+| A customer's orders | `GET /api/v1/orders/by-customer/{customerId}` (paginated, from most recent to oldest) | `order:read` |
+| Cancel | `PUT /api/v1/orders/{id}/cancel` (confirmed orders only; a pending order responds 422 `ORDER_NOT_CANCELLABLE`) | `order:write` |
+| Delete | `DELETE /api/v1/orders/{id}` (soft delete of cancelled or rejected orders) | `order:write` and ADMIN role |
 
-La petición solo lleva productos y cantidades: el nombre y el precio se copian de product-service y la dirección de envío es la principal del cliente, para que el pedido no cambie si después cambia el catálogo.
+The request only carries products and quantities: the name and price are copied from product-service and the shipping address is the customer's primary one, so that the order does not change if the catalog later does.
 
-| Recurso | Filtros | Ordenación |
+| Resource | Filters | Sorting |
 |---|---|---|
-| Pedidos | `status` (eq, in), `customerId` (eq), `productId` (eq; pedidos que contienen el producto), `total` (gte, lte, between), `createdAt` (gte, lte, between) | `id`, `total`, `status`, `createdAt` |
+| Orders | `status` (eq, in), `customerId` (eq), `productId` (eq; orders containing the product), `total` (gte, lte, between), `createdAt` (gte, lte, between) | `id`, `total`, `status`, `createdAt` |
 
-### Llamadas a otros servicios
+### Calls to other services
 
-| Situación | Respuesta |
+| Situation | Response |
 |---|---|
-| El cliente o un producto no existen | 404 (`CUSTOMER_NOT_FOUND`, `PRODUCT_NOT_FOUND`) |
-| No hay stock suficiente | 422 (`INSUFFICIENT_STOCK`); es una comprobación previa para fallar pronto, la reserva real la hace la saga |
-| El otro servicio falla o tarda más de 3 s | 503 (`SERVICE_UNAVAILABLE`) sin detalles del error remoto |
-| Varios fallos seguidos | El circuit breaker (Resilience4j) se abre 10 s y responde 503 al instante, sin esperar al timeout |
+| The customer or a product does not exist | 404 (`CUSTOMER_NOT_FOUND`, `PRODUCT_NOT_FOUND`) |
+| Not enough stock | 422 (`INSUFFICIENT_STOCK`); it is a prior check to fail fast, the real reservation is done by the saga |
+| The other service fails or takes more than 3 s | 503 (`SERVICE_UNAVAILABLE`) with no details of the remote error |
+| Several failures in a row | The circuit breaker (Resilience4j) opens for 10 s and responds 503 instantly, without waiting for the timeout |
 
-El JWT del usuario se reenvía en cada llamada, así que se aplican sus propios permisos en el otro servicio. Las llamadas se hacen antes de abrir la transacción, para no tener una conexión a la base de datos bloqueada mientras se espera la respuesta.
+The user's JWT is forwarded on each call, so their own permissions apply in the other service. The calls are made before opening the transaction, so as not to hold a database connection while waiting for the response.
 
-## Mensajería con RabbitMQ
+## Messaging with RabbitMQ
 
-Feign se usa para las consultas síncronas (comprobar que algo existe); todo lo que cambia el estado de otro servicio va por RabbitMQ.
+Feign is used for synchronous queries (checking that something exists); everything that changes the state of another service goes through RabbitMQ.
 
-### Flujos
+### Flows
 
-| Flujo | Eventos |
+| Flow | Events |
 |---|---|
-| Alta de usuario → perfil de cliente | auth `user.registered` → customer crea el cliente (sin direcciones) |
-| Usuario desactivado o borrado | auth `user.disabled` → customer marca el cliente como inactivo |
-| Cuenta bloqueada | auth `account.locked` → customer lo registra en su log (el bloqueo es temporal y no cambia el cliente) |
-| Saga de creación de pedido | order crea el pedido `PENDING` y publica `order.created` → product reserva el stock de todas las líneas o de ninguna y responde `stock.reserved` o `stock.reservation-failed` → order pasa el pedido a `CONFIRMED` o `REJECTED` (con el motivo en `rejectionReason`) |
-| Cancelación (compensación) | order cancela un pedido `CONFIRMED` y publica `order.cancelled` → product devuelve el stock y responde `stock.released` |
+| User sign-up → customer profile | auth `user.registered` → customer creates the customer (no addresses) |
+| User deactivated or deleted | auth `user.disabled` → customer marks the customer as inactive |
+| Account locked | auth `account.locked` → customer records it in its log (the lock is temporary and does not change the customer) |
+| Order creation saga | order creates the `PENDING` order and publishes `order.created` → product reserves the stock of all the lines or none and responds `stock.reserved` or `stock.reservation-failed` → order moves the order to `CONFIRMED` or `REJECTED` (with the reason in `rejectionReason`) |
+| Cancellation (compensation) | order cancels a `CONFIRMED` order and publishes `order.cancelled` → product returns the stock and responds `stock.released` |
 
-Las líneas de un pedido quedan fijas al crearlo: son las que se reservan en la saga. Por eso `PUT /orders/{id}` solo cambia la dirección de envío.
+An order's lines are fixed on creation: they are what the saga reserves. That is why `PUT /orders/{id}` only changes the shipping address.
 
-### Topología
+### Topology
 
-- Un exchange `topic` duradero por servicio que publica: `auth.events`, `order.events` y `product.events`. La routing key es el tipo de evento (`<entidad>.<acción>`).
-- Una cola duradera por consumidor y evento (`<servicio>.<evento>`, p. ej. `product-service.order-created`). Todas las réplicas de un servicio escuchan la misma cola, así que cada mensaje lo procesa una sola.
-- Cada cola manda sus mensajes rechazados al DLX del servicio (`<servicio>.dlx`), que los deja en su DLQ (`<cola>.dlq`).
-- Los nombres están en `application.yml` (`showcase.messaging`); exchanges, colas y bindings se declaran al arrancar.
+- One durable `topic` exchange per publishing service: `auth.events`, `order.events` and `product.events`. The routing key is the event type (`<entity>.<action>`).
+- One durable queue per consumer and event (`<service>.<event>`, e.g. `product-service.order-created`). All replicas of a service listen to the same queue, so each message is processed by only one.
+- Each queue sends its rejected messages to the service's DLX (`<service>.dlx`), which leaves them in its DLQ (`<queue>.dlq`).
+- The names are in `application.yml` (`showcase.messaging`); exchanges, queues and bindings are declared at startup.
 
-Todos los mensajes llevan el mismo sobre en JSON:
+All messages carry the same JSON envelope:
 
 ```json
 { "eventId": "uuid", "eventType": "order.created", "version": 1, "occurredAt": "2026-10-14T10:00:00Z",
   "source": "order-service", "payload": { "orderId": 7, "customerId": 3, "lines": [{ "productId": 10, "quantity": 2 }] } }
 ```
 
-### Fiabilidad
+### Reliability
 
-| Problema | Solución |
+| Problem | Solution |
 |---|---|
-| Guardar el cambio y no llegar a publicar el evento (o al revés) | **Outbox**: el evento se guarda en la tabla `outbox_event` en la misma transacción que el cambio; un publicador programado lo envía después |
-| No saber si RabbitMQ ha recibido el mensaje | **Publisher confirms y returns**: un evento solo pasa a `SENT` cuando RabbitMQ lo confirma y tenía una cola de destino. Si RabbitMQ está caído, el evento espera en la tabla |
-| Mensajes duplicados (RabbitMQ entrega "al menos una vez") | **Consumo idempotente**: cada consumidor guarda el `eventId` en `processed_event` en la misma transacción que su cambio y descarta los repetidos |
-| Fallos pasajeros (base de datos caída, conflicto de concurrencia) | **Reintentos**: 3 reintentos esperando 1 s, 2 s y 4 s; después, a la DLQ |
-| Fallos que no se arreglan reintentando (JSON mal formado, pedido inexistente, email repetido) | Directos a la **DLQ**, sin reintentos |
+| Saving the change and failing to publish the event (or vice versa) | **Outbox**: the event is stored in the `outbox_event` table in the same transaction as the change; a scheduled publisher sends it later |
+| Not knowing whether RabbitMQ received the message | **Publisher confirms and returns**: an event only becomes `SENT` when RabbitMQ confirms it and it had a destination queue. If RabbitMQ is down, the event waits in the table |
+| Duplicate messages (RabbitMQ delivers "at least once") | **Idempotent consumption**: each consumer stores the `eventId` in `processed_event` in the same transaction as its change and discards repeats |
+| Transient failures (database down, concurrency conflict) | **Retries**: 3 retries waiting 1 s, 2 s and 4 s; then, to the DLQ |
+| Failures that retrying will not fix (malformed JSON, missing order, repeated email) | Straight to the **DLQ**, without retries |
 
-### Administración de las DLQ (solo ADMIN)
+### DLQ administration (ADMIN only)
 
-En cada servicio que consume eventos (customer, product y order):
+In each service that consumes events (customer, product and order):
 
-| Endpoint | Qué hace |
+| Endpoint | What it does |
 |---|---|
-| `GET /api/v1/admin/dead-letters` | Lista las DLQ del servicio con su cola original y cuántos mensajes tienen |
-| `GET /api/v1/admin/dead-letters/{dlq}/messages?limit=10` | Muestra los primeros mensajes (con el motivo del rechazo) sin sacarlos de la DLQ |
-| `POST /api/v1/admin/dead-letters/{dlq}/replay?max=100` | Devuelve los mensajes a su cola original, una vez corregido el problema |
+| `GET /api/v1/admin/dead-letters` | Lists the service's DLQs with their original queue and how many messages they hold |
+| `GET /api/v1/admin/dead-letters/{dlq}/messages?limit=10` | Shows the first messages (with the rejection reason) without taking them out of the DLQ |
+| `POST /api/v1/admin/dead-letters/{dlq}/replay?max=100` | Returns the messages to their original queue, once the problem has been fixed |
 
 ## API Gateway
 
-Toda la API se usa a través de `http://localhost:8080`. El gateway descubre las réplicas de cada servicio en Eureka (`lb://product-service`...) y reparte las peticiones entre ellas. En Kubernetes no hay Eureka: las réplicas se leen de la API de Kubernetes con Spring Cloud Kubernetes ([k8s/README.md](k8s/README.md)).
+The whole API is used through `http://localhost:8080`. The gateway discovers each service's replicas in Eureka (`lb://product-service`...) and distributes requests among them. On Kubernetes there is no Eureka: replicas are read from the Kubernetes API with Spring Cloud Kubernetes ([k8s/README.md](k8s/README.md)).
 
-| Rutas | Servicio |
+| Routes | Service |
 |---|---|
 | `/api/v1/auth/**`, `/api/v1/users/**`, `/api/v1/roles/**`, `/api/v1/permissions/**`, `/api/v1/security-audit/**`, `/login`, `/oauth2/**`, `/.well-known/**` | auth-service |
 | `/api/v1/products/**`, `/api/v1/categories/**` | product-service |
 | `/api/v1/customers/**` | customer-service |
 | `/api/v1/orders/**` | order-service |
-| `/api/v1/admin/{servicio}/dead-letters/**` | Las DLQ de ese servicio (el gateway quita el prefijo) |
+| `/api/v1/admin/{service}/dead-letters/**` | That service's DLQs (the gateway strips the prefix) |
 
-| Función | Comportamiento |
+| Function | Behavior |
 |---|---|
-| Autenticación | Valida la firma y la caducidad del JWT con el JWKS de auth-service y rechaza los tokens revocados (logout, cambio de contraseña, usuario desactivado) consultando la misma lista de Redis que auth-service. Públicas: registro, login, endpoints OAuth2, Swagger y health. El token se reenvía al servicio, que aplica sus permisos |
-| Rate limiting | Token bucket en Redis (compartido por todas las réplicas): 20 peticiones por segundo con ráfagas de 40 por usuario (`sub` del JWT) o por IP si no hay token; el login (`POST /login` y `/oauth2/token`), 5 por minuto por IP. Al superarlo, **429** con `Retry-After` y el formato de error común |
-| Circuit breaker | Uno por servicio (Resilience4j): una llamada que tarda más de 5 s cuenta como fallo; con la mitad de las últimas 20 fallidas se abre 10 s y responde **503** al instante |
-| Errores | 401, 403, 404, 429 y 503 del gateway en el mismo `ErrorResponseDTO` y los mismos idiomas que los servicios |
-| Traza | Cabecera `X-Trace-Id` en todas las respuestas: es el `traceId` que se busca en Zipkin (o en Tempo, en Kubernetes) |
-| CORS | Centralizado en el gateway (`CORS_ALLOWED_ORIGINS`) |
+| Authentication | Validates the JWT's signature and expiry with auth-service's JWKS and rejects revoked tokens (logout, password change, deactivated user) by checking the same Redis list as auth-service. Public: registration, login, OAuth2 endpoints, Swagger and health. The token is forwarded to the service, which applies its permissions |
+| Rate limiting | Token bucket in Redis (shared by all replicas): 20 requests per second with bursts of 40 per user (JWT `sub`) or per IP if there is no token; the login (`POST /login` and `/oauth2/token`), 5 per minute per IP. On exceeding it, **429** with `Retry-After` and the common error format |
+| Circuit breaker | One per service (Resilience4j): a call taking more than 5 s counts as a failure; with half of the last 20 failed it opens for 10 s and responds **503** instantly |
+| Errors | The gateway's 401, 403, 404, 429 and 503 in the same `ErrorResponseDTO` and the same languages as the services |
+| Trace | `X-Trace-Id` header on all responses: it is the `traceId` to search for in Zipkin (or in Tempo, on Kubernetes) |
+| CORS | Centralized in the gateway (`CORS_ALLOWED_ORIGINS`) |
 
-Los límites se ajustan con variables de entorno (`RATE_LIMIT_REPLENISH_RATE`, `RATE_LIMIT_BURST_CAPACITY`, `LOGIN_RATE_LIMIT_*`, `GATEWAY_TIMEOUT`).
+The limits are adjusted with environment variables (`RATE_LIMIT_REPLENISH_RATE`, `RATE_LIMIT_BURST_CAPACITY`, `LOGIN_RATE_LIMIT_*`, `GATEWAY_TIMEOUT`).
 
-## Escalado horizontal
+## Horizontal scaling
 
-Con `docker compose up` arrancan 3 réplicas de product-service y 2 de order-service (`PRODUCT_SERVICE_REPLICAS`, `ORDER_SERVICE_REPLICAS`, o `docker compose up -d --scale product-service=5`). Nada se guarda en memoria entre peticiones: lo compartido está en PostgreSQL o en Redis.
+With `docker compose up`, 3 replicas of product-service and 2 of order-service start (`PRODUCT_SERVICE_REPLICAS`, `ORDER_SERVICE_REPLICAS`, or `docker compose up -d --scale product-service=5`). Nothing is kept in memory between requests: what is shared lives in PostgreSQL or Redis.
 
-| Pieza | Cómo funciona con varias réplicas |
+| Piece | How it works with several replicas |
 |---|---|
-| Descubrimiento y balanceo | Cada réplica se registra en Eureka con un id único; el gateway y Feign reparten las peticiones entre las réplicas vivas. La lista se refresca cada 5 s y una réplica que deja de enviar latidos sale del registro en 15 s |
-| `X-Instance-Id` | Cada respuesta indica qué réplica la atendió (el mismo id que aparece en Eureka) |
-| Apagado ordenado | Una réplica que se apaga termina las peticiones y los mensajes en curso (hasta 30 s) y el gateway reintenta los `GET` en otra réplica: no se pierde ninguna petición |
-| Colas de RabbitMQ | Todas las réplicas escuchan la misma cola (*competing consumers*): cada mensaje lo procesa una sola, con `prefetch` 10 y de 1 a 4 consumidores por réplica |
-| Tareas programadas | ShedLock (tabla `shedlock` de cada base de datos): cada tarea la ejecuta una sola réplica a la vez. Tareas: publicador del outbox (cada 5 s), limpieza de `processed_event` (de madrugada), desbloqueo automático de cuentas (cada minuto) y borrado de las autorizaciones OAuth2 caducadas (de madrugada) |
-| Reserva de stock | Lock distribuido por producto en Redis (Redisson, `lock:product:{id}`), cogido antes de abrir la transacción y soltado después del commit; con varios productos, todos los locks en el mismo orden para evitar interbloqueos. Si no se consigue en 3 s, `RESOURCE_BUSY` (423) y el mensaje se reintenta. `@Version` sigue como segunda red de seguridad |
+| Discovery and balancing | Each replica registers in Eureka with a unique id; the gateway and Feign distribute requests among the live replicas. The list refreshes every 5 s and a replica that stops sending heartbeats leaves the registry in 15 s |
+| `X-Instance-Id` | Each response states which replica served it (the same id shown in Eureka) |
+| Graceful shutdown | A replica shutting down finishes in-flight requests and messages (up to 30 s) and the gateway retries `GET`s on another replica: no request is lost |
+| RabbitMQ queues | All replicas listen to the same queue (*competing consumers*): each message is processed by only one, with `prefetch` 10 and 1 to 4 consumers per replica |
+| Scheduled tasks | ShedLock (`shedlock` table in each database): each task is run by a single replica at a time. Tasks: outbox publisher (every 5 s), `processed_event` cleanup (overnight), automatic account unlock (every minute) and deletion of expired OAuth2 authorizations (overnight) |
+| Stock reservation | Distributed per-product lock in Redis (Redisson, `lock:product:{id}`), taken before opening the transaction and released after the commit; with several products, all the locks in the same order to avoid deadlocks. If not acquired within 3 s, `RESOURCE_BUSY` (423) and the message is retried. `@Version` remains as a second safety net |
 
-En Docker Compose, auth-service se mantiene en una réplica: genera su clave de firma de los JWT al arrancar. Para escalarlo hay que darle la misma clave a todas las réplicas con `JWT_PRIVATE_KEY` y `JWT_PUBLIC_KEY` (PEM). En Kubernetes, `k8s/deploy.sh` genera esa clave una vez y la guarda en un Secret, así que auth-service se puede escalar y los tokens sobreviven a los reinicios.
+On Docker Compose, auth-service stays at one replica: it generates its JWT signing key at startup. To scale it, give all replicas the same key with `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY` (PEM). On Kubernetes, `k8s/deploy.sh` generates that key once and stores it in a Secret, so auth-service can scale and tokens survive restarts.
 
-En Kubernetes, además, product-service y order-service se escalan solos según la CPU (HorizontalPodAutoscaler); `k8s/load/hpa-demo.sh` lo demuestra con carga.
+On Kubernetes, product-service and order-service also scale on their own according to CPU (HorizontalPodAutoscaler); `k8s/load/hpa-demo.sh` demonstrates it under load.
 
-## Escenarios de demostración
+## Demo scenarios
 
-### Repartir el tráfico y apagar una réplica sin perder peticiones
+### Distribute the traffic and shut down a replica without losing requests
 
 ```bash
 docker compose up -d --build
@@ -387,89 +387,89 @@ docker compose up -d --build
 for i in $(seq 1 9); do curl -s -D - -o /dev/null http://localhost:8080/product-service/v3/api-docs | grep -i x-instance-id; done
 ```
 
-Las respuestas se reparten entre las 3 réplicas (tres valores distintos de `X-Instance-Id`). Con las peticiones en marcha, apaga una réplica:
+The responses are spread across the 3 replicas (three different `X-Instance-Id` values). With the requests running, shut down a replica:
 
 ```bash
 docker stop spring-microservices-showcase-product-service-2
 ```
 
-Todas las peticiones siguen respondiendo 200: la réplica termina lo que tenía en curso, el gateway reintenta en otra y, en unos segundos, Eureka deja de enviarle tráfico. En http://localhost:8761 se ve cómo desaparece del registro.
+All requests keep responding 200: the replica finishes what it had in flight, the gateway retries on another one and, within seconds, Eureka stops sending it traffic. At http://localhost:8761 you can see it disappear from the registry.
 
-### Muchos pedidos a la vez sobre el último stock
+### Many orders at once for the last stock
 
-El test [StockConcurrencyIT](product-service/src/test/java/com/showcase/product/StockConcurrencyIT.java) lanza 20 reservas simultáneas sobre un producto con 5 unidades: se reservan exactamente 5, las otras 15 se rechazan con `INSUFFICIENT_STOCK` y el stock nunca queda negativo. Con el sistema en Docker, lo mismo se ve creando a la vez varios pedidos del mismo producto: los que no tienen stock pasan a `REJECTED`.
+The [StockConcurrencyIT](product-service/src/test/java/com/showcase/product/StockConcurrencyIT.java) test launches 20 simultaneous reservations on a product with 5 units: exactly 5 are reserved, the other 15 are rejected with `INSUFFICIENT_STOCK` and the stock never goes negative. With the system in Docker, the same is seen by creating several orders of the same product at once: those without stock become `REJECTED`.
 
-## Trazabilidad con Zipkin
+## Tracing with Zipkin
 
-En Kubernetes, Tempo sustituye a Zipkin: recibe las mismas trazas y se consultan en Grafana (*Explore → Tempo*). Lo que sigue describe Docker Compose.
+On Kubernetes, Tempo replaces Zipkin: it receives the same traces and they are viewed in Grafana (*Explore → Tempo*). What follows describes Docker Compose.
 
-Todos los servicios, incluidos el gateway y auth-service, envían sus trazas a Zipkin (Micrometer Tracing con Brave). Una misma traza sigue la petición por el gateway, las llamadas Feign, cada consulta SQL (sin los valores de los parámetros) y los casos de uso marcados con `@Observed`. También sigue los mensajes de RabbitMQ: el outbox guarda el `traceparent` de la petición y el envío continúa esa traza, así que un pedido se ve de punta a punta: gateway → order-service → RabbitMQ → product-service → RabbitMQ → order-service.
+All services, including the gateway and auth-service, send their traces to Zipkin (Micrometer Tracing with Brave). A single trace follows the request through the gateway, the Feign calls, each SQL query (without parameter values) and the use cases marked with `@Observed`. It also follows RabbitMQ messages: the outbox stores the request's `traceparent` and the send continues that trace, so an order can be seen end to end: gateway → order-service → RabbitMQ → product-service → RabbitMQ → order-service.
 
-Cada línea de log lleva `[traceId-spanId]`, y el `traceId` es el mismo que devuelven la cabecera `X-Trace-Id` y el campo `traceId` de los errores. Para buscar una petición: http://localhost:9411 → *Search by trace ID*.
+Each log line carries `[traceId-spanId]`, and the `traceId` is the same one returned by the `X-Trace-Id` header and the `traceId` field of errors. To look up a request: http://localhost:9411 → *Search by trace ID*.
 
-## Observabilidad: Prometheus, Loki y Grafana
+## Observability: Prometheus, Loki and Grafana
 
-En Kubernetes se instala con `k8s/observability/install.sh` y reutiliza los mismos dashboards y alertas ([k8s/README.md](k8s/README.md#observabilidad-namespace-monitoring)). En Docker Compose se levanta junto al sistema con un segundo fichero de compose:
+On Kubernetes it is installed with `k8s/observability/install.sh` and reuses the same dashboards and alerts ([k8s/README.md](k8s/README.md#observability-namespace-monitoring)). On Docker Compose it starts together with the system through a second compose file:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d --build
 ```
 
-| Consola | URL |
+| Console | URL |
 |---|---|
-| Grafana (dashboards, logs y trazas) | http://localhost:3000 (usuario `admin`, contraseña `admin` o la de `.env`) |
-| Prometheus (métricas y alertas) | http://localhost:9090 |
+| Grafana (dashboards, logs and traces) | http://localhost:3000 (user `admin`, password `admin` or the one in `.env`) |
+| Prometheus (metrics and alerts) | http://localhost:9090 |
 
-| Pieza | Detalle |
+| Piece | Detail |
 |---|---|
-| Métricas | Cada servicio expone `/actuator/prometheus`, solo en la red interna (el gateway, en su puerto interno 8081). Prometheus descubre las réplicas en Eureka, sin listar instancias a mano. Todas las métricas llevan `application`, `instance` (la réplica, igual que `X-Instance-Id`) y `environment` |
-| Técnicas | Peticiones, latencia con histogramas (p50/p95/p99), errores por endpoint, JVM, Hikari, circuit breakers, peticiones del gateway por ruta, colas y DLQ de RabbitMQ, eventos pendientes en el outbox (`outbox_events`) y espera de los locks (`distributed_lock_wait_seconds`) |
-| De negocio | `showcase_orders_total` (creados, confirmados, rechazados con su motivo, cancelados), `showcase_stock_operations_total`, `showcase_auth_registrations_total`, `showcase_auth_logins_total` y `showcase_auth_accounts_locked_total`. Se cuentan después del commit |
-| Logs | En Docker, cada servicio escribe JSON (ECS) con el servicio, la réplica, el nivel, el `traceId` y el `spanId`. Grafana Alloy los recoge de todos los contenedores y los envía a Loki |
-| Correlación | Desde un punto de una gráfica de latencia (exemplar) se salta a su traza en Zipkin; desde un log, a su traza; y desde una traza, a sus logs |
-| Dashboards | Carpeta *Showcase*: visión general, por microservicio, reparto de carga, mensajería, negocio y seguridad ([docker/grafana/dashboards](docker/grafana/dashboards)) |
-| Alertas | Errores 5xx > 5 % durante 5 min, latencia p95 > 1 s, mensajes en una DLQ, circuit breaker abierto, réplica caída y eventos atascados en el outbox ([docker/prometheus/alerts.yml](docker/prometheus/alerts.yml)) |
+| Metrics | Each service exposes `/actuator/prometheus`, only on the internal network (the gateway, on its internal port 8081). Prometheus discovers the replicas in Eureka, without listing instances by hand. All metrics carry `application`, `instance` (the replica, the same as `X-Instance-Id`) and `environment` |
+| Technical | Requests, latency with histograms (p50/p95/p99), errors per endpoint, JVM, Hikari, circuit breakers, gateway requests per route, RabbitMQ queues and DLQs, pending events in the outbox (`outbox_events`) and lock waits (`distributed_lock_wait_seconds`) |
+| Business | `showcase_orders_total` (created, confirmed, rejected with their reason, cancelled), `showcase_stock_operations_total`, `showcase_auth_registrations_total`, `showcase_auth_logins_total` and `showcase_auth_accounts_locked_total`. They are counted after the commit |
+| Logs | On Docker, each service writes JSON (ECS) with the service, the replica, the level, the `traceId` and the `spanId`. Grafana Alloy collects them from all containers and sends them to Loki |
+| Correlation | From a point on a latency chart (exemplar) you jump to its trace in Zipkin; from a log, to its trace; and from a trace, to its logs |
+| Dashboards | *Showcase* folder: overview, by microservice, load distribution, messaging, business and security ([docker/grafana/dashboards](docker/grafana/dashboards)) |
+| Alerts | 5xx errors > 5 % for 5 min, p95 latency > 1 s, messages in a DLQ, open circuit breaker, downed replica and events stuck in the outbox ([docker/prometheus/alerts.yml](docker/prometheus/alerts.yml)) |
 
-### Escenario: seguir una petición de punta a punta
+### Scenario: follow a request end to end
 
-1. En Grafana, abre *Showcase → 1. Visión general del sistema* y busca en *Latencia p95* un punto (exemplar) de la petición que te interese; al pasar el ratón aparece su `trace_id` y el enlace a Zipkin.
-2. En Zipkin se ve la petición entera: gateway → servicio → consultas SQL → envío a RabbitMQ → servicio que consume el evento.
-3. Desde la traza, *Logs for this span* abre en Loki las líneas de log de esa petición en todos los servicios (también se puede buscar con `{service="order-service"} | traceId="<traceId>"`).
-4. El mismo `traceId` lo devuelve la API en la cabecera `X-Trace-Id` y en el campo `traceId` de los errores.
+1. In Grafana, open *Showcase → 1. System overview* and find in *p95 latency* a point (exemplar) of the request you are interested in; hovering shows its `trace_id` and the link to Zipkin.
+2. Zipkin shows the whole request: gateway → service → SQL queries → send to RabbitMQ → service consuming the event.
+3. From the trace, *Logs for this span* opens in Loki the log lines of that request across all services (you can also search with `{service="order-service"} | traceId="<traceId>"`).
+4. The API returns the same `traceId` in the `X-Trace-Id` header and in the `traceId` field of errors.
 
-## Documentación de la API (Swagger)
+## API documentation (Swagger)
 
-- Todos los servicios: http://localhost:8080/swagger-ui.html, con un desplegable por servicio.
-- Cada servicio arrancado en local: `http://localhost:<puerto>/swagger-ui.html`.
+- All services: http://localhost:8080/swagger-ui.html, with a dropdown per service.
+- Each service started locally: `http://localhost:<port>/swagger-ui.html`.
 
-Cada operación documenta sus posibles errores (400, 401, 403, 404, 409, 422, 500, 503) con el esquema `ErrorResponseDTO`.
+Each operation documents its possible errors (400, 401, 403, 404, 409, 422, 500, 503) with the `ErrorResponseDTO` schema.
 
-Para probar los endpoints protegidos, pulsa *Authorize*. Hay dos opciones:
+To try the protected endpoints, click *Authorize*. There are two options:
 
-| Esquema | Cómo funciona |
+| Scheme | How it works |
 |---|---|
-| `oauth2` (recomendado) | Con el `client_id` `web-client` ya relleno y sin secreto, *Authorize* abre en una ventana emergente el formulario de login de auth-service (por ejemplo `admin` / `Showcase-Dev-2026!`). Al entrar, Swagger recibe el token y lo envía en todas las peticiones. Es el mismo flujo authorization code + PKCE que una aplicación de navegador: la contraseña solo la ve auth-service, y siguen valiendo el bloqueo por intentos, la auditoría y el rate limiting del login |
-| `bearer-jwt` | Pega un token obtenido por otra vía, por ejemplo con la función `login` de [docs/curl-examples.md](docs/curl-examples.md) |
+| `oauth2` (recommended) | With the `client_id` `web-client` already filled in and no secret, *Authorize* opens the auth-service login form in a popup (for example `admin` / `Showcase-Dev-2026!`). On login, Swagger receives the token and sends it on all requests. It is the same authorization code + PKCE flow as a browser application: only auth-service sees the password, and the lockout, audit log and login rate limiting still apply |
+| `bearer-jwt` | Paste a token obtained some other way, for example with the `login` function in [docs/curl-examples.md](docs/curl-examples.md) |
 
-El Swagger UI del gateway vuelve de la ventana de login a `http://localhost:8080/swagger-ui/oauth2-redirect.html`, que está entre las redirect URIs de `web-client` (`WEB_CLIENT_REDIRECT_URIS`; auth-service las sincroniza al arrancar). Se comparan exactamente, así que abre Swagger en `http://localhost:8080` y no en `127.0.0.1`. En Kubernetes, el chart añade la de su URL pública (`https://showcase.localhost/swagger-ui/oauth2-redirect.html`). En un servicio arrancado sin el gateway, indica dónde está auth-service con `showcase.openapi.auth-server-url` y añade su redirect URI.
+The gateway's Swagger UI returns from the login window to `http://localhost:8080/swagger-ui/oauth2-redirect.html`, which is among the redirect URIs of `web-client` (`WEB_CLIENT_REDIRECT_URIS`; auth-service synchronizes them at startup). They are compared exactly, so open Swagger on `http://localhost:8080` and not on `127.0.0.1`. On Kubernetes, the chart adds the one for its public URL (`https://showcase.localhost/swagger-ui/oauth2-redirect.html`). On a service started without the gateway, set where auth-service is with `showcase.openapi.auth-server-url` and add its redirect URI.
 
-## Integración continua
+## Continuous integration
 
-En cada pull request a `main` se ejecutan dos workflows de GitHub Actions:
+Two GitHub Actions workflows run on each pull request to `main`:
 
-| Workflow | Qué hace |
+| Workflow | What it does |
 |---|---|
-| [ci.yml](.github/workflows/ci.yml) | `./mvnw verify`: compilación, tests unitarios y de integración y mínimos de cobertura |
-| [kubernetes.yml](.github/workflows/kubernetes.yml) | Crea un clúster de kind, instala la plataforma, construye y despliega el chart y lanza `k8s/e2e.sh`. Si falla, vuelca el estado de los pods y sus logs |
+| [ci.yml](.github/workflows/ci.yml) | `./mvnw verify`: compilation, unit and integration tests and coverage minimums |
+| [kubernetes.yml](.github/workflows/kubernetes.yml) | Creates a kind cluster, installs the platform, builds and deploys the chart and runs `k8s/e2e.sh`. On failure, it dumps the state of the pods and their logs |
 
-## Documentación
+## Documentation
 
-- [Especificación del proyecto](docs/prompt-microservicios.md)
-- [Diagramas UML](docs/diagramas-uml.html): arquitectura, despliegue en Docker Compose y en Kubernetes, clases, secuencias y estados
-- [Ejemplos con curl](docs/curl-examples.md): token, paginación, cada error en español e inglés, logout, Zipkin y RabbitMQ
-- [Kubernetes](k8s/README.md): qué se despliega, requisitos y decisiones
-- [Operar en Kubernetes](docs/kubernetes.md): instalar, escalar, actualizar, rollback e investigar fallos
+- [Project specification](docs/microservices-spec.md)
+- [UML diagrams](docs/uml-diagrams.html): architecture, deployment on Docker Compose and Kubernetes, classes, sequences and states
+- [curl examples](docs/curl-examples.md): token, pagination, each error in English and Spanish, logout, Zipkin and RabbitMQ
+- [Kubernetes](k8s/README.md): what is deployed, requirements and decisions
+- [Operating on Kubernetes](docs/kubernetes.md): install, scale, upgrade, roll back and investigate failures
 
-## Licencia
+## License
 
 [MIT](LICENSE)

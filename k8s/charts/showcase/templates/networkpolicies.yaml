@@ -1,9 +1,9 @@
 {{- /*
-NetworkPolicies: en el namespace todo está denegado por defecto (entrada y salida) y cada pod solo abre lo que usa.
-  - Entrada: el gateway, desde el controlador de Ingress; cada servicio, desde los que lo llaman (clients en
-    values.yaml); el Actuator, desde Prometheus (namespace de monitorización).
-  - Salida: DNS, su base de datos, RabbitMQ, Redis, los servicios a los que llama, las trazas y, para el
-    descubrimiento de servicios, la API de Kubernetes.
+NetworkPolicies: in the namespace everything is denied by default (ingress and egress) and each pod only opens what it uses.
+  - Ingress: the gateway, from the Ingress controller; each service, from those that call it (clients in
+    values.yaml); the Actuator, from Prometheus (monitoring namespace).
+  - Egress: DNS, its database, RabbitMQ, Redis, the services it calls, the traces and, for service
+    discovery, the Kubernetes API.
 */ -}}
 {{- if .Values.networkPolicy.enabled }}
 {{- $root := . -}}
@@ -40,7 +40,7 @@ spec:
   policyTypes: [Ingress, Egress]
   ingress:
     {{- if eq $name "api-gateway" }}
-    # Tráfico externo: solo a través del controlador de Ingress.
+    # External traffic: only through the Ingress controller.
     - from:
         - namespaceSelector:
             matchLabels:
@@ -58,7 +58,7 @@ spec:
       ports:
         - port: {{ $svc.port }}
     {{- end }}
-    # Métricas para Prometheus.
+    # Metrics for Prometheus.
     - from:
         - namespaceSelector:
             matchLabels:
@@ -94,7 +94,7 @@ spec:
         - port: 9411
     {{- end }}
     {{- if $svc.discovery }}
-    # API de Kubernetes (Spring Cloud Kubernetes). Su IP depende del clúster: se limita solo por puerto.
+    # Kubernetes API (Spring Cloud Kubernetes). Its IP depends on the cluster: it is limited by port only.
     - ports:
         - port: 443
         - port: 6443
@@ -156,7 +156,7 @@ spec:
         {{- include "showcase.podsWith" (dict "root" . "key" "rabbitmq") | nindent 8 }}
       ports:
         - port: 5672
-    # API de administración: solo el Job que crea los usuarios.
+    # Management API: only the Job that creates the users.
     - from:
         - podSelector:
             matchLabels:

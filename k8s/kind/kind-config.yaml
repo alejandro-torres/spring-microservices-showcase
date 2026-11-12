@@ -1,5 +1,5 @@
-# Clúster local de kind: 1 control-plane + 2 workers. Cada nodo es un contenedor de Docker.
-# Los puertos 80 y 443 del host llegan al control-plane, donde irá el Ingress (fase 4).
+# Local kind cluster: 1 control-plane + 2 workers. Each node is a Docker container.
+# Ports 80 and 443 of the host reach the control-plane, where the Ingress runs.
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 name: showcase

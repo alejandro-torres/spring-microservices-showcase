@@ -16,11 +16,11 @@ import org.junit.jupiter.api.Test;
 class CustomerTest {
 
     @Nested
-    @DisplayName("create y update")
+    @DisplayName("create and update")
     class CreateAndUpdate {
 
         @Test
-        @DisplayName("normaliza el email y recorta los nombres")
+        @DisplayName("normalizes the email and trims the names")
         void create_shouldNormalizeFields() {
             var customer = Customer.create(null, " Ana ", "García", "Ana@Example.COM", null);
 
@@ -30,7 +30,7 @@ class CustomerTest {
         }
 
         @Test
-        @DisplayName("rechaza un campo obligatorio vacío")
+        @DisplayName("rejects an empty required field")
         void create_withBlankName_shouldThrow() {
             assertThatThrownBy(() -> Customer.create(null, " ", "García", "a@b.com", null))
                     .isInstanceOf(InvalidRequestException.class)
@@ -38,7 +38,7 @@ class CustomerTest {
         }
 
         @Test
-        @DisplayName("update cambia los datos de contacto")
+        @DisplayName("update changes the contact data")
         void update_shouldChangeData() {
             var customer = ana();
 
@@ -51,11 +51,11 @@ class CustomerTest {
     }
 
     @Nested
-    @DisplayName("direcciones")
+    @DisplayName("addresses")
     class Addresses {
 
         @Test
-        @DisplayName("la primera dirección pasa a ser la principal y el país se guarda en mayúsculas")
+        @DisplayName("the first address becomes the primary one and the country is stored in uppercase")
         void addAddress_first_shouldBeMain() {
             var customer = Customer.create(null, "Ana", "García", "a@b.com", null);
 
@@ -67,7 +67,7 @@ class CustomerTest {
         }
 
         @Test
-        @DisplayName("no admite más de 5 direcciones")
+        @DisplayName("does not allow more than 5 addresses")
         void addAddress_overLimit_shouldThrow() {
             var customer = ana();
             for (int i = 0; i < 3; i++) {
@@ -80,7 +80,7 @@ class CustomerTest {
         }
 
         @Test
-        @DisplayName("al borrar la principal, la siguiente pasa a serlo")
+        @DisplayName("deleting the primary makes the next one primary")
         void removeAddress_main_shouldPromoteNext() {
             var customer = ana();
 
@@ -91,7 +91,7 @@ class CustomerTest {
         }
 
         @Test
-        @DisplayName("al borrar una secundaria, la principal no cambia")
+        @DisplayName("deleting a secondary leaves the primary unchanged")
         void removeAddress_secondary_shouldKeepMain() {
             var customer = ana();
 
@@ -102,7 +102,7 @@ class CustomerTest {
         }
 
         @Test
-        @DisplayName("al borrar todas las direcciones el cliente se queda sin ninguna")
+        @DisplayName("deleting all the addresses leaves the customer with none")
         void removeAddress_all_shouldLeaveEmpty() {
             var customer = ana();
 
@@ -113,7 +113,7 @@ class CustomerTest {
         }
 
         @Test
-        @DisplayName("setMainAddress deja una única dirección principal")
+        @DisplayName("setMainAddress leaves a single primary address")
         void setMainAddress_shouldLeaveOnlyOneMain() {
             var customer = ana();
 
@@ -123,7 +123,7 @@ class CustomerTest {
         }
 
         @Test
-        @DisplayName("lanza ADDRESS_NOT_FOUND si la dirección no es del cliente")
+        @DisplayName("throws ADDRESS_NOT_FOUND if the address does not belong to the customer")
         void setMainAddress_unknown_shouldThrow() {
             assertThatThrownBy(() -> ana().setMainAddress(99L))
                     .isInstanceOf(ResourceNotFoundException.class)

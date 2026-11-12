@@ -6,14 +6,14 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor;
 
 /**
- * Tokens JWT de prueba con las mismas autoridades que produce el JwtAuthoritiesConverter.
+ * Test JWT tokens with the same authorities the JwtAuthoritiesConverter produces.
  */
 public final class TestJwt {
 
     private TestJwt() {
     }
 
-    /** ADMIN con lectura y escritura de clientes. */
+    /** ADMIN with read and write access to customers. */
     public static JwtRequestPostProcessor admin() {
         return jwt().jwt(token -> token.subject("admin")).authorities(
                 new SimpleGrantedAuthority("ROLE_ADMIN"),
@@ -21,17 +21,17 @@ public final class TestJwt {
                 new SimpleGrantedAuthority("customer:write"));
     }
 
-    /** Usuario sin rol ADMIN que puede gestionar clientes. */
+    /** User without the ADMIN role who can manage customers. */
     public static JwtRequestPostProcessor manager() {
-        return jwt().jwt(token -> token.subject("gestor")).authorities(
+        return jwt().jwt(token -> token.subject("manager")).authorities(
                 new SimpleGrantedAuthority("ROLE_USER"),
                 new SimpleGrantedAuthority("customer:read"),
                 new SimpleGrantedAuthority("customer:write"));
     }
 
-    /** Usuario que solo puede consultar clientes. */
+    /** User who can only view customers. */
     public static JwtRequestPostProcessor reader() {
-        return jwt().jwt(token -> token.subject("lector")).authorities(
+        return jwt().jwt(token -> token.subject("reader")).authorities(
                 new SimpleGrantedAuthority("ROLE_USER"),
                 new SimpleGrantedAuthority("customer:read"));
     }

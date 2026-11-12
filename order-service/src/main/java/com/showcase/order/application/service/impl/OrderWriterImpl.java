@@ -22,9 +22,9 @@ public class OrderWriterImpl implements OrderWriter {
     private final Clock clock;
 
     /**
-     * El pedido, sus líneas (cascada) y su evento en el outbox se guardan en la MISMA transacción: si algo falla
-     * no queda ni el pedido ni el evento, y nunca se publica un pedido que no se llegó a guardar.
-     * {@code timeout = 5}: con las llamadas remotas ya hechas, guardar nunca debería tardar más.
+     * The order, its lines (cascade) and its outbox event are saved in the SAME transaction: if anything fails,
+     * neither the order nor the event remains, and an order that was never saved is never published.
+     * {@code timeout = 5}: with the remote calls already done, saving should never take longer.
      */
     @Override
     @Transactional(timeout = 5)

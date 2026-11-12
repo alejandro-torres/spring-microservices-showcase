@@ -45,12 +45,12 @@ nbdist/
 Thumbs.db
 desktop.ini
 
-# Variables de entorno y secretos (usar .env.example como plantilla)
+# Environment variables and secrets (use .env.example as a template)
 .env
 *.env.local
 
-# Datos locales de Docker
+# Local Docker data
 docker/data/
 
-# Claves generadas para Kubernetes (k8s/deploy.sh)
+# Keys generated for Kubernetes (k8s/deploy.sh)
 k8s/.secrets/

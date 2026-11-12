@@ -1,13 +1,13 @@
 #!/bin/sh
-# Un usuario de RabbitMQ por servicio, con permisos solo sobre sus exchanges y colas (API de administración).
-# Las expresiones usan [.] en lugar de \. para no tener que escapar barras en el JSON.
+# One RabbitMQ user per service, with permissions only over its exchanges and queues (management API).
+# The expressions use [.] instead of \. to avoid escaping backslashes in the JSON.
 #
-# Permisos de RabbitMQ: configure = declarar o borrar; write = publicar en un exchange y enlazar una cola;
-# read = consumir de una cola y enlazar desde un exchange. Cada consumidor declara también el exchange del que
-# lee (configure) para no depender del orden de arranque, y reenvía mensajes de sus DLQ por amq.default (write).
+# RabbitMQ permissions: configure = declare or delete; write = publish to an exchange and bind a queue;
+# read = consume from a queue and bind from an exchange. Each consumer also declares the exchange it
+# reads from (configure) so as not to depend on the startup order, and re-sends messages from its DLQs via amq.default (write).
 set -eu
 
-# En Kubernetes se llama al pod por un Service que también publica los pods aún no listos.
+# In Kubernetes the pod is called through a Service that also publishes pods not yet ready.
 API="${RABBITMQ_API:-http://rabbitmq:15672/api}"
 ADMIN="$RABBITMQ_ADMIN_USER:$RABBITMQ_ADMIN_PASSWORD"
 

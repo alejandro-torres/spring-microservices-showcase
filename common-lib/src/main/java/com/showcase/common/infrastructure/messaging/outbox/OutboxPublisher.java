@@ -23,17 +23,17 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Envía a RabbitMQ los eventos pendientes del outbox, en orden de creación y por lotes.
+ * Sends the pending outbox events to RabbitMQ, in creation order and in batches.
  * <p>
- * Cada lote se lee con {@code SELECT ... FOR UPDATE SKIP LOCKED}: si dos réplicas ejecutan la tarea a la vez,
- * cada una coge filas distintas. Además, ShedLock hace que en cada ejecución solo la lance una réplica: sin él,
- * cada réplica repetiría la misma consulta y el trabajo se multiplicaría por el número de réplicas.
- * Los bloqueos se mantienen mientras se envía el lote, que está acotado por {@code batch-size} y por el timeout
- * del publisher confirm.
+ * Each batch is read with {@code SELECT ... FOR UPDATE SKIP LOCKED}: if two replicas run the task at once,
+ * each takes different rows. In addition, ShedLock makes only one replica launch it on each run: without it,
+ * every replica would repeat the same query and the work would multiply by the number of replicas.
+ * The locks are held while the batch is sent, which is bounded by {@code batch-size} and by the publisher
+ * confirm timeout.
  * <p>
- * Un evento solo pasa a SENT cuando RabbitMQ confirma que lo ha recibido (publisher confirm) y no lo ha devuelto
- * por no tener cola de destino (publisher return). Si RabbitMQ no responde se corta el lote para no desordenar
- * los eventos y se reintenta en la siguiente ejecución: no se pierde nada.
+ * An event only becomes SENT when RabbitMQ confirms it has received it (publisher confirm) and has not returned it
+ * for lack of a destination queue (publisher return). If RabbitMQ does not respond, the batch is cut short so as
+ * not to reorder events and is retried on the next run: nothing is lost.
  */
 @RequiredArgsConstructor
 public class OutboxPublisher {
@@ -67,7 +67,7 @@ public class OutboxPublisher {
         }
         Integer sent = transactionTemplate.execute(status -> publishBatch());
         if (sent != null && sent > 0) {
-            log.debug("Outbox: {} eventos enviados a RabbitMQ", sent);
+            log.debug("Outbox: {} events sent to RabbitMQ", sent);
         }
     }
 
@@ -75,7 +75,7 @@ public class OutboxPublisher {
         return properties.outbox();
     }
 
-    /** Envía un lote dentro de la transacción en curso y devuelve cuántos eventos se han confirmado. */
+    /** Sends a batch within the current transaction and returns how many events were confirmed. */
     int publishBatch() {
         List<PendingEvent> batch = jdbcClient.sql(SELECT_PENDING)
                 .param("limit", settings().batchSize())
@@ -83,7 +83,7 @@ public class OutboxPublisher {
                 .list();
         int sent = 0;
         for (PendingEvent event : batch) {
-            // El envío continúa la traza de la petición que guardó el evento, no la de esta tarea programada.
+            // The send continues the trace of the request that stored the event, not that of this scheduled task.
             SendResult result = tracing.callWithParent(event.traceParent(), "outbox " + event.eventType(),
                     () -> send(event));
             switch (result.outcome()) {
@@ -94,7 +94,7 @@ public class OutboxPublisher {
                 case UNROUTED -> markUnrouted(event, result.detail());
                 case FAILED -> {
                     recordFailure(event.id(), result.detail());
-                    log.warn("Outbox: RabbitMQ no ha confirmado el evento {} ({}); se reintentará", event.id(),
+                    log.warn("Outbox: RabbitMQ has not confirmed event {} ({}); it will be retried", event.id(),
                             result.detail());
                     return sent;
                 }
@@ -137,8 +137,8 @@ public class OutboxPublisher {
     }
 
     /**
-     * Sin cola de destino puede ser algo pasajero (el consumidor aún no ha arrancado y no ha declarado su cola),
-     * así que se reintenta unas cuantas veces antes de apartarlo.
+     * No destination queue may be transient (the consumer has not started yet and has not declared its queue),
+     * so it is retried a few times before setting it aside.
      */
     private void markUnrouted(PendingEvent event, String detail) {
         int attempts = event.attempts() + 1;
@@ -151,11 +151,11 @@ public class OutboxPublisher {
                 .param("error", truncate("unroutable: " + detail))
                 .param("id", event.id())
                 .update();
-        log.warn("Outbox: el evento {} ({}) no ha llegado a ninguna cola; intento {} de {}", event.id(),
+        log.warn("Outbox: event {} ({}) has not reached any queue; attempt {} of {}", event.id(),
                 event.eventType(), attempts, settings().maxUnroutedAttempts());
     }
 
-    /** Si RabbitMQ está caído no se cuentan los intentos: el evento espera lo que haga falta. */
+    /** If RabbitMQ is down, attempts are not counted: the event waits as long as needed. */
     private void recordFailure(UUID id, String detail) {
         jdbcClient.sql("UPDATE outbox_event SET last_error = :error WHERE id = :id")
                 .param("error", truncate(detail))

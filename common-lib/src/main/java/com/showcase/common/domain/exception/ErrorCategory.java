@@ -1,8 +1,8 @@
 package com.showcase.common.domain.exception;
 
 /**
- * Tipo de fallo desde el punto de vista del negocio. El dominio no conoce HTTP:
- * la traducción a código de estado la hace la infraestructura.
+ * Type of failure from the business point of view. The domain does not know HTTP:
+ * the infrastructure does the translation to a status code.
  */
 public enum ErrorCategory {
     INVALID_REQUEST,

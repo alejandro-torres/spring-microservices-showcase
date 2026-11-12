@@ -17,11 +17,11 @@ class MicrometerOrderMetricsImplTest {
     }
 
     @Nested
-    @DisplayName("contadores de pedidos")
+    @DisplayName("order counters")
     class Counters {
 
         @Test
-        @DisplayName("cuenta cada evento del ciclo de vida por separado")
+        @DisplayName("counts each lifecycle event separately")
         void events_shouldBeCountedSeparately() {
             // when
             metrics.orderCreated();
@@ -36,7 +36,7 @@ class MicrometerOrderMetricsImplTest {
         }
 
         @Test
-        @DisplayName("los rechazados llevan el motivo como etiqueta")
+        @DisplayName("rejected ones carry the reason as a tag")
         void rejected_shouldBeTaggedWithReason() {
             // when
             metrics.orderRejected("INSUFFICIENT_STOCK");

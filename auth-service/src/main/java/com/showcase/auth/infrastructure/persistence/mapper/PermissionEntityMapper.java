@@ -13,7 +13,7 @@ public interface PermissionEntityMapper {
 
     PermissionEntity toEntity(Permission permission);
 
-    /** Copia los campos modificables sobre la entidad gestionada; el id y el nombre no cambian. */
+    /** Copies the modifiable fields onto the managed entity; the id and the name do not change. */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "name", ignore = true)
     void updateEntity(Permission permission, @MappingTarget PermissionEntity entity);

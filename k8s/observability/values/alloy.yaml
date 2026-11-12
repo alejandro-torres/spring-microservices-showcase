@@ -1,17 +1,17 @@
-# Grafana Alloy como DaemonSet: un pod por nodo lee los ficheros de log de los pods de ese nodo y los envía a Loki.
+# Grafana Alloy as a DaemonSet: one pod per node reads the log files of that node's pods and sends them to Loki.
 controller:
   type: daemonset
 
 alloy:
   mounts:
-    # /var/log del nodo, donde el kubelet deja los logs de cada contenedor.
+    # The node's /var/log, where the kubelet leaves each container's logs.
     varlog: true
   resources:
     requests: { cpu: 20m, memory: 64Mi }
     limits: { memory: 256Mi }
   configMap:
     content: |
-      // Pods del nodo en el que corre esta réplica de Alloy, solo del namespace de la aplicación.
+      // Pods of the node this Alloy replica runs on, only from the application's namespace.
       discovery.kubernetes "pods" {
         role = "pod"
         namespaces {
@@ -23,7 +23,7 @@ alloy:
         }
       }
 
-      // Las mismas etiquetas que en Docker Compose: service (el microservicio) y container (la réplica concreta).
+      // The same labels as in Docker Compose: service (the microservice) and container (the specific replica).
       discovery.relabel "pods" {
         targets = discovery.kubernetes.pods.targets
 
@@ -56,8 +56,8 @@ alloy:
         forward_to = [loki.process.json.receiver]
       }
 
-      // Formato de log del runtime de contenedores (CRI) y, dentro, el JSON (ECS) de los microservicios: el nivel
-      // como etiqueta y el traceId, el spanId y la réplica como metadatos, igual que en Docker Compose.
+      // Log format of the container runtime (CRI) and, inside, the microservices' JSON (ECS): the level
+      // as a label and the traceId, spanId and replica as metadata, just as in Docker Compose.
       loki.process "json" {
         stage.cri {}
         stage.json {

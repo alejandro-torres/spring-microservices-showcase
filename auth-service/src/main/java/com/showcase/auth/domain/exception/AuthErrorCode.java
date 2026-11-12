@@ -4,7 +4,7 @@ import com.showcase.common.domain.exception.ErrorCategory;
 import com.showcase.common.domain.exception.ErrorCode;
 
 /**
- * Códigos de error propios de auth-service.
+ * Error codes specific to auth-service.
  */
 public enum AuthErrorCode implements ErrorCode {
 

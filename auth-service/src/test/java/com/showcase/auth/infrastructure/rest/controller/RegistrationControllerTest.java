@@ -33,7 +33,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class RegistrationControllerTest {
 
     private static final String BODY = """
-            {"username":"ana","email":"ana@example.com","password":"Secreta-123","firstName":"Ana",
+            {"username":"ana","email":"ana@example.com","password":"Secret-123","firstName":"Ana",
              "lastName":"García"}
             """;
 
@@ -47,9 +47,9 @@ class RegistrationControllerTest {
     private JwtDecoder jwtDecoder;
 
     @Test
-    @DisplayName("registra sin token y devuelve 201 con la ubicación del usuario")
+    @DisplayName("registers without a token and returns 201 with the user's location")
     void register_withoutToken_shouldReturn201() throws Exception {
-        given(userService.register("ana", "ana@example.com", "Secreta-123", "Ana", "García")).willReturn(user(10L, "ana", userRole()));
+        given(userService.register("ana", "ana@example.com", "Secret-123", "Ana", "García")).willReturn(user(10L, "ana", userRole()));
 
         mockMvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isCreated())
@@ -58,9 +58,9 @@ class RegistrationControllerTest {
     }
 
     @Test
-    @DisplayName("devuelve 409 si el email ya está registrado")
+    @DisplayName("returns 409 if the email is already registered")
     void register_withExistingEmail_shouldReturn409() throws Exception {
-        given(userService.register("ana", "ana@example.com", "Secreta-123", "Ana", "García"))
+        given(userService.register("ana", "ana@example.com", "Secret-123", "Ana", "García"))
                 .willThrow(new EmailAlreadyExistsException("ana@example.com"));
 
         mockMvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content(BODY))
@@ -69,10 +69,10 @@ class RegistrationControllerTest {
     }
 
     @Test
-    @DisplayName("valida el cuerpo y no admite elegir roles")
+    @DisplayName("validates the body and does not allow choosing roles")
     void register_withInvalidBody_shouldReturn400() throws Exception {
         mockMvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content("""
-                        {"username":"a","email":"ana@example.com","password":"corta"}
+                        {"username":"a","email":"ana@example.com","password":"short"}
                         """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
@@ -80,10 +80,10 @@ class RegistrationControllerTest {
     }
 
     @Test
-    @DisplayName("exige nombre y apellidos para crear el perfil de cliente")
+    @DisplayName("requires first and last names to create the customer profile")
     void register_withoutName_shouldReturn400() throws Exception {
         mockMvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content("""
-                        {"username":"ana","email":"ana@example.com","password":"Secreta-123","firstName":" "}
+                        {"username":"ana","email":"ana@example.com","password":"Secret-123","firstName":" "}
                         """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));

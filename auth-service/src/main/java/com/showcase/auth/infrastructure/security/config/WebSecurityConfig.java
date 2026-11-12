@@ -11,7 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * Cadena por defecto: formulario de login del flujo authorization_code y endpoints públicos de salud.
+ * Default chain: login form of the authorization_code flow and public health endpoints.
  */
 @Configuration(proxyBeanMethods = false)
 public class WebSecurityConfig {
@@ -21,7 +21,8 @@ public class WebSecurityConfig {
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(authorize -> authorize
-                        // /actuator/prometheus: solo se publica en la red interna de Docker; el gateway no lo enruta.
+                        // /actuator/prometheus: only published on the internal Docker network; the gateway does not
+                        // route it.
                         .requestMatchers("/actuator/health/**", "/actuator/info", "/actuator/prometheus", "/error")
                         .permitAll()
                         .requestMatchers(OpenApiPaths.PUBLIC).permitAll()
@@ -30,7 +31,7 @@ public class WebSecurityConfig {
         return http.build();
     }
 
-    /** BCrypt para las contraseñas de los usuarios y los secretos de los clientes OAuth2. */
+    /** BCrypt for user passwords and OAuth2 client secrets. */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

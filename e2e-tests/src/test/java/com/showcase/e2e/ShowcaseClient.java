@@ -21,8 +21,8 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Cliente HTTP de las pruebas de extremo a extremo: todo pasa por el gateway, igual que un cliente real. Obtiene el
- * token con el flujo authorization code + PKCE (formulario de login de auth-service), como haría un navegador.
+ * HTTP client for the end-to-end tests: everything goes through the gateway, like a real client. It gets the
+ * token with the authorization code + PKCE flow (auth-service's login form), as a browser would.
  */
 final class ShowcaseClient {
 
@@ -44,7 +44,7 @@ final class ShowcaseClient {
                 .build();
     }
 
-    /** authorization code + PKCE: /oauth2/authorize → /login → /oauth2/authorize → código → /oauth2/token. */
+    /** authorization code + PKCE: /oauth2/authorize → /login → /oauth2/authorize → code → /oauth2/token. */
     void login(String username, String password) throws Exception {
         String verifier = randomUrlSafe(32);
         String challenge = Base64.getUrlEncoder().withoutPadding()
@@ -58,11 +58,11 @@ final class ShowcaseClient {
         String loginPage = send(browserGet(absolute(location(authorize)))).body();
         Matcher csrf = CSRF.matcher(loginPage);
         if (!csrf.find()) {
-            throw new IllegalStateException("La página de login no tiene token CSRF: " + loginPage);
+            throw new IllegalStateException("The login page has no CSRF token: " + loginPage);
         }
         HttpResponse<String> loggedIn = send(HttpRequest.newBuilder(URI.create(baseUrl + "/login"))
                 .header("Content-Type", "application/x-www-form-urlencoded")
-                // Como un navegador: el POST del formulario lleva el origen, que el filtro CORS del gateway comprueba.
+                // Like a browser: the form POST carries the origin, which the gateway's CORS filter checks.
                 .header("Origin", baseUrl)
                 .POST(HttpRequest.BodyPublishers.ofString(form(Map.of(
                         "username", username, "password", password, "_csrf", csrf.group(1)))))
@@ -70,7 +70,7 @@ final class ShowcaseClient {
         HttpResponse<String> authorized = send(browserGet(absolute(location(loggedIn))));
         String callback = location(authorized);
         if (!callback.startsWith(REDIRECT_URI)) {
-            throw new IllegalStateException("No se ha obtenido el código de autorización: " + callback);
+            throw new IllegalStateException("The authorization code was not obtained: " + callback);
         }
         String code = queryParameter(callback, "code");
 
@@ -81,7 +81,7 @@ final class ShowcaseClient {
                         "client_id", CLIENT_ID, "code_verifier", verifier))))
                 .build());
         if (token.statusCode() != 200) {
-            throw new IllegalStateException("Error al pedir el token: " + token.statusCode() + " " + token.body());
+            throw new IllegalStateException("Error requesting the token: " + token.statusCode() + " " + token.body());
         }
         accessToken = json.readTree(token.body()).get("access_token").asString();
     }
@@ -103,7 +103,7 @@ final class ShowcaseClient {
     private HttpRequest.Builder authorized(String path) {
         HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(baseUrl + path))
                 .timeout(Duration.ofSeconds(20))
-                .header("Accept-Language", "es");
+                .header("Accept-Language", "en");
         return accessToken == null ? builder : builder.header("Authorization", "Bearer " + accessToken);
     }
 
@@ -128,7 +128,7 @@ final class ShowcaseClient {
 
     private static String location(HttpResponse<?> response) {
         return response.headers().firstValue("Location").orElseThrow(() -> new IllegalStateException(
-                "Se esperaba una redirección y llegó " + response.statusCode() + " " + response.body()));
+                "Expected a redirect and got " + response.statusCode() + " " + response.body()));
     }
 
     private static String queryParameter(String url, String name) {
@@ -139,7 +139,7 @@ final class ShowcaseClient {
                 return java.net.URLDecoder.decode(parts[1], StandardCharsets.UTF_8);
             }
         }
-        throw new IllegalStateException("Falta " + name + " en " + url);
+        throw new IllegalStateException("Missing " + name + " in " + url);
     }
 
     private static String form(Map<String, String> values) {

@@ -24,8 +24,8 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 /**
- * Prueba de extremo a extremo: la aplicación completa (controllers, servicios con transacciones reales,
- * JPA y Flyway) contra PostgreSQL en Docker.
+ * End-to-end test: the full application (controllers, services with real transactions,
+ * JPA and Flyway) against PostgreSQL in Docker.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -51,46 +51,46 @@ class AuthApiIT {
     }
 
     @Test
-    @DisplayName("recorre el CRUD completo: permiso → rol → usuario, filtros, versión, borrados y errores")
+    @DisplayName("walks through the full CRUD: permission → role → user, filters, version, deletes and errors")
     void fullCrudFlow() throws Exception {
-        // Permiso y rol nuevos
+        // New permission and role
         long permissionId = idOf(postJson("/api/v1/permissions", """
-                {"name":"report:read","description":"Ver informes"}
+                {"name":"report:read","description":"View reports"}
                 """).andExpect(status().isCreated()));
         long roleId = idOf(postJson("/api/v1/roles", """
-                {"name":"analyst","description":"Analistas","permissionIds":[%d]}
+                {"name":"analyst","description":"Analysts","permissionIds":[%d]}
                 """.formatted(permissionId))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("ANALYST"))
                 .andExpect(jsonPath("$.permissions[0]").value("report:read")));
 
-        // Usuario con ese rol
+        // User with that role
         long userId = idOf(postJson("/api/v1/users", """
-                {"username":"Lucia.Analista","email":"lucia@example.com","password":"Secreta-123","roleIds":[%d]}
+                {"username":"Lucia.Analyst","email":"lucia@example.com","password":"Secret-123","roleIds":[%d]}
                 """.formatted(roleId))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.username").value("lucia.analista"))
+                .andExpect(jsonPath("$.username").value("lucia.analyst"))
                 .andExpect(jsonPath("$.version").value(0)));
 
-        // Listado filtrado por rol (join con la colección)
+        // Listing filtered by role (join with the collection)
         perform(get("/api/v1/users").param("filter", "role:eq:ANALYST"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.content[0].id").value(userId));
 
-        // Actualización con la versión correcta y después con una versión antigua
+        // Update with the correct version and then with an old version
         perform(put("/api/v1/users/{id}", userId).contentType(MediaType.APPLICATION_JSON).content("""
-                        {"email":"lucia.nueva@example.com","enabled":true,"version":0}
+                        {"email":"lucia.new@example.com","enabled":true,"version":0}
                         """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.version").value(1));
         perform(put("/api/v1/users/{id}", userId).contentType(MediaType.APPLICATION_JSON).content("""
-                        {"email":"otra@example.com","enabled":true,"version":0}
+                        {"email":"other@example.com","enabled":true,"version":0}
                         """))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("CONCURRENT_MODIFICATION"));
 
-        // El rol y el permiso no se pueden borrar mientras se usan
+        // The role and the permission cannot be deleted while in use
         perform(delete("/api/v1/roles/{id}", roleId))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("ROLE_IN_USE"));
@@ -98,33 +98,33 @@ class AuthApiIT {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("PERMISSION_IN_USE"));
 
-        // Borrado lógico del usuario: deja de verse, salvo con includeInactive
+        // Soft delete of the user: no longer visible, except with includeInactive
         perform(delete("/api/v1/users/{id}", userId)).andExpect(status().isNoContent());
         perform(get("/api/v1/users/{id}", userId)).andExpect(status().isNotFound());
-        perform(get("/api/v1/users").param("filter", "username:eq:lucia.analista").param("includeInactive", "true"))
+        perform(get("/api/v1/users").param("filter", "username:eq:lucia.analyst").param("includeInactive", "true"))
                 .andExpect(jsonPath("$.content[0].active").value(false))
                 .andExpect(jsonPath("$.content[0].enabled").value(false));
 
-        // Ya sin usuarios activos, el rol sí se puede borrar
+        // With no active users left, the role can be deleted
         perform(delete("/api/v1/roles/{id}", roleId)).andExpect(status().isNoContent());
     }
 
     @Test
-    @DisplayName("rechaza duplicados con 409 y no guarda nada si un rol no existe (rollback)")
+    @DisplayName("rejects duplicates with 409 and saves nothing if a role does not exist (rollback)")
     void duplicatesAndRollback() throws Exception {
         postJson("/api/v1/users", """
-                {"username":"mario","email":"mario@example.com","password":"Secreta-123"}
+                {"username":"mario","email":"mario@example.com","password":"Secret-123"}
                 """).andExpect(status().isCreated());
 
         postJson("/api/v1/users", """
-                {"username":"MARIO","email":"otro@example.com","password":"Secreta-123"}
+                {"username":"MARIO","email":"other@example.com","password":"Secret-123"}
                 """)
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("USERNAME_ALREADY_EXISTS"));
 
         long before = userJpaRepository.count();
         postJson("/api/v1/users", """
-                {"username":"sin.rol","email":"sinrol@example.com","password":"Secreta-123","roleIds":[999]}
+                {"username":"no.role","email":"norole@example.com","password":"Secret-123","roleIds":[999]}
                 """)
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("ROLE_NOT_FOUND"));
@@ -132,7 +132,7 @@ class AuthApiIT {
     }
 
     @Test
-    @DisplayName("los roles y permisos base de la migración están disponibles por la API")
+    @DisplayName("the migration's base roles and permissions are available through the API")
     void baseData_shouldBeAvailable() throws Exception {
         perform(get("/api/v1/roles").param("sort", "name"))
                 .andExpect(status().isOk())

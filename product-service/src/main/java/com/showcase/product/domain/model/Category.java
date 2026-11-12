@@ -6,7 +6,7 @@ import com.showcase.product.domain.exception.ProductErrorCode;
 import java.time.Instant;
 
 /**
- * Categoría del catálogo (p. ej. Portátiles, Ropa).
+ * Catalog category (e.g. Laptops, Clothing).
  */
 public class Category extends AuditedModel {
 

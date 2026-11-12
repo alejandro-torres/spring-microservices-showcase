@@ -22,9 +22,9 @@ import reactor.core.publisher.Mono;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Escribe los errores del gateway (401, 403, 404, 429, 503...) con el mismo {@code ErrorResponseDTO} y los mismos
- * mensajes en español e inglés que los servicios, para que el cliente reciba un único formato venga de donde venga
- * el error.
+ * Writes the gateway's errors (401, 403, 404, 429, 503...) with the same {@code ErrorResponseDTO} and the same
+ * English and Spanish messages as the services, so the client receives a single format wherever the error
+ * comes from.
  */
 @Component
 @RequiredArgsConstructor
@@ -57,8 +57,9 @@ public class GatewayErrorWriter {
     }
 
     /**
-     * Ruta que llamó el cliente. Si la petición se reenvió dentro del gateway (p. ej. el {@code forward:/fallback/...}
-     * del circuit breaker), la ruta actual es interna, así que se usa la primera URI que guarda Spring Cloud Gateway.
+     * Path the client called. If the request was forwarded inside the gateway (e.g. the circuit breaker's
+     * {@code forward:/fallback/...}), the current path is internal, so the first URI stored by Spring Cloud Gateway is
+     * used.
      */
     static String path(ServerWebExchange exchange) {
         Set<URI> originalUris = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ORIGINAL_REQUEST_URL_ATTR);
@@ -68,15 +69,15 @@ public class GatewayErrorWriter {
         return exchange.getRequest().getPath().value();
     }
 
-    /** Español o inglés según {@code Accept-Language}; español si no llega o no está soportado. */
+    /** English or Spanish according to {@code Accept-Language}; English if missing or not supported. */
     static Locale locale(ServerWebExchange exchange) {
         List<Locale.LanguageRange> ranges;
         try {
             ranges = exchange.getRequest().getHeaders().getAcceptLanguage();
         } catch (IllegalArgumentException e) {
-            return SPANISH;
+            return Locale.ENGLISH;
         }
-        Locale best = Locale.lookup(ranges, List.of(SPANISH, Locale.ENGLISH));
-        return best == null ? SPANISH : best;
+        Locale best = Locale.lookup(ranges, List.of(Locale.ENGLISH, SPANISH));
+        return best == null ? Locale.ENGLISH : best;
     }
 }

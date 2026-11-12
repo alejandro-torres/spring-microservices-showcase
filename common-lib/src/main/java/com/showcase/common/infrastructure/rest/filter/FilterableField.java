@@ -6,11 +6,11 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Campo que un recurso permite filtrar: nombre público, tipo Java del valor y operadores admitidos.
+ * Field that a resource allows filtering on: public name, Java type of the value and supported operators.
  *
- * @param name             nombre del campo en la URL
- * @param type             tipo al que se convierte el valor (String, Long, BigDecimal, Instant, un enum...)
- * @param allowedOperators operadores que se pueden usar sobre este campo
+ * @param name             name of the field in the URL
+ * @param type             type the value is converted to (String, Long, BigDecimal, Instant, an enum...)
+ * @param allowedOperators operators that can be used on this field
  */
 public record FilterableField(String name, Class<?> type, Set<FilterOperator> allowedOperators) {
 
@@ -18,10 +18,10 @@ public record FilterableField(String name, Class<?> type, Set<FilterOperator> al
         Objects.requireNonNull(name, "name");
         Objects.requireNonNull(type, "type");
         if (!FilterValueConverter.supports(type)) {
-            throw new IllegalArgumentException("Tipo no soportado para filtros: " + type.getName());
+            throw new IllegalArgumentException("Type not supported for filters: " + type.getName());
         }
         if (allowedOperators == null || allowedOperators.isEmpty()) {
-            throw new IllegalArgumentException("El campo " + name + " necesita al menos un operador");
+            throw new IllegalArgumentException("Field " + name + " needs at least one operator");
         }
         for (FilterOperator operator : allowedOperators) {
             checkCompatible(name, type, operator);
@@ -37,7 +37,7 @@ public record FilterableField(String name, Class<?> type, Set<FilterOperator> al
         return allowedOperators.contains(operator);
     }
 
-    // Evita declarar por error operadores sin sentido, como like sobre un número.
+    // Prevents declaring meaningless operators by mistake, such as like on a number.
     private static void checkCompatible(String name, Class<?> type, FilterOperator operator) {
         boolean compatible = switch (operator.valueKind()) {
             case ANY -> true;
@@ -45,8 +45,8 @@ public record FilterableField(String name, Class<?> type, Set<FilterOperator> al
             case COMPARABLE -> Comparable.class.isAssignableFrom(type) && type != Boolean.class;
         };
         if (!compatible) {
-            throw new IllegalArgumentException("El operador " + operator.code()
-                    + " no se puede usar sobre el campo " + name + " de tipo " + type.getSimpleName());
+            throw new IllegalArgumentException("Operator " + operator.code()
+                    + " cannot be used on field " + name + " of type " + type.getSimpleName());
         }
     }
 }

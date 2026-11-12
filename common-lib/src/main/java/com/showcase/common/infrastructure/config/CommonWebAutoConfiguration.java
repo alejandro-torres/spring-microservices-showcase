@@ -38,8 +38,8 @@ import org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Registra automáticamente la gestión de errores, la traducción de mensajes y el parser de filtros
- * en los servicios web MVC que dependen de common-lib. Cualquier bean se puede sustituir declarando uno propio.
+ * Automatically registers error handling, message translation and the filter parser in the MVC web
+ * services that depend on common-lib. Any bean can be replaced by declaring your own.
  */
 @AutoConfiguration(beforeName = "org.springframework.boot.webmvc.autoconfigure.WebMvcAutoConfiguration")
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
@@ -49,19 +49,19 @@ public class CommonWebAutoConfiguration {
     static final Locale SPANISH = Locale.forLanguageTag("es");
 
     /**
-     * Idioma de la petición según {@code Accept-Language}: español o inglés, y español por defecto
-     * (sin cabecera o con un idioma no soportado).
+     * Request language according to {@code Accept-Language}: English or Spanish, with English by default
+     * (no header or an unsupported language).
      */
     @Bean(name = DispatcherServlet.LOCALE_RESOLVER_BEAN_NAME)
     @ConditionalOnMissingBean(name = DispatcherServlet.LOCALE_RESOLVER_BEAN_NAME)
     public LocaleResolver localeResolver() {
         var resolver = new AcceptHeaderLocaleResolver();
-        resolver.setDefaultLocale(SPANISH);
-        resolver.setSupportedLocales(List.of(SPANISH, Locale.ENGLISH));
+        resolver.setDefaultLocale(Locale.ENGLISH);
+        resolver.setSupportedLocales(List.of(Locale.ENGLISH, SPANISH));
         return resolver;
     }
 
-    /** Cabecera X-Instance-Id con la réplica que atiende cada petición. */
+    /** X-Instance-Id header with the replica serving each request. */
     @Bean
     @ConditionalOnMissingBean
     public InstanceIdResponseHeaderFilter instanceIdResponseHeaderFilter(
@@ -107,7 +107,7 @@ public class CommonWebAutoConfiguration {
         return new FilterCriteriaParser(maxFilters);
     }
 
-    /** Registra el resolver de los parámetros {@code filter} en Spring MVC. */
+    /** Registers the resolver of the {@code filter} parameters in Spring MVC. */
     @Configuration(proxyBeanMethods = false)
     static class FilterParametersConfiguration implements WebMvcConfigurer {
 
@@ -117,7 +117,7 @@ public class CommonWebAutoConfiguration {
         }
     }
 
-    /** Errores 401/403 en el formato común para los servicios con Spring Security. */
+    /** 401/403 errors in the common format for services with Spring Security. */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(name = "org.springframework.security.web.AuthenticationEntryPoint")
     static class SecurityErrorsConfiguration {
@@ -150,7 +150,7 @@ public class CommonWebAutoConfiguration {
         }
     }
 
-    /** Conversión de roles y permisos del JWT para los servicios que validan tokens. */
+    /** Conversion of JWT roles and permissions for services that validate tokens. */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(name = "org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken")
     static class JwtAuthoritiesConfiguration {

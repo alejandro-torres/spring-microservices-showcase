@@ -8,18 +8,18 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Puerto de salida para persistir categorías.
+ * Outbound port to persist categories.
  */
 public interface CategoryRepository {
 
     Category save(Category category);
 
-    /** Solo categorías activas. */
+    /** Active categories only. */
     Optional<Category> findById(Long id);
 
     PageResult<Category> findAll(List<FilterCriterion> filters, PageQuery pageQuery, boolean includeInactive);
 
-    /** Sin distinguir mayúsculas. */
+    /** Case-insensitive. */
     boolean existsByName(String name);
 
     boolean existsByNameAndIdNot(String name, Long id);

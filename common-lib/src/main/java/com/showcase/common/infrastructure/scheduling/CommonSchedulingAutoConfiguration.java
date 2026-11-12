@@ -13,15 +13,14 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * Tareas programadas con varias réplicas: cada tarea anotada con {@code @SchedulerLock} la ejecuta una sola
- * réplica a la vez. El lock es una fila de la tabla {@code shedlock} de la base de datos del servicio (la crea su
- * migración Flyway), que una réplica coge con un UPDATE condicional y suelta al terminar.
+ * Scheduled tasks with several replicas: each task annotated with {@code @SchedulerLock} is run by only one
+ * replica at a time. The lock is a row in the {@code shedlock} table of the service's database (created by its
+ * Flyway migration), which a replica takes with a conditional UPDATE and releases on finishing.
  * <ul>
- *   <li>{@code lockAtMostFor}: si la réplica muere con el lock cogido, otra lo recupera pasado ese tiempo.</li>
- *   <li>{@code lockAtLeastFor}: evita que otra réplica repita la tarea justo después si los relojes no coinciden.</li>
+ *   <li>{@code lockAtMostFor}: if the replica dies holding the lock, another recovers it after that time.</li>
+ *   <li>{@code lockAtLeastFor}: prevents another replica repeating the task right after if the clocks disagree.</li>
  * </ul>
- * Se usa la hora de la base de datos ({@code usingDbTime}) para no depender de que los relojes de las réplicas
- * estén sincronizados.
+ * The database's time is used ({@code usingDbTime}) so as not to depend on the replicas' clocks being in sync.
  */
 @AutoConfiguration(afterName = "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration")
 @ConditionalOnClass({LockProvider.class, JdbcTemplateLockProvider.class, JdbcTemplate.class})

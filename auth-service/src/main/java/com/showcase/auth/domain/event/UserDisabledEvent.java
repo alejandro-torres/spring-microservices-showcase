@@ -2,6 +2,6 @@ package com.showcase.auth.domain.event;
 
 import java.time.Instant;
 
-/** Un administrador ha desactivado o borrado al usuario. */
+/** An administrator has deactivated or deleted the user. */
 public record UserDisabledEvent(Long userId, String username, Instant occurredAt) {
 }

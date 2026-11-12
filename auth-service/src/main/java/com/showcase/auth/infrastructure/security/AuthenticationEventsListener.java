@@ -15,8 +15,8 @@ import org.springframework.security.authentication.event.AuthenticationSuccessEv
 import org.springframework.stereotype.Component;
 
 /**
- * Traduce los eventos de login de Spring Security a los casos de uso de seguimiento de intentos.
- * Solo atiende al login con usuario y contraseña (no a la validación de cada JWT ni a client_credentials).
+ * Translates Spring Security's login events to the attempt-tracking use cases.
+ * It only handles login with username and password (not each JWT's validation or client_credentials).
  */
 @Component
 @RequiredArgsConstructor
@@ -42,11 +42,11 @@ public class AuthenticationEventsListener {
         try {
             loginAttemptService.onFailure(event.getAuthentication().getName());
         } catch (AccountLockedException e) {
-            log.warn("Cuenta bloqueada por intentos fallidos: {}", e.getArgs().getFirst());
+            log.warn("Account locked by failed attempts: {}", e.getArgs().getFirst());
         }
     }
 
-    /** Intentos sobre una cuenta ya bloqueada: no cuentan, pero se auditan. */
+    /** Attempts on an already locked account: they do not count, but they are audited. */
     @EventListener
     public void onLocked(AuthenticationFailureLockedEvent event) {
         auditService.record(SecurityEventType.LOGIN_FAILURE, event.getAuthentication().getName(), "account locked");

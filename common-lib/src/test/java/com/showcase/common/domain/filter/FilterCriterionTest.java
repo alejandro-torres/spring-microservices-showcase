@@ -18,7 +18,7 @@ class FilterCriterionTest {
     class Constructor {
 
         @Test
-        @DisplayName("crea el criterio cuando el número de valores encaja con el operador")
+        @DisplayName("creates the criterion when the number of values fits the operator")
         void constructor_withMatchingArity_shouldCreateCriterion() {
             // when
             var criterion = FilterCriterion.of("price", FilterOperator.BETWEEN, new BigDecimal("100"), new BigDecimal("500"));
@@ -29,13 +29,13 @@ class FilterCriterionTest {
         }
 
         @Test
-        @DisplayName("acepta los operadores sin valor")
+        @DisplayName("accepts valueless operators")
         void constructor_withNoValueOperator_shouldCreateCriterion() {
             assertThat(FilterCriterion.of("phone", FilterOperator.IS_NULL).values()).isEmpty();
         }
 
         @Test
-        @DisplayName("rechaza un número de valores que no encaja con el operador")
+        @DisplayName("rejects a number of values that does not fit the operator")
         void constructor_withWrongArity_shouldThrowInvalidFilterValue() {
             assertThatThrownBy(() -> FilterCriterion.of("price", FilterOperator.BETWEEN, new BigDecimal("100")))
                     .isInstanceOf(InvalidRequestException.class)
@@ -43,7 +43,7 @@ class FilterCriterionTest {
         }
 
         @Test
-        @DisplayName("rechaza campo u operador nulos")
+        @DisplayName("rejects a null field or operator")
         void constructor_withNulls_shouldFail() {
             assertThatThrownBy(() -> new FilterCriterion(null, FilterOperator.EQ, List.of(1)))
                     .isInstanceOf(NullPointerException.class);
@@ -57,7 +57,7 @@ class FilterCriterionTest {
     class Value {
 
         @Test
-        @DisplayName("devuelve el primer valor o null si no hay valores")
+        @DisplayName("returns the first value or null if there are no values")
         void value_shouldReturnFirstOrNull() {
             assertThat(FilterCriterion.of("status", FilterOperator.IN, "PENDING", "CONFIRMED").value()).isEqualTo("PENDING");
             assertThat(FilterCriterion.of("phone", FilterOperator.IS_NOT_NULL).value()).isNull();

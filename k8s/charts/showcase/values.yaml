@@ -1,43 +1,43 @@
-# Valores de desarrollo para el clúster local de kind. Las contraseñas son las mismas que usa docker-compose.yml
-# sin .env: no deben usarse fuera de tu máquina.
+# Development values for the local kind cluster. The passwords are the same docker-compose.yml uses
+# without .env: they must not be used outside your machine.
 
 image:
-  # Las imágenes se construyen con `docker compose build` y se cargan en kind con `kind load docker-image`.
+  # The images are built with `docker compose build` and loaded into kind with `kind load docker-image`.
   repository: showcase
   tag: latest
-  # Nunca se descargan de un registro: ya están en los nodos.
+  # They are never pulled from a registry: they are already on the nodes.
   pullPolicy: IfNotPresent
 
-# Perfil de Spring: dev carga datos de ejemplo (usuario admin) y guarda el 100 % de las trazas.
+# Spring profile: dev loads sample data (admin user) and keeps 100 % of the traces.
 springProfile: dev
-# URL pública del gateway: emisor de los tokens y origen del login de Swagger. Con el Ingress, https://<host>;
-# sin él (port-forward), http://localhost:8080.
+# Public URL of the gateway: token issuer and origin of the Swagger login. With the Ingress, https://<host>;
+# without it (port-forward), http://localhost:8080.
 publicUrl: https://showcase.localhost
 corsAllowedOrigins: http://localhost:3000
 
-# Entrada desde fuera del clúster: un Ingress (Traefik, k8s/platform) con HTTPS de cert-manager hacia el gateway.
+# Entry from outside the cluster: an Ingress (Traefik, k8s/platform) with HTTPS from cert-manager to the gateway.
 ingress:
   enabled: true
   className: traefik
   host: showcase.localhost
   clusterIssuer: showcase-ca
-  # El gateway solo se fía de las cabeceras X-Forwarded-* que llegan desde la red de pods (el controlador de
-  # Ingress) y el rate limit usa la IP del cliente que añade ese único proxy.
+  # The gateway only trusts the X-Forwarded-* headers arriving from the pod network (the Ingress
+  # controller) and the rate limit uses the client IP added by that single proxy.
   trustedProxies: 10[.]244[.].*
   trustedProxyHops: 1
 
-# NetworkPolicies: todo denegado por defecto; cada pod solo recibe tráfico de quien lo llama y solo sale hacia lo
-# que necesita (su base de datos, RabbitMQ, Redis, los servicios a los que llama, DNS y Tempo).
+# NetworkPolicies: everything denied by default; each pod only receives traffic from its callers and only goes out to what
+# it needs (its database, RabbitMQ, Redis, the services it calls, DNS and Tempo).
 networkPolicy:
   enabled: true
   ingressNamespace: traefik
   monitoringNamespace: monitoring
 
-# Contraseñas: se guardan en Secrets de Kubernetes. Con create: false el chart no los crea y usa los que ya existan
-# con los mismos nombres (cada microservicio y infra-credentials), por ejemplo creados por External Secrets.
+# Passwords: stored in Kubernetes Secrets. With create: false the chart does not create them and uses those that already exist
+# with the same names (each microservice and infra-credentials), for example created by External Secrets.
 secrets:
   create: true
-  # Solo con un Redis externo que pida contraseña.
+  # Only with an external Redis that requires a password.
   redisPassword: ""
   postgresPassword: postgres
   rabbitmqAdminUser: admin
@@ -53,16 +53,16 @@ secrets:
     product: product-dev
     customer: customer-dev
     order: order-dev
-  # Claves RSA del JWT en PEM (PKCS#8 y X.509). Las genera k8s/deploy.sh y se pasan con --set-file.
+  # JWT RSA keys in PEM (PKCS#8 and X.509). k8s/deploy.sh generates them and they are passed with --set-file.
   jwtPrivateKey: ""
   jwtPublicKey: ""
 
-# Scripts de docker/ que se reutilizan tal cual (k8s/deploy.sh los pasa con --set-file).
+# Scripts from docker/ reused as they are (k8s/deploy.sh passes them with --set-file).
 scripts:
   postgresInit: ""
   rabbitmqSetupUsers: ""
 
-# Recursos por defecto de los microservicios (JVM con MaxRAMPercentage=75 sobre el límite de memoria).
+# Default resources of the microservices (JVM with MaxRAMPercentage=75 over the memory limit).
 defaultResources:
   requests:
     cpu: 100m
@@ -71,10 +71,10 @@ defaultResources:
     cpu: "1"
     memory: 768Mi
 
-# Microservicios. port: puerto de la API; managementPort: Actuator (health y métricas).
-# database/rabbitmq/redis: de qué depende cada uno (variables de entorno e initContainers de espera).
-# discovery: descubre otros servicios con la API de Kubernetes (Spring Cloud Kubernetes): necesita permisos de lectura.
-# clients: qué servicios lo llaman (NetworkPolicies). autoscaling: HorizontalPodAutoscaler por uso de CPU.
+# Microservices. port: API port; managementPort: Actuator (health and metrics).
+# database/rabbitmq/redis: what each one depends on (environment variables and waiting initContainers).
+# discovery: discovers other services with the Kubernetes API (Spring Cloud Kubernetes): it needs read permissions.
+# clients: which services call it (NetworkPolicies). autoscaling: HorizontalPodAutoscaler by CPU usage.
 services:
   auth-service:
     port: 9000
@@ -82,7 +82,7 @@ services:
     database: auth
     rabbitmq: auth
     redis: true
-    # Todos validan los JWT con su clave pública (/oauth2/jwks).
+    # All validate the JWTs with its public key (/oauth2/jwks).
     clients: [api-gateway, product-service, customer-service, order-service]
   product-service:
     port: 8081
@@ -119,16 +119,16 @@ services:
     discovery: true
     redis: true
 
-# Conexiones a la base de datos por réplica (Hikari; 10 por defecto). Al añadir réplicas o subir maxReplicas, revisa
-# que réplicas x databasePoolSize quepa en el max_connections de la base de datos.
+# Database connections per replica (Hikari; 10 by default). When adding replicas or raising maxReplicas, check
+# that replicas x databasePoolSize fits within the database's max_connections.
 databasePoolSize: 5
 
-# PostgreSQL, Redis y RabbitMQ dentro del clúster (enabled: true) o servicios gestionados fuera (external*).
+# PostgreSQL, Redis and RabbitMQ inside the cluster (enabled: true) or managed services outside (external*).
 postgres:
   enabled: true
   image: postgres:16-alpine
-  # Con todos los servicios al máximo de réplicas (más una de más durante un rolling update) y databasePoolSize
-  # conexiones cada una: 16 réplicas x 5 = 80, más margen para las conexiones de administración.
+  # With all services at maximum replicas (plus one extra during a rolling update) and databasePoolSize
+  # connections each: 16 replicas x 5 = 80, plus headroom for administration connections.
   maxConnections: 200
   storage: 2Gi
   resources:
@@ -152,15 +152,15 @@ rabbitmq:
     requests: { cpu: 100m, memory: 256Mi }
     limits: { cpu: "1", memory: 512Mi }
 
-# Trazas en formato Zipkin: al Zipkin del chart o, con la observabilidad del clúster (k8s/observability), a Tempo.
+# Traces in Zipkin format: to the chart's Zipkin or, with the cluster observability (k8s/observability), to Tempo.
 tracing:
   endpoint: http://zipkin:9411/api/v2/spans
 
-# Servicios gestionados (cuando postgres/redis/rabbitmq.enabled es false). cidr: su red, para las NetworkPolicies.
+# Managed services (when postgres/redis/rabbitmq.enabled is false). cidr: their network, for the NetworkPolicies.
 externalDatabase:
   host: ""
   port: 5432
-  # Se añade a la URL JDBC de cada base de datos, por ejemplo ?sslmode=require
+  # Appended to each database's JDBC URL, for example ?sslmode=require
   jdbcParams: ""
   cidr: 0.0.0.0/0
 externalRedis:
@@ -182,14 +182,14 @@ zipkin:
     requests: { cpu: 50m, memory: 256Mi }
     limits: { cpu: 500m, memory: 512Mi }
 
-# Usuario sin privilegios de las imágenes de los microservicios (adduser -S app en los Dockerfile).
+# Unprivileged user of the microservice images (adduser -S app in the Dockerfiles).
 securityContext:
   runAsUser: 100
   runAsGroup: 101
 
-# Imagen de los initContainers que esperan a PostgreSQL y RabbitMQ.
+# Image of the initContainers that wait for PostgreSQL and RabbitMQ.
 waitImage: busybox:1.37
 
-# PodMonitors para el Prometheus de kube-prometheus-stack (solo si el clúster tiene sus CRDs).
+# PodMonitors for the Prometheus of kube-prometheus-stack (only if the cluster has its CRDs).
 monitoring:
   enabled: true

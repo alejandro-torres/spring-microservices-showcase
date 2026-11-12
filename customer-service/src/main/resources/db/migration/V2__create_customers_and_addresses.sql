@@ -1,6 +1,6 @@
 CREATE TABLE customers (
     id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    -- Usuario de auth-service. No es clave foránea: está en otra base de datos.
+    -- auth-service user. Not a foreign key: it is in another database.
     user_id     BIGINT,
     first_name  VARCHAR(80)  NOT NULL,
     last_name   VARCHAR(120) NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE addresses (
     main        BOOLEAN      NOT NULL DEFAULT FALSE
 );
 
--- "Una sola dirección principal" lo garantiza el dominio: un índice único parcial fallaría al cambiarla,
--- porque Hibernate no garantiza el orden de los UPDATE y DELETE dentro del flush.
+-- "A single primary address" is guaranteed by the domain: a partial unique index would fail when changing it,
+-- because Hibernate does not guarantee the order of UPDATEs and DELETEs within the flush.
 CREATE INDEX idx_addresses_customer_id ON addresses (customer_id);
 CREATE INDEX idx_customers_active_last_name ON customers (active, last_name);

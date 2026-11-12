@@ -1,5 +1,5 @@
 {{- if .Values.postgres.enabled }}
-# PostgreSQL con una base de datos y un usuario por servicio (docker/postgres/init-databases.sh).
+# PostgreSQL with one database and one user per service (docker/postgres/init-databases.sh).
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -8,7 +8,7 @@ metadata:
     {{- include "showcase.labels" . | nindent 4 }}
 data:
   init-databases.sh: |
-    {{- required "Falta scripts.postgresInit (usa k8s/deploy.sh o --set-file)" .Values.scripts.postgresInit | nindent 4 }}
+    {{- required "Missing scripts.postgresInit (use k8s/deploy.sh or --set-file)" .Values.scripts.postgresInit | nindent 4 }}
 ---
 apiVersion: v1
 kind: Service
@@ -44,7 +44,7 @@ spec:
         {{- include "showcase.labels" . | nindent 8 }}
         {{- include "showcase.selector" "postgres" | nindent 8 }}
     spec:
-      # Usuario postgres de la imagen alpine (uid 70) en lugar de root.
+      # postgres user of the alpine image (uid 70) instead of root.
       securityContext:
         {{- include "showcase.podSecurityContext" (dict "user" 70 "group" 70) | nindent 8 }}
       automountServiceAccountToken: false
@@ -61,7 +61,7 @@ spec:
           env:
             - name: POSTGRES_USER
               value: postgres
-            # Subcarpeta: la raíz del volumen puede traer ficheros que impiden inicializar la base de datos.
+            # Subfolder: the volume root may contain files that prevent initializing the database.
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
           envFrom:
@@ -84,7 +84,7 @@ spec:
             - name: init
               mountPath: /docker-entrypoint-initdb.d
               readOnly: true
-            # Lo único escribible además de los datos: el socket y los temporales.
+            # The only writable things besides the data: the socket and temporary files.
             - name: run
               mountPath: /var/run/postgresql
             - name: tmp

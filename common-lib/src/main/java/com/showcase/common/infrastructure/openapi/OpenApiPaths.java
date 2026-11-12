@@ -4,8 +4,8 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 /**
- * Rutas de la documentación OpenAPI y de Swagger UI. Son públicas en todos los servicios: describen la API, no
- * dan acceso a ella (cada endpoint sigue exigiendo su token).
+ * Paths of the OpenAPI documentation and Swagger UI. They are public in all services: they describe the API, they
+ * do not give access to it (each endpoint still requires its token).
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class OpenApiPaths {

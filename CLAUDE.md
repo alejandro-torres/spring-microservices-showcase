@@ -1,27 +1,28 @@
 # CLAUDE.md
 
-Guía para trabajar en este repositorio. La especificación completa está en [docs/prompt-microservicios.md](docs/prompt-microservicios.md) y los diagramas en [docs/diagramas-uml.html](docs/diagramas-uml.html); este fichero resume las reglas que se aplican siempre.
+Guide for working in this repository. The full specification is in [docs/microservices-spec.md](docs/microservices-spec.md) and the diagrams in [docs/uml-diagrams.html](docs/uml-diagrams.html); this file summarizes the rules that always apply.
 
-## Proyecto
-- Java 21, Spring Boot 4.1 (Spring Framework 7, Jackson 3), Spring Cloud 2025.1, Maven multimódulo con un POM padre y Maven Wrapper (`./mvnw`).
-- Servicios: `auth-service`, `product-service`, `customer-service`, `order-service`, `api-gateway`, `discovery-service`.
-- Módulos compartidos: `common-lib` (excepciones, paginación, filtros, manejo de errores y mensajería común) y `events-contract` (mensajes de RabbitMQ).
-- Base de paquetes: `com.showcase.<servicio>`.
-- Despliegue: Docker Compose para desarrollo (`docker-compose.yml` y `docker-compose.observability.yml`, configuración en `docker/`) y Kubernetes en `k8s/` (chart de Helm `k8s/charts/showcase`; guía en [k8s/README.md](k8s/README.md) y [docs/kubernetes.md](docs/kubernetes.md)). `discovery-service` (Eureka) solo se usa en Compose: en Kubernetes los servicios lo desactivan al detectar la plataforma y descubren las réplicas con Spring Cloud Kubernetes.
+## Project
+- Java 21, Spring Boot 4.1 (Spring Framework 7, Jackson 3), Spring Cloud 2025.1, multi-module Maven with a parent POM and Maven Wrapper (`./mvnw`).
+- Services: `auth-service`, `product-service`, `customer-service`, `order-service`, `api-gateway`, `discovery-service`.
+- Shared modules: `common-lib` (exceptions, pagination, filters, error handling and common messaging) and `events-contract` (RabbitMQ messages).
+- Package base: `com.showcase.<service>`.
+- Language: everything in the repository is in English (documentation, comments, tests, logs, commit messages). The only exception is the `*_es.properties` bundles, because the API also answers in Spanish with `Accept-Language: es`.
+- Deployment: Docker Compose for development (`docker-compose.yml` and `docker-compose.observability.yml`, configuration in `docker/`) and Kubernetes in `k8s/` (Helm chart `k8s/charts/showcase`; guide in [k8s/README.md](k8s/README.md) and [docs/kubernetes.md](docs/kubernetes.md)). `discovery-service` (Eureka) is only used on Compose: on Kubernetes the services disable it on detecting the platform and discover the replicas with Spring Cloud Kubernetes.
 
 ## Kubernetes
-- La configuración que depende del entorno va en `values.yaml` (local) y `values-prod.yaml`, nunca fija en las plantillas. El chart reutiliza los scripts de `docker/` con `--set-file`.
-- Cada llamada nueva entre servicios, o hacia una pieza de infraestructura nueva, necesita su regla de NetworkPolicy (`clients` del servicio en `values.yaml`, o la salida en `networkpolicies.yaml`).
-- Contenedores sin root y con el sistema de ficheros de solo lectura: lo que haya que escribir va a un `emptyDir`.
-- Si cambia `k8s/`, además de `./mvnw verify` se comprueba con `helm lint` y se despliega en kind con `k8s/deploy.sh` y `k8s/e2e.sh` (el workflow `kubernetes.yml` lo repite en cada PR).
+- Environment-dependent configuration goes in `values.yaml` (local) and `values-prod.yaml`, never hardcoded in the templates. The chart reuses the `docker/` scripts with `--set-file`.
+- Each new call between services, or to a new piece of infrastructure, needs its NetworkPolicy rule (the service's `clients` in `values.yaml`, or the egress in `networkpolicies.yaml`).
+- Non-root containers with a read-only file system: whatever must be written goes to an `emptyDir`.
+- If `k8s/` changes, besides `./mvnw verify` check with `helm lint` and deploy on kind with `k8s/deploy.sh` and `k8s/e2e.sh` (the `kubernetes.yml` workflow repeats it on each PR).
 
-## Flujo de trabajo con Git
-- Nunca se hacen commits directos a `main`: cada cambio va en una rama (`feat/...`, `fix/...`, `docs/...`, `ci/...`, `chore/...`) y se integra con un pull request que aprueba el propietario del repositorio.
-- Commits pequeños y frecuentes, uno por paso lógico, con mensajes en español y formato Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, `ci:`).
-- Antes de abrir un PR, el build y los tests tienen que pasar (`./mvnw verify`).
-- Nunca se hace merge de un PR ni se activa el auto-merge sin que lo pida el propietario.
+## Git workflow
+- Never commit directly to `main`: each change goes on a branch (`feat/...`, `fix/...`, `docs/...`, `ci/...`, `chore/...`) and is integrated through a pull request approved by the repository owner.
+- Small, frequent commits, one per logical step, with messages in English in Conventional Commits format (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, `ci:`).
+- Before opening a PR, the build and tests must pass (`./mvnw verify`).
+- Never merge a PR or enable auto-merge unless the owner asks for it.
 
-## Arquitectura hexagonal
+## Hexagonal architecture
 ```
 domain/            model, exception, event, repository (interfaces), messaging (interfaces)
 application/       service (interfaces), service/impl, client (interfaces), lock, metrics
@@ -30,27 +31,27 @@ infrastructure/    rest (controller, dto/request, dto/response, mapper),
                    messaging (config, publisher/impl, listener, outbox, mapper),
                    client (feign, impl, dto), lock/impl, metrics/impl, security, exception, config
 ```
-- El dominio no depende de Spring, JPA ni de ningún framework. Las dependencias siempre apuntan hacia el dominio.
-- Interfaces e implementaciones en carpetas separadas; las implementaciones llevan el sufijo `Impl` y viven en una carpeta `impl`.
-- Los controllers y los listeners solo usan las interfaces de servicio. Los `*ServiceImpl` solo usan interfaces (repositorios, publishers, clientes, locks), nunca Spring Data, RabbitMQ, Feign ni Redisson directamente.
-- Entidades JPA (`*Entity`), modelos de dominio y DTOs son clases distintas, convertidas con MapStruct.
-- Lombok solo en la infraestructura y la aplicación, nunca en el dominio: constructores de inyección con `@RequiredArgsConstructor` y clases de utilidades con `@NoArgsConstructor(access = AccessLevel.PRIVATE)`; solo se escribe un constructor a mano cuando tiene lógica.
+- The domain does not depend on Spring, JPA or any framework. Dependencies always point towards the domain.
+- Interfaces and implementations in separate folders; implementations have the `Impl` suffix and live in an `impl` folder.
+- Controllers and listeners only use service interfaces. The `*ServiceImpl` classes only use interfaces (repositories, publishers, clients, locks), never Spring Data, RabbitMQ, Feign or Redisson directly.
+- JPA entities (`*Entity`), domain models and DTOs are distinct classes, converted with MapStruct.
+- Lombok only in infrastructure and application, never in the domain: injection constructors with `@RequiredArgsConstructor` and utility classes with `@NoArgsConstructor(access = AccessLevel.PRIVATE)`; a constructor is only written by hand when it has logic.
 
-## Convenciones de nombres
-- Todos los DTOs terminan en `DTO` y son `record`: `CreateProductRequestDTO`, `ProductResponseDTO`, `PageResponseDTO`, `ErrorResponseDTO`, `OrderCreatedMessageDTO`.
-- DTOs de entrada en `dto/request` (con Bean Validation) y de salida en `dto/response`.
-- Eventos de dominio en `domain/event` con nombres en pasado (`OrderCreatedEvent`); los mensajes de RabbitMQ son `*MessageDTO` en `events-contract`.
+## Naming conventions
+- All DTOs end in `DTO` and are `record`s: `CreateProductRequestDTO`, `ProductResponseDTO`, `PageResponseDTO`, `ErrorResponseDTO`, `OrderCreatedMessageDTO`.
+- Input DTOs in `dto/request` (with Bean Validation) and output DTOs in `dto/response`.
+- Domain events in `domain/event` with past-tense names (`OrderCreatedEvent`); RabbitMQ messages are `*MessageDTO` in `events-contract`.
 
-## Reglas transversales
-- Listados paginados: `PageQuery` y `PageResult` en dominio; `Pageable` y `Page` solo en `*RepositoryImpl`. Todos admiten filtros dinámicos `filter=campo:operador:valor` con lista blanca por recurso.
-- Errores: excepciones de dominio con `ErrorCode`; el `GlobalExceptionHandler` devuelve solo códigos HTTP estándar y `ErrorResponseDTO`, con mensajes en español e inglés y sin detalles internos de Java.
-- `@Transactional` en los métodos públicos de los `*ServiceImpl` (`readOnly = true` en las lecturas). Nunca llamadas remotas dentro de una transacción.
-- Borrado lógico (`active = false`) y bloqueo optimista (`@Version`) en todas las entidades de negocio.
-- Fechas con un `Clock` inyectado, nunca `Instant.now()` directo, para poder probarlas.
-- Mensajería: se publica siempre por el outbox (`*EventPublisherImpl` → `OutboxEventWriter` de `common-lib`, con `Propagation.MANDATORY`), nunca con `RabbitTemplate` desde un servicio. Cada consumidor registra el evento con `ProcessedEventRegistry` en la misma transacción que su cambio, y cada `@RabbitListener` usa `errorHandler = LoggingRabbitListenerErrorHandler.BEAN_NAME`. Los nombres de exchanges y colas van en `showcase.messaging` de `application.yml`; las tablas `outbox_event` y `processed_event` las crea la migración Flyway de cada servicio.
+## Cross-cutting rules
+- Paginated listings: `PageQuery` and `PageResult` in the domain; `Pageable` and `Page` only in `*RepositoryImpl`. All accept dynamic filters `filter=field:operator:value` with a per-resource whitelist.
+- Errors: domain exceptions with `ErrorCode`; the `GlobalExceptionHandler` returns only standard HTTP codes and `ErrorResponseDTO`, with messages in English (default) and Spanish and no internal Java details.
+- `@Transactional` on the public methods of the `*ServiceImpl` classes (`readOnly = true` on reads). Never remote calls inside a transaction.
+- Soft delete (`active = false`) and optimistic locking (`@Version`) on all business entities.
+- Dates with an injected `Clock`, never `Instant.now()` directly, so they can be tested.
+- Messaging: always publish through the outbox (`*EventPublisherImpl` → `OutboxEventWriter` from `common-lib`, with `Propagation.MANDATORY`), never with `RabbitTemplate` from a service. Each consumer registers the event with `ProcessedEventRegistry` in the same transaction as its change, and each `@RabbitListener` uses `errorHandler = LoggingRabbitListenerErrorHandler.BEAN_NAME`. Exchange and queue names go in `showcase.messaging` in `application.yml`; the `outbox_event` and `processed_event` tables are created by each service's Flyway migration.
 
 ## Tests
-- Unitarios con JUnit 5, Mockito y AssertJ, sin contexto de Spring, en el mismo paquete que la clase probada y con el sufijo `Test`.
-- Integración con Testcontainers y el sufijo `IT`.
-- Estructura given / when / then, `@DisplayName` en español y `@Nested` por método.
-- Cobertura mínima con JaCoCo: 80 % de líneas y 70 % de ramas en `domain` y `application`.
+- Unit tests with JUnit 5, Mockito and AssertJ, without a Spring context, in the same package as the class under test and with the `Test` suffix.
+- Integration tests with Testcontainers and the `IT` suffix.
+- given / when / then structure, `@DisplayName` in English and `@Nested` per method.
+- Minimum coverage with JaCoCo: 80 % of lines and 70 % of branches in `domain` and `application`.

@@ -27,8 +27,8 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 
 /**
- * Claves RSA con las que se firman los JWT. Se publican en {@code /oauth2/jwks} para que el resto de
- * servicios validen los tokens con la clave pública, sin llamar a auth-service en cada petición.
+ * RSA keys used to sign the JWTs. They are published at {@code /oauth2/jwks} so the other services
+ * validate tokens with the public key, without calling auth-service on every request.
  */
 @Configuration(proxyBeanMethods = false)
 public class JwkConfig {
@@ -44,8 +44,8 @@ public class JwkConfig {
     }
 
     /**
-     * auth-service también valida los tokens de su propia API con la misma clave. A las comprobaciones por
-     * defecto (firma, fechas) se añade la de tokens revocados.
+     * auth-service also validates the tokens of its own API with the same key. The check for revoked tokens is
+     * added to the default checks (signature, dates).
      */
     @Bean
     public JwtDecoder jwtDecoder(JWKSource<SecurityContext> jwkSource, RevokedTokenValidator revokedTokenValidator) {
@@ -65,14 +65,14 @@ public class JwkConfig {
             String keyId = jwt.keyId() == null || jwt.keyId().isBlank() ? "showcase-key" : jwt.keyId();
             return new RSAKey.Builder(publicKey).privateKey(privateKey).keyID(keyId).build();
         } catch (GeneralSecurityException | IllegalArgumentException e) {
-            throw new IllegalStateException("Las claves RSA de showcase.security.jwt no son válidas", e);
+            throw new IllegalStateException("The RSA keys in showcase.security.jwt are not valid", e);
         }
     }
 
-    // Con varias réplicas o tras un reinicio, una clave generada en memoria invalida los tokens: solo para desarrollo.
+    // With several replicas or after a restart, a key generated in memory invalidates tokens: development only.
     private static RSAKey generateKey() {
-        log.warn("No hay claves RSA configuradas (showcase.security.jwt): se genera un par en memoria. "
-                + "Los tokens dejarán de ser válidos al reiniciar y no se comparten entre réplicas.");
+        log.warn("No RSA keys configured (showcase.security.jwt): generating a pair in memory. "
+                + "Tokens will stop being valid on restart and are not shared between replicas.");
         try {
             KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
             generator.initialize(2048);
@@ -82,7 +82,7 @@ public class JwkConfig {
                     .keyID(UUID.randomUUID().toString())
                     .build();
         } catch (GeneralSecurityException e) {
-            throw new IllegalStateException("No se pudo generar el par de claves RSA", e);
+            throw new IllegalStateException("Could not generate the RSA key pair", e);
         }
     }
 

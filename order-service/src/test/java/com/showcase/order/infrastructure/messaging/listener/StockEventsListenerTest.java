@@ -28,11 +28,11 @@ class StockEventsListenerTest {
     private StockEventsListener listener;
 
     @Nested
-    @DisplayName("mensajes de product-service")
+    @DisplayName("product-service messages")
     class Messages {
 
         @Test
-        @DisplayName("stock.reserved confirma el pedido con el eventId del sobre")
+        @DisplayName("stock.reserved confirms the order with the envelope's eventId")
         void onStockReserved_shouldConfirm() {
             // when
             listener.onStockReserved(envelope("stock.reserved", new StockReservedMessageDTO(7L)));
@@ -42,7 +42,7 @@ class StockEventsListenerTest {
         }
 
         @Test
-        @DisplayName("stock.reservation-failed rechaza el pedido con el motivo")
+        @DisplayName("stock.reservation-failed rejects the order with the reason")
         void onStockReservationFailed_shouldReject() {
             // when
             listener.onStockReservationFailed(envelope("stock.reservation-failed",

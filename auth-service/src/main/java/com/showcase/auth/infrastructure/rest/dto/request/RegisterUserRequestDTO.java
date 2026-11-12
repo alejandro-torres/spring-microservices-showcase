@@ -7,8 +7,8 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * Alta pública: sin roles (se asigna USER). El nombre y los apellidos son para el perfil de cliente que crea
- * customer-service al recibir el evento {@code user.registered}.
+ * Public sign-up: no roles (USER is assigned). The first and last names are for the customer profile that
+ * customer-service creates on receiving the {@code user.registered} event.
  */
 public record RegisterUserRequestDTO(
         @NotBlank @Size(min = 3, max = 30) @Pattern(regexp = "^[A-Za-z0-9._-]+$") String username,
@@ -17,7 +17,7 @@ public record RegisterUserRequestDTO(
         @NotBlank @Size(max = 80) String firstName,
         @NotBlank @Size(max = 120) String lastName) {
 
-    /** Evita que la contraseña aparezca en los logs si se imprime el DTO. */
+    /** Keeps the password out of the logs if the DTO is printed. */
     @Override
     public String toString() {
         return "RegisterUserRequestDTO[username=" + username + ", email=" + email + ", firstName=" + firstName

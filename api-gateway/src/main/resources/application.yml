@@ -1,9 +1,9 @@
 server:
   port: ${SERVER_PORT:8080}
   shutdown: graceful
-  # El gateway trata él mismo las cabeceras X-Forwarded-* (trusted-proxies y RATE_LIMIT_TRUSTED_PROXY_HOPS): necesita
-  # la IP real de la conexión. En Kubernetes, Spring Boot activaría por defecto el modo nativo, que la sustituye por
-  # la de X-Forwarded-For, y el proxy dejaría de reconocerse como de confianza.
+  # The gateway handles the X-Forwarded-* headers itself (trusted-proxies and RATE_LIMIT_TRUSTED_PROXY_HOPS): it needs
+  # the real connection IP. In Kubernetes, Spring Boot would enable native mode by default, which replaces it with
+  # the one in X-Forwarded-For, and the proxy would no longer be recognized as trusted.
   forward-headers-strategy: none
 
 spring:
@@ -11,7 +11,7 @@ spring:
     name: api-gateway
   messages:
     fallback-to-system-locale: false
-  # Restaura el contexto de la traza en cada operador reactivo (logs con traceId aunque cambie el hilo).
+  # Restores the trace context on each reactive operator (logs with traceId even if the thread changes).
   reactor:
     context-propagation: auto
   data:
@@ -23,35 +23,35 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          # Clave pública de auth-service para validar los JWT (se descarga y se cachea).
+          # auth-service's public key to validate JWTs (downloaded and cached).
           jwk-set-uri: ${AUTH_JWK_SET_URI:http://localhost:9000/oauth2/jwks}
   cloud:
     loadbalancer:
-      # La lista de réplicas de Eureka se cachea solo 5 s: una réplica caída deja de recibir tráfico enseguida.
+      # Eureka's replica list is cached for only 5 s: a downed replica stops receiving traffic right away.
       cache:
         ttl: 5s
     gateway:
       server:
         webflux:
-          # Las cabeceras X-Forwarded-* (host, puerto, protocolo, IP) solo se envían a los servicios si el cliente
-          # llega desde una de estas redes; sin ellas, auth-service redirigiría el login a su IP interna. En local y
-          # en Docker son la máquina y las redes privadas; en producción, la del balanceador que haya delante.
+          # The X-Forwarded-* headers (host, port, protocol, IP) are only sent to the services if the client
+          # comes from one of these networks; without them, auth-service would redirect the login to its internal IP. Locally and
+          # in Docker they are the machine and the private networks; in production, that of the load balancer in front.
           trusted-proxies: ${GATEWAY_TRUSTED_PROXIES:127[.]0[.]0[.]1|0:0:0:0:0:0:0:1|10[.].*|172[.](1[6-9]|2[0-9]|3[01])[.].*|192[.]168[.].*}
-          # Solo X-Forwarded-*, sin la cabecera Forwarded (RFC 7239): esta lleva el protocolo de la última conexión
-          # (http, del Ingress al gateway), los servicios le dan prioridad y el login redirigiría a http aunque el
-          # cliente use https.
+          # Only X-Forwarded-*, without the Forwarded header (RFC 7239): it carries the protocol of the last connection
+          # (http, from the Ingress to the gateway), the services give it priority and the login would redirect to http even if the
+          # client uses https.
           forwarded:
             enabled: false
           filter:
             request-rate-limiter:
-              # Al superar el límite se lanza una excepción en lugar de devolver un 429 vacío: así el
-              # GatewayErrorWebExceptionHandler responde en el formato común y con Retry-After.
+              # On exceeding the limit an exception is thrown instead of returning an empty 429: this way the
+              # GatewayErrorWebExceptionHandler responds in the common format and with Retry-After.
               throw-on-limit: true
-          # Para todas las rutas: 20 peticiones por segundo con ráfagas de 40, por usuario o por IP.
-          # El orden importa: el gateway numera por separado los filtros por defecto y los de cada ruta (1, 2...),
-          # y a igual número van antes los por defecto. Así queda: rate limiting → circuit breaker de la ruta →
-          # reintento → servicio. Si el reintento fuera el primero, el rate limiting quedaría dentro del circuit
-          # breaker y cada 429 contaría como un fallo del servicio (abriría el circuito).
+          # For all routes: 20 requests per second with bursts of 40, per user or per IP.
+          # The order matters: the gateway numbers the default filters and those of each route separately (1, 2...),
+          # and for equal numbers the default ones go first. The result is: rate limiting → the route's circuit breaker →
+          # retry → service. If the retry came first, the rate limiting would end up inside the circuit
+          # breaker and each 429 would count as a service failure (it would open the circuit).
           default-filters:
             - name: RequestRateLimiter
               args:
@@ -59,8 +59,8 @@ spring:
                 redis-rate-limiter.replenishRate: ${RATE_LIMIT_REPLENISH_RATE:20}
                 redis-rate-limiter.burstCapacity: ${RATE_LIMIT_BURST_CAPACITY:40}
                 redis-rate-limiter.requestedTokens: 1
-            # Si una réplica no responde (se está apagando o se ha caído y Eureka aún no lo sabe), las peticiones
-            # GET (sin efectos) se reintentan en otra réplica antes de dar el error al cliente.
+            # If a replica does not respond (it is shutting down or has crashed and Eureka does not know yet), GET
+            # requests (no side effects) are retried on another replica before returning the error to the client.
             - name: Retry
               args:
                 retries: 2
@@ -81,8 +81,8 @@ spring:
                 allow-credentials: true
                 max-age: 3600
           routes:
-            # Login: 5 intentos por minuto y por IP. Cada petición gasta 12 fichas y el cubo recupera 1 por
-            # segundo (5 por minuto), con capacidad para 5 seguidas (60 fichas).
+            # Login: 5 attempts per minute and per IP. Each request spends 12 tokens and the bucket recovers 1 per
+            # second (5 per minute), with capacity for 5 in a row (60 tokens).
             - id: auth-login
               uri: lb://auth-service
               predicates:
@@ -99,7 +99,7 @@ spring:
                   args:
                     name: auth-service
                     fallbackUri: forward:/fallback/auth-service
-            # Formulario de login y endpoints OAuth2 (autorización, JWKS, configuración OpenID).
+            # Login form and OAuth2 endpoints (authorization, JWKS, OpenID configuration).
             - id: auth-oauth2
               uri: lb://auth-service
               predicates:
@@ -140,7 +140,7 @@ spring:
                   args:
                     name: order-service
                     fallbackUri: forward:/fallback/order-service
-            # Las DLQ existen en varios servicios con la misma ruta: el gateway las distingue por un prefijo.
+            # DLQs exist in several services with the same path: the gateway tells them apart by a prefix.
             # /api/v1/admin/order-service/dead-letters/** → order-service /api/v1/admin/dead-letters/**
             - id: dead-letters-order
               uri: lb://order-service
@@ -160,7 +160,7 @@ spring:
                 - Path=/api/v1/admin/customer-service/dead-letters/**
               filters:
                 - RewritePath=/api/v1/admin/customer-service/(?<rest>.*), /api/v1/admin/$\{rest}
-            # Documentación OpenAPI de cada servicio para el Swagger UI agregado: /{servicio}/v3/api-docs.
+            # OpenAPI documentation of each service for the aggregated Swagger UI: /{service}/v3/api-docs.
             - id: docs-auth-service
               uri: lb://auth-service
               predicates:
@@ -190,15 +190,15 @@ spring:
 
 showcase:
   rate-limit:
-    # Proxies de confianza delante del gateway (p. ej. 1 con un balanceador): solo entonces se usa la IP de
-    # X-Forwarded-For para el rate limiting por IP; si no, la de la conexión (la cabecera se puede falsificar).
+    # Trusted proxies in front of the gateway (e.g. 1 with a load balancer): only then is the IP from
+    # X-Forwarded-For used for per-IP rate limiting; otherwise, the connection's (the header can be forged).
     trusted-proxy-hops: ${RATE_LIMIT_TRUSTED_PROXY_HOPS:0}
 
-# Un único Swagger UI con un desplegable para la API de cada servicio.
+# A single Swagger UI with a dropdown for each service's API.
 springdoc:
   swagger-ui:
-    # Authorize → oauth2 abre el login de auth-service (authorization code + PKCE, cliente público sin secreto)
-    # y vuelve a /swagger-ui/oauth2-redirect.html, que tiene que estar en las redirect URIs de web-client.
+    # Authorize → oauth2 opens the auth-service login (authorization code + PKCE, public client without a secret)
+    # and returns to /swagger-ui/oauth2-redirect.html, which must be in web-client's redirect URIs.
     oauth:
       client-id: web-client
       use-pkce-with-authorization-code-grant: true
@@ -213,8 +213,8 @@ springdoc:
       - name: order-service
         url: /order-service/v3/api-docs
 
-# Circuit breaker por ruta: con la mitad de las últimas 20 llamadas fallidas se abre 10 s y responde 503 al
-# instante. Una llamada que tarda más de 5 s cuenta como fallo.
+# Circuit breaker per route: with half of the last 20 calls failed it opens for 10 s and responds 503
+# instantly. A call taking more than 5 s counts as a failure.
 resilience4j:
   circuitbreaker:
     configs:
@@ -239,23 +239,23 @@ eureka:
     prefer-ip-address: true
     lease-renewal-interval-in-seconds: 5
     lease-expiration-duration-in-seconds: 15
-    # Prometheus descubre las réplicas en Eureka y lee aquí en qué puerto están sus métricas.
+    # Prometheus discovers the replicas in Eureka and reads here which port their metrics are on.
     metadata-map:
       prometheus-port: ${management.server.port:${server.port}}
 
 management:
-  # Actuator (health, métricas) en un puerto propio: el 8080 es público y el 8081 solo se ve en la red interna.
+  # Actuator (health, metrics) on its own port: 8080 is public and 8081 is only visible on the internal network.
   server:
     port: ${MANAGEMENT_PORT:8081}
   metrics:
-    # Etiquetas comunes de todas las métricas: servicio, réplica (la misma de X-Instance-Id) y entorno.
+    # Common tags of all metrics: service, replica (the same as X-Instance-Id) and environment.
     tags:
       application: ${spring.application.name}
       instance: ${showcase.instance-id}
       environment: ${ENVIRONMENT:dev}
     distribution:
-      # Histograma de latencias para calcular p50/p95/p99 en Prometheus; con trazas, cada cubo lleva un
-      # exemplar con el traceId de una petición real (para saltar de la gráfica a Zipkin).
+      # Latency histogram to compute p50/p95/p99 in Prometheus; with traces, each bucket carries an
+      # exemplar with the traceId of a real request (to jump from the chart to Zipkin).
       percentiles-histogram:
         http.server.requests: true
         http.client.requests: true
@@ -278,8 +278,8 @@ management:
       probes:
         enabled: true
 
-# Logs estructurados (cuando se activan con logging.structured.format.console=ecs, como en Docker y en prod):
-# cada línea es un JSON con el servicio, la réplica, el entorno y el traceId/spanId de la petición.
+# Structured logs (when enabled with logging.structured.format.console=ecs, as in Docker and prod):
+# each line is a JSON with the service, the replica, the environment and the request's traceId/spanId.
 logging:
   structured:
     ecs:
@@ -288,8 +288,8 @@ logging:
         environment: ${ENVIRONMENT:dev}
 
 ---
-# En Kubernetes no hay Eureka: Spring Cloud Kubernetes lee las réplicas listas de cada Service con la API de
-# Kubernetes y Spring Cloud LoadBalancer reparte las llamadas igual que con Eureka.
+# In Kubernetes there is no Eureka: Spring Cloud Kubernetes reads the ready replicas of each Service with the
+# Kubernetes API and Spring Cloud LoadBalancer distributes the calls just as with Eureka.
 spring:
   config:
     activate:
@@ -297,7 +297,7 @@ spring:
   cloud:
     kubernetes:
       discovery:
-        # Si un Service publica varios puertos, se usa el de la API.
+        # If a Service publishes several ports, the API one is used.
         primary-port-name: http
 eureka:
   client:

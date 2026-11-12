@@ -3,14 +3,14 @@ package com.showcase.auth.application.service;
 import java.time.Instant;
 
 /**
- * Revocación de tokens JWT antes de que caduquen.
+ * Revocation of JWT tokens before they expire.
  */
 public interface TokenRevocationService {
 
-    /** Revoca un token concreto, p. ej. al cerrar sesión. */
+    /** Revokes a specific token, e.g. on logout. */
     void revoke(String tokenId, Instant expiresAt, String username);
 
-    /** Revoca todos los tokens emitidos hasta ahora al usuario (cambio de contraseña, desactivación...). */
+    /** Revokes all the tokens issued to the user so far (password change, deactivation...). */
     void revokeAllForUser(String username, String reason);
 
     boolean isRevoked(String tokenId, String username, Instant issuedAt);

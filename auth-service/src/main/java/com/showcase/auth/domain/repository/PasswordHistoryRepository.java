@@ -4,12 +4,12 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Puerto de salida del historial de contraseñas (solo hashes, nunca contraseñas en claro).
+ * Outbound port of the password history (hashes only, never plain-text passwords).
  */
 public interface PasswordHistoryRepository {
 
     void save(Long userId, String passwordHash, Instant createdAt);
 
-    /** Los últimos {@code limit} hashes del usuario, del más reciente al más antiguo. */
+    /** The user's last {@code limit} hashes, from most recent to oldest. */
     List<String> findRecentHashes(Long userId, int limit);
 }

@@ -8,8 +8,8 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
- * Permiso sobre un recurso con el formato {@code recurso:accion} (p. ej. {@code product:write}).
- * Acaba como claim en el JWT y se comprueba con {@code @PreAuthorize}.
+ * Permission on a resource in the format {@code resource:action} (e.g. {@code product:write}).
+ * It ends up as a claim in the JWT and is checked with {@code @PreAuthorize}.
  */
 public class Permission extends AuditedModel {
 

@@ -13,11 +13,11 @@ class MicrometerAuthMetricsImplTest {
     private final MicrometerAuthMetricsImpl metrics = new MicrometerAuthMetricsImpl(registry);
 
     @Nested
-    @DisplayName("contadores de seguridad")
+    @DisplayName("security counters")
     class Counters {
 
         @Test
-        @DisplayName("cuenta registros, logins por resultado y cuentas bloqueadas")
+        @DisplayName("counts registrations, logins by result and locked accounts")
         void counters_shouldBeIncremented() {
             // when
             metrics.userRegistered();

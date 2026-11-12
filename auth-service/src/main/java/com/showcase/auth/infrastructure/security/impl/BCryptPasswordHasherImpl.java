@@ -6,8 +6,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 /**
- * Usa el mismo {@link PasswordEncoder} (BCrypt) que el login, para que los hashes que se guardan
- * al crear usuarios sean los que Spring Security comprueba al iniciar sesión.
+ * Uses the same {@link PasswordEncoder} (BCrypt) as the login, so the hashes stored
+ * when creating users are the ones Spring Security checks on login.
  */
 @Component
 @RequiredArgsConstructor

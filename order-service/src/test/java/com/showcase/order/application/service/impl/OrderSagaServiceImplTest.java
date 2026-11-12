@@ -51,7 +51,7 @@ class OrderSagaServiceImplTest {
     class Confirm {
 
         @Test
-        @DisplayName("registra el evento y pasa el pedido pendiente a CONFIRMED")
+        @DisplayName("records the event and moves the pending order to CONFIRMED")
         void confirm_pending_shouldConfirm() {
             // given
             given(processedEvents.registerIfAbsent(EVENT_ID, "stock.reserved")).willReturn(true);
@@ -68,7 +68,7 @@ class OrderSagaServiceImplTest {
         }
 
         @Test
-        @DisplayName("ignora un evento duplicado sin tocar el pedido")
+        @DisplayName("ignores a duplicate event without touching the order")
         void confirm_duplicate_shouldDoNothing() {
             // given
             given(processedEvents.registerIfAbsent(EVENT_ID, "stock.reserved")).willReturn(false);
@@ -81,7 +81,7 @@ class OrderSagaServiceImplTest {
         }
 
         @Test
-        @DisplayName("lanza ORDER_NOT_FOUND si el pedido no existe (el mensaje irá a la DLQ)")
+        @DisplayName("throws ORDER_NOT_FOUND if the order does not exist (the message will go to the DLQ)")
         void confirm_unknownOrder_shouldThrow() {
             // given
             given(processedEvents.registerIfAbsent(EVENT_ID, "stock.reserved")).willReturn(true);
@@ -94,7 +94,7 @@ class OrderSagaServiceImplTest {
         }
 
         @Test
-        @DisplayName("lanza INVALID_STATUS_TRANSITION si el pedido ya no está pendiente y no guarda nada")
+        @DisplayName("throws INVALID_STATUS_TRANSITION if the order is no longer pending and saves nothing")
         void confirm_rejectedOrder_shouldThrow() {
             // given
             given(processedEvents.registerIfAbsent(EVENT_ID, "stock.reserved")).willReturn(true);
@@ -113,7 +113,7 @@ class OrderSagaServiceImplTest {
     class Reject {
 
         @Test
-        @DisplayName("pasa el pedido a REJECTED con el motivo de product-service")
+        @DisplayName("moves the order to REJECTED with product-service's reason")
         void reject_pending_shouldRejectWithReason() {
             // given
             given(processedEvents.registerIfAbsent(EVENT_ID, "stock.reservation-failed")).willReturn(true);
@@ -131,7 +131,7 @@ class OrderSagaServiceImplTest {
         }
 
         @Test
-        @DisplayName("ignora un evento duplicado")
+        @DisplayName("ignores a duplicate event")
         void reject_duplicate_shouldDoNothing() {
             // given
             given(processedEvents.registerIfAbsent(EVENT_ID, "stock.reservation-failed")).willReturn(false);

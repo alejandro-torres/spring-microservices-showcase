@@ -5,8 +5,8 @@ import java.util.Objects;
 import java.util.function.Function;
 
 /**
- * Página de resultados del dominio, independiente de Spring Data.
- * El adaptador de persistencia la construye a partir de un {@code Page}.
+ * Domain page of results, independent of Spring Data.
+ * The persistence adapter builds it from a {@code Page}.
  */
 public record PageResult<T>(
         List<T> content,
@@ -21,7 +21,7 @@ public record PageResult<T>(
         content = List.copyOf(Objects.requireNonNull(content, "content"));
     }
 
-    /** Calcula el total de páginas y los indicadores de primera y última página. */
+    /** Computes the total pages and the first and last page flags. */
     public static <T> PageResult<T> of(List<T> content, int page, int size, long totalElements) {
         int totalPages = size == 0 ? 0 : (int) Math.ceil((double) totalElements / size);
         boolean first = page == 0;
@@ -33,7 +33,7 @@ public record PageResult<T>(
         return of(List.of(), query.page(), query.size(), 0);
     }
 
-    /** Convierte el contenido manteniendo los datos de paginación (p. ej. entidad a modelo de dominio). */
+    /** Converts the content while keeping the pagination data (e.g. entity to domain model). */
     public <R> PageResult<R> map(Function<? super T, ? extends R> mapper) {
         List<R> mapped = content.stream().<R>map(mapper).toList();
         return new PageResult<>(mapped, page, size, totalElements, totalPages, first, last);

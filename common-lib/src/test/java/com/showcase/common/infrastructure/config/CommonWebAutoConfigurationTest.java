@@ -32,7 +32,7 @@ class CommonWebAutoConfigurationTest {
             .withConfiguration(AutoConfigurations.of(CommonWebAutoConfiguration.class));
 
     @Test
-    @DisplayName("registra la gestión de errores, los mensajes y el parser de filtros en una aplicación web")
+    @DisplayName("registers error handling, messages and the filter parser in a web application")
     void webApplication_shouldRegisterAllBeans() {
         webContext.run(context -> assertThat(context)
                 .hasSingleBean(GlobalExceptionHandler.class)
@@ -53,25 +53,25 @@ class CommonWebAutoConfigurationTest {
     }
 
     @Test
-    @DisplayName("usa el español si la petición no trae Accept-Language o pide un idioma no soportado")
-    void localeResolver_shouldDefaultToSpanish() {
+    @DisplayName("uses English if the request has no Accept-Language or asks for an unsupported language")
+    void localeResolver_shouldDefaultToEnglish() {
         webContext.run(context -> {
             var resolver = context.getBean(DispatcherServlet.LOCALE_RESOLVER_BEAN_NAME, LocaleResolver.class);
 
             var withoutHeader = new MockHttpServletRequest();
-            var english = new MockHttpServletRequest();
-            english.addHeader("Accept-Language", "en-GB");
+            var spanish = new MockHttpServletRequest();
+            spanish.addHeader("Accept-Language", "es-ES");
             var french = new MockHttpServletRequest();
             french.addHeader("Accept-Language", "fr-FR");
 
-            assertThat(resolver.resolveLocale(withoutHeader).getLanguage()).isEqualTo("es");
-            assertThat(resolver.resolveLocale(english).getLanguage()).isEqualTo(Locale.ENGLISH.getLanguage());
-            assertThat(resolver.resolveLocale(french).getLanguage()).isEqualTo("es");
+            assertThat(resolver.resolveLocale(withoutHeader).getLanguage()).isEqualTo(Locale.ENGLISH.getLanguage());
+            assertThat(resolver.resolveLocale(spanish).getLanguage()).isEqualTo("es");
+            assertThat(resolver.resolveLocale(french).getLanguage()).isEqualTo(Locale.ENGLISH.getLanguage());
         });
     }
 
     @Test
-    @DisplayName("permite configurar el máximo de filtros y sustituir cualquier bean")
+    @DisplayName("allows configuring the maximum filters and replacing any bean")
     void customization_shouldBeRespected() {
         var customClock = Clock.systemDefaultZone();
         webContext
@@ -85,7 +85,7 @@ class CommonWebAutoConfigurationTest {
     }
 
     @Test
-    @DisplayName("no registra nada fuera de una aplicación web")
+    @DisplayName("registers nothing outside a web application")
     void nonWebApplication_shouldNotRegisterBeans() {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(CommonWebAutoConfiguration.class))

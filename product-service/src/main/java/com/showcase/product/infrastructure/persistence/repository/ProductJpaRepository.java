@@ -16,18 +16,18 @@ public interface ProductJpaRepository extends JpaRepository<ProductEntity, Long>
     @EntityGraph(attributePaths = "category")
     Optional<ProductEntity> findByIdAndActiveTrue(Long id);
 
-    /** Activo o no (para devolver stock de productos ya borrados). */
+    /** Active or not (to return stock of products already deleted). */
     @EntityGraph(attributePaths = "category")
     Optional<ProductEntity> findWithCategoryById(Long id);
 
-    /** Listado con filtros dinámicos cargando la categoría en la misma consulta (sin N+1). */
+    /** Listing with dynamic filters, loading the category in the same query (no N+1). */
     @Override
     @EntityGraph(attributePaths = "category")
     Page<ProductEntity> findAll(Specification<ProductEntity> specification, Pageable pageable);
 
     /**
-     * Ejemplo de JPQL paginada: el {@code join fetch} trae la categoría en la misma consulta, y por eso
-     * necesita su propio {@code countQuery} (un fetch no se puede usar en la consulta de recuento).
+     * Paginated JPQL example: the {@code join fetch} brings the category in the same query, which is why it
+     * needs its own {@code countQuery} (a fetch cannot be used in the count query).
      */
     @Query(value = "select p from ProductEntity p join fetch p.category c "
             + "where c.id = :categoryId and p.active = true",

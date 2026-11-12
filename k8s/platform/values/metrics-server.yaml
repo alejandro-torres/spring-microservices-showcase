@@ -1,4 +1,4 @@
-# metrics-server: uso de CPU y memoria de los pods, que necesita el HorizontalPodAutoscaler.
-# Los certificados de los kubelets de kind son autofirmados.
+# metrics-server: pod CPU and memory usage, which the HorizontalPodAutoscaler needs.
+# The certificates of kind's kubelets are self-signed.
 args:
   - --kubelet-insecure-tls

@@ -1,6 +1,6 @@
 {{- if .Values.rabbitmq.enabled }}
-# RabbitMQ con un usuario por servicio (docker/rabbitmq/setup-users.sh, lanzado por un Job).
-# El pod no está listo hasta que existen los usuarios: así ningún servicio arranca sin poder autenticarse.
+# RabbitMQ with one user per service (docker/rabbitmq/setup-users.sh, launched by a Job).
+# The pod is not ready until the users exist: this way no service starts unable to authenticate.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -9,7 +9,7 @@ metadata:
     {{- include "showcase.labels" . | nindent 4 }}
 data:
   setup-users.sh: |
-    {{- required "Falta scripts.rabbitmqSetupUsers (usa k8s/deploy.sh o --set-file)" .Values.scripts.rabbitmqSetupUsers | nindent 4 }}
+    {{- required "Missing scripts.rabbitmqSetupUsers (use k8s/deploy.sh or --set-file)" .Values.scripts.rabbitmqSetupUsers | nindent 4 }}
 ---
 apiVersion: v1
 kind: Service
@@ -29,7 +29,7 @@ spec:
       port: 15672
       targetPort: management
 ---
-# Headless y con los pods aún no listos: lo usa el Job para crear los usuarios antes de que el pod esté listo.
+# Headless and with pods not yet ready: used by the Job to create the users before the pod is ready.
 apiVersion: v1
 kind: Service
 metadata:
@@ -66,8 +66,8 @@ spec:
         {{- include "showcase.labels" . | nindent 8 }}
         {{- include "showcase.selector" "rabbitmq" | nindent 8 }}
     spec:
-      # Usuario rabbitmq de la imagen (uid 999) en lugar de root. El sistema de ficheros no es de solo lectura: el
-      # arranque de la imagen escribe su configuración en /etc/rabbitmq.
+      # rabbitmq user of the image (uid 999) instead of root. The file system is not read-only: the
+      # image's startup writes its configuration to /etc/rabbitmq.
       securityContext:
         {{- include "showcase.podSecurityContext" (dict "user" 999 "group" 999) | nindent 8 }}
       automountServiceAccountToken: false
@@ -97,7 +97,7 @@ spec:
                 secretKeyRef:
                   name: infra-credentials
                   key: RABBITMQ_ADMIN_PASSWORD
-          # Listo cuando acepta conexiones y ya existe el último usuario que crea setup-users.sh.
+          # Ready when it accepts connections and the last user created by setup-users.sh exists.
           readinessProbe:
             exec:
               command:
@@ -126,7 +126,7 @@ spec:
           requests:
             storage: {{ .Values.rabbitmq.storage }}
 ---
-# Un Job por revisión del release: un Job no se puede modificar, así que cada helm upgrade crea uno nuevo.
+# One Job per release revision: a Job cannot be modified, so each helm upgrade creates a new one.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -144,7 +144,7 @@ spec:
         {{- include "showcase.selector" "rabbitmq-setup" | nindent 8 }}
     spec:
       restartPolicy: OnFailure
-      # Usuario curl_user de la imagen de curl (uid 100).
+      # curl_user user of the curl image (uid 100).
       securityContext:
         {{- include "showcase.podSecurityContext" (dict "user" 100 "group" 101) | nindent 8 }}
       automountServiceAccountToken: false

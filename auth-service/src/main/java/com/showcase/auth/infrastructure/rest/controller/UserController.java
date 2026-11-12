@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 /**
- * API de usuarios. Solo conoce la interfaz {@link UserService}: no hay lógica de negocio aquí.
+ * Users API. It only knows the {@link UserService} interface: there is no business logic here.
  */
 @RestController
 @RequestMapping("/api/v1/users")
@@ -53,14 +53,14 @@ public class UserController {
         return ResponseEntity.created(location).body(mapper.toResponse(user));
     }
 
-    /** Datos del usuario autenticado: el {@code sub} del token es su username. */
+    /** Data of the authenticated user: the token's {@code sub} is their username. */
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/me")
     public UserResponseDTO me(@AuthenticationPrincipal Jwt jwt) {
         return mapper.toResponse(userService.findByUsername(jwt.getSubject()));
     }
 
-    /** El usuario autenticado cambia su propia contraseña. */
+    /** The authenticated user changes their own password. */
     @PreAuthorize("isAuthenticated()")
     @PutMapping("/me/password")
     public ResponseEntity<Void> changePassword(@AuthenticationPrincipal Jwt jwt,
@@ -76,10 +76,10 @@ public class UserController {
     }
 
     /**
-     * Listado paginado con filtros dinámicos, p. ej.
+     * Paginated listing with dynamic filters, e.g.
      * {@code ?filter=role:eq:ADMIN&filter=username:like:ana&page=0&size=10&sort=createdAt&direction=DESC}.
      */
-    // Los registros borrados (includeInactive) solo los ve un ADMIN.
+    // Deleted records (includeInactive) are only visible to an ADMIN.
     @PreAuthorize("hasAuthority('user:read') and (!#includeInactive or hasRole('ADMIN'))")
     @GetMapping
     public PageResponseDTO<UserResponseDTO> findAll(

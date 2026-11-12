@@ -12,10 +12,10 @@
 
     <artifactId>api-gateway</artifactId>
     <name>api-gateway</name>
-    <description>Punto de entrada único: valida los tokens, enruta con Eureka, limita la tasa de peticiones y agrega Swagger</description>
+    <description>Single entry point: validates tokens, routes with Eureka, rate limits requests and aggregates Swagger</description>
 
     <dependencies>
-        <!-- Solo el formato de error común y sus mensajes (la parte MVC de common-lib no se activa en WebFlux) -->
+        <!-- Only the common error format and its messages (the MVC part of common-lib is not enabled in WebFlux) -->
         <dependency>
             <groupId>com.showcase</groupId>
             <artifactId>common-lib</artifactId>
@@ -29,8 +29,8 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
         </dependency>
-        <!-- En Kubernetes, las réplicas se descubren con la API de Kubernetes en lugar de Eureka (solo se activa allí).
-             Cliente fabric8: ignora los campos nuevos de la API que no conoce, el cliente oficial falla con ellos. -->
+        <!-- In Kubernetes, replicas are discovered with the Kubernetes API instead of Eureka (only enabled there).
+             fabric8 client: it ignores new API fields it does not know, while the official client fails on them. -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-kubernetes-fabric8</artifactId>
@@ -39,7 +39,7 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
         </dependency>
-        <!-- Rate limiting (token bucket) y lista de tokens revocados -->
+        <!-- Rate limiting (token bucket) and list of revoked tokens -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
@@ -52,12 +52,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
-        <!-- Métricas en /actuator/prometheus (solo accesible desde la red interna) -->
+        <!-- Metrics at /actuator/prometheus (only accessible from the internal network) -->
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
-        <!-- Estado de los circuit breakers como métricas -->
+        <!-- Circuit breaker state as metrics -->
         <dependency>
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-micrometer</artifactId>
@@ -66,7 +66,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-zipkin</artifactId>
         </dependency>
-        <!-- Swagger UI con la documentación de todos los servicios -->
+        <!-- Swagger UI with the documentation of all services -->
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>

@@ -1,7 +1,7 @@
 package com.showcase.common.domain.exception;
 
 /**
- * Ya existe un recurso con los mismos datos únicos (nombre, email...).
+ * A resource with the same unique data already exists (name, email...).
  */
 public class DuplicateResourceException extends DomainException {
 

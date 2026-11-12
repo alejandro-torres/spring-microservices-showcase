@@ -1,4 +1,4 @@
-# Perfil de desarrollo: se guardan todas las trazas.
+# Development profile: all traces are kept.
 management:
   tracing:
     sampling:

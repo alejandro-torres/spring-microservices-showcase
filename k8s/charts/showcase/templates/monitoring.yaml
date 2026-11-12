@@ -1,7 +1,7 @@
 {{- /*
-PodMonitors: Prometheus (kube-prometheus-stack) lee las métricas de cada réplica directamente de su pod.
-Se mantienen las etiquetas de Docker Compose (job="microservices" y eureka_app) para reutilizar los dashboards
-y las alertas de docker/.
+PodMonitors: Prometheus (kube-prometheus-stack) reads each replica's metrics directly from its pod.
+The Docker Compose labels are kept (job="microservices" and eureka_app) to reuse the dashboards
+and alerts from docker/.
 */ -}}
 {{- if and .Values.monitoring.enabled (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1/PodMonitor") }}
 {{- $root := . -}}
@@ -19,11 +19,11 @@ spec:
     matchLabels:
       {{- include "showcase.selector" $name | nindent 6 }}
   podMetricsEndpoints:
-    # El puerto del Actuator: el gateway usa uno interno distinto del público.
+    # The Actuator port: the gateway uses an internal one different from the public one.
     - port: {{ if and $svc.managementPort (ne $svc.managementPort $svc.port) }}management{{ else }}http{{ end }}
       path: /actuator/prometheus
       interval: 10s
-      # Las métricas ya traen las etiquetas application, instance (la de X-Instance-Id) y environment.
+      # The metrics already carry the tags application, instance (that of X-Instance-Id) and environment.
       honorLabels: true
       relabelings:
         - targetLabel: job
@@ -34,7 +34,7 @@ spec:
 {{- end }}
 {{- if .Values.rabbitmq.enabled }}
 ---
-# RabbitMQ: mensajes por cola (también las DLQ) y consumidores, con el plugin de Prometheus de RabbitMQ.
+# RabbitMQ: messages per queue (DLQs too) and consumers, with RabbitMQ's Prometheus plugin.
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:

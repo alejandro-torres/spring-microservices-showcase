@@ -4,10 +4,10 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * Registro inmutable de un evento de seguridad (quién, qué, cuándo y desde dónde).
+ * Immutable record of a security event (who, what, when and from where).
  *
- * @param username usuario afectado; puede no existir (p. ej. un login con un usuario inventado)
- * @param details  información adicional técnica, nunca contraseñas ni tokens
+ * @param username affected user; may not exist (e.g. a login with an invented user)
+ * @param details  additional technical information, never passwords or tokens
  */
 public record SecurityAuditEvent(
         Long id,
@@ -26,7 +26,7 @@ public record SecurityAuditEvent(
     public SecurityAuditEvent {
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(occurredAt, "occurredAt");
-        username = truncate(username == null || username.isBlank() ? "desconocido" : username, MAX_USERNAME);
+        username = truncate(username == null || username.isBlank() ? "unknown" : username, MAX_USERNAME);
         userAgent = truncate(userAgent, MAX_USER_AGENT);
         details = truncate(details, MAX_DETAILS);
     }
@@ -36,7 +36,7 @@ public record SecurityAuditEvent(
         return new SecurityAuditEvent(null, type, username, ip, userAgent, traceId, details, occurredAt);
     }
 
-    // Los datos que llegan de fuera (user-agent, username) pueden ser arbitrariamente largos.
+    // Data coming from outside (user-agent, username) can be arbitrarily long.
     private static String truncate(String value, int max) {
         return value == null || value.length() <= max ? value : value.substring(0, max);
     }

@@ -1,5 +1,5 @@
-# Alertas de Kubernetes para los pods de la aplicación (namespace showcase). Se suman a las de
-# docker/prometheus/alerts.yml; install.sh las carga como PrometheusRule.
+# Kubernetes alerts for the application's pods (showcase namespace). They add to those of
+# docker/prometheus/alerts.yml; install.sh loads them as a PrometheusRule.
 groups:
   - name: showcase-kubernetes
     rules:
@@ -9,8 +9,8 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "El contenedor {{ $labels.container }} del pod {{ $labels.pod }} se reinicia una y otra vez"
-          description: "Está en CrashLoopBackOff: revisa kubectl -n showcase logs {{ $labels.pod }} --previous."
+          summary: "Container {{ $labels.container }} of pod {{ $labels.pod }} keeps restarting"
+          description: "It is in CrashLoopBackOff: check kubectl -n showcase logs {{ $labels.pod }} --previous."
 
       - alert: PodNoListo
         expr: |
@@ -21,8 +21,8 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "El pod {{ $labels.pod }} no está listo"
-          description: "Lleva 5 minutos sin pasar la sonda de readiness: no recibe tráfico. Revisa kubectl -n showcase describe pod {{ $labels.pod }}."
+          summary: "Pod {{ $labels.pod }} is not ready"
+          description: "It has been failing the readiness probe for 5 minutes: it receives no traffic. Check kubectl -n showcase describe pod {{ $labels.pod }}."
 
       - alert: DeploymentSinTodasLasReplicas
         expr: |
@@ -32,5 +32,5 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "{{ $labels.deployment }} no tiene todas sus réplicas disponibles"
-          description: "Faltan réplicas desde hace 10 minutos (pods sin programar, sin arrancar o sin estar listos)."
+          summary: "{{ $labels.deployment }} does not have all its replicas available"
+          description: "Replicas have been missing for 10 minutes (pods unscheduled, not started or not ready)."

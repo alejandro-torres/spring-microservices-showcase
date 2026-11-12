@@ -1,5 +1,5 @@
 package com.showcase.events.auth;
 
-/** Usuario desactivado o borrado: customer-service marca su cliente como inactivo. */
+/** Deactivated or deleted user: customer-service marks their customer as inactive. */
 public record UserDisabledMessageDTO(Long userId, String username) {
 }

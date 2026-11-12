@@ -6,7 +6,7 @@ import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import java.util.Set;
 
-/** Sustituye la descripción y el conjunto completo de permisos del rol. */
+/** Replaces the role's description and full set of permissions. */
 public record UpdateRoleRequestDTO(
         @Size(max = 255) String description,
         @NotNull Set<@Positive Long> permissionIds,

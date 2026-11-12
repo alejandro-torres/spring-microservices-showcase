@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Componentes de plataforma del clúster, previos a la aplicación:
-#   - Traefik: controlador de Ingress en los puertos 80/443 del host (https://showcase.localhost)
-#   - cert-manager: certificados TLS, firmados por una CA local propia
-#   - metrics-server: uso de CPU y memoria para el HorizontalPodAutoscaler
+# Cluster platform components, prior to the application:
+#   - Traefik: Ingress controller on ports 80/443 of the host (https://showcase.localhost)
+#   - cert-manager: TLS certificates, signed by its own local CA
+#   - metrics-server: CPU and memory usage for the HorizontalPodAutoscaler
 #   k8s/platform/install.sh
 set -euo pipefail
 

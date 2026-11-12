@@ -1,9 +1,9 @@
--- Bloqueo de cuenta tras varios intentos de login fallidos.
+-- Account lockout after several failed login attempts.
 ALTER TABLE users ADD COLUMN failed_attempts INT NOT NULL DEFAULT 0;
 ALTER TABLE users ADD COLUMN locked_until TIMESTAMPTZ;
 
--- Auditoría de seguridad. Guarda el username como texto (sin clave foránea) para conservar el histórico
--- aunque el usuario cambie o se borre, y también los intentos con usuarios que no existen.
+-- Security audit log. It stores the username as text (no foreign key) to keep the history
+-- even if the user changes or is deleted, and also the attempts with users that do not exist.
 CREATE TABLE security_audit_log (
     id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     event_type  VARCHAR(30)  NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE security_audit_log (
 CREATE INDEX idx_security_audit_log_occurred_at ON security_audit_log (occurred_at);
 CREATE INDEX idx_security_audit_log_username ON security_audit_log (username, occurred_at);
 
--- Historial de contraseñas para impedir reutilizar las últimas.
+-- Password history to prevent reusing the latest ones.
 CREATE TABLE password_history (
     id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     user_id       BIGINT       NOT NULL REFERENCES users (id),

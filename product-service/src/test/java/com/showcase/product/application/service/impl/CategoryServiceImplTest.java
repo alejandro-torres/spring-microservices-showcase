@@ -41,19 +41,19 @@ class CategoryServiceImplTest {
     private CategoryServiceImpl categoryService;
 
     @Test
-    @DisplayName("crea una categoría y rechaza un nombre repetido")
+    @DisplayName("creates a category and rejects a repeated name")
     void create_shouldCheckUniqueName() {
         given(categoryRepository.save(any(Category.class))).willAnswer(invocation -> invocation.getArgument(0));
         assertThat(categoryService.create(" Audio ", null).getName()).isEqualTo("Audio");
 
-        given(categoryRepository.existsByName("Portátiles")).willReturn(true);
-        assertThatThrownBy(() -> categoryService.create("Portátiles", null))
+        given(categoryRepository.existsByName("Laptops")).willReturn(true);
+        assertThatThrownBy(() -> categoryService.create("Laptops", null))
                 .isInstanceOf(CategoryAlreadyExistsException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ProductErrorCode.CATEGORY_ALREADY_EXISTS);
     }
 
     @Test
-    @DisplayName("findById lanza CATEGORY_NOT_FOUND y findAll delega en el repositorio")
+    @DisplayName("findById throws CATEGORY_NOT_FOUND and findAll delegates to the repository")
     void find_shouldThrowOrDelegate() {
         var page = PageResult.of(List.of(laptops()), 0, 10, 1);
         given(categoryRepository.findAll(List.of(), PageQuery.firstPage(), false)).willReturn(page);
@@ -63,18 +63,18 @@ class CategoryServiceImplTest {
     }
 
     @Test
-    @DisplayName("update comprueba la versión y la unicidad del nuevo nombre")
+    @DisplayName("update checks the version and the uniqueness of the new name")
     void update_shouldCheckVersionAndName() {
         given(categoryRepository.findById(1L)).willReturn(Optional.of(laptops()));
         given(categoryRepository.save(any(Category.class))).willAnswer(invocation -> invocation.getArgument(0));
 
-        assertThat(categoryService.update(1L, "Ordenadores portátiles", null, 0L).getName())
-                .isEqualTo("Ordenadores portátiles");
-        assertThatThrownBy(() -> categoryService.update(1L, "Otro", null, 7L)).isInstanceOf(ConflictException.class);
+        assertThat(categoryService.update(1L, "Laptop computers", null, 0L).getName())
+                .isEqualTo("Laptop computers");
+        assertThatThrownBy(() -> categoryService.update(1L, "Other", null, 7L)).isInstanceOf(ConflictException.class);
     }
 
     @Test
-    @DisplayName("delete rechaza una categoría con productos activos (409) y si no, hace borrado lógico")
+    @DisplayName("delete rejects a category with active products (409) and otherwise does a soft delete")
     void delete_shouldCheckProducts() {
         given(categoryRepository.findById(1L)).willReturn(Optional.of(laptops()));
         given(productRepository.existsActiveByCategoryId(1L)).willReturn(true, false);

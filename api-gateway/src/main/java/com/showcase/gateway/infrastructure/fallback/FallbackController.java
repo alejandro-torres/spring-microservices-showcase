@@ -14,8 +14,8 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 /**
- * Respuesta del circuit breaker de cada ruta cuando el servicio está caído, tarda demasiado o tiene el circuito
- * abierto: 503 en el formato común, sin esperar al timeout mientras el circuito siga abierto.
+ * Circuit breaker response of each route when the service is down, too slow or has the circuit
+ * open: 503 in the common format, without waiting for the timeout while the circuit stays open.
  */
 @RestController
 @RequiredArgsConstructor
@@ -28,7 +28,7 @@ public class FallbackController {
     @RequestMapping("/fallback/{service}")
     public Mono<Void> fallback(@PathVariable String service, ServerWebExchange exchange) {
         Throwable cause = exchange.getAttribute(ServerWebExchangeUtils.CIRCUITBREAKER_EXECUTION_EXCEPTION_ATTR);
-        log.warn("{} no disponible ({}): se responde 503", service, cause == null ? "circuito abierto" : cause);
+        log.warn("{} unavailable ({}): responding 503", service, cause == null ? "circuit open" : cause);
         return errorWriter.write(exchange, HttpStatus.SERVICE_UNAVAILABLE, CommonErrorCode.SERVICE_UNAVAILABLE);
     }
 }

@@ -1,7 +1,7 @@
 package com.showcase.common.domain.exception;
 
 /**
- * El recurso pedido no existe o está borrado (borrado lógico).
+ * The requested resource does not exist or has been deleted (soft delete).
  */
 public class ResourceNotFoundException extends DomainException {
 

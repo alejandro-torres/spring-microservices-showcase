@@ -19,12 +19,12 @@ import org.springframework.security.web.server.header.ReferrerPolicyServerHttpHe
 import org.springframework.security.web.server.savedrequest.NoOpServerRequestCache;
 
 /**
- * El gateway es la primera barrera: rechaza con 401 los tokens que no son válidos o que están revocados antes de
- * que la petición llegue a ningún servicio. El token se reenvía tal cual (cabecera {@code Authorization}) y cada
- * servicio vuelve a validarlo y aplica sus permisos con {@code @PreAuthorize}.
+ * The gateway is the first barrier: it rejects with 401 tokens that are invalid or revoked before the request
+ * reaches any service. The token is forwarded as is ({@code Authorization} header) and each service validates it
+ * again and applies its permissions with {@code @PreAuthorize}.
  * <p>
- * Públicas: registro, login y endpoints OAuth2 de auth-service, Swagger y health. Las peticiones CORS de
- * comprobación ({@code OPTIONS}) también, para que el gateway pueda responderlas.
+ * Public: registration, login and auth-service's OAuth2 endpoints, Swagger and health. CORS preflight requests
+ * ({@code OPTIONS}) too, so the gateway can answer them.
  */
 @Configuration(proxyBeanMethods = false)
 @EnableWebFluxSecurity
@@ -58,10 +58,10 @@ public class SecurityConfig {
                         .authenticationEntryPoint(entryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
                 .requestCache(cache -> cache.requestCache(NoOpServerRequestCache.getInstance()))
-                // Por defecto WebFlux pone no-referrer, y con esa política el navegador envía "Origin: null" en los
-                // POST de formulario (el login): el filtro CORS los trata como de otro origen y responde 403.
-                // strict-origin-when-cross-origin (el valor por defecto de los navegadores) envía el origen real y
-                // a otros sitios solo el origen, nunca la ruta.
+                // By default WebFlux sets no-referrer, and with that policy the browser sends "Origin: null" on
+                // form POSTs (the login): the CORS filter treats them as cross-origin and responds 403.
+                // strict-origin-when-cross-origin (the browsers' default) sends the real origin and,
+                // to other sites, only the origin, never the path.
                 .headers(headers -> headers.referrerPolicy(referrer -> referrer
                         .policy(ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)))
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
@@ -70,7 +70,7 @@ public class SecurityConfig {
                 .build();
     }
 
-    /** Firma y caducidad con el JWKS de auth-service; después, la lista de tokens revocados en Redis. */
+    /** Signature and expiry with auth-service's JWKS; then, the list of revoked tokens in Redis. */
     @Bean
     public ReactiveJwtDecoder jwtDecoder(@Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")
                                          String jwkSetUri, RevokedTokenChecker revokedTokenChecker) {

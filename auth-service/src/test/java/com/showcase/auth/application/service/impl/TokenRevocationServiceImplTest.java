@@ -34,7 +34,7 @@ class TokenRevocationServiceImplTest {
     class Revoke {
 
         @Test
-        @DisplayName("revoca el token solo durante el tiempo que le queda de vida y lo audita")
+        @DisplayName("revokes the token only for its remaining lifetime and audits it")
         void revoke_shouldUseRemainingLifetime() {
             service.revoke("jti-1", NOW.plus(Duration.ofMinutes(10)), "ana");
 
@@ -43,7 +43,7 @@ class TokenRevocationServiceImplTest {
         }
 
         @Test
-        @DisplayName("no guarda nada para un token ya caducado o sin identificador")
+        @DisplayName("saves nothing for an already expired token or one with no identifier")
         void revoke_expiredOrWithoutId_shouldDoNothing() {
             service.revoke("jti-1", NOW.minusSeconds(1), "ana");
             service.revoke(null, NOW.plusSeconds(60), "ana");
@@ -53,11 +53,11 @@ class TokenRevocationServiceImplTest {
     }
 
     @Nested
-    @DisplayName("revokeAllForUser e isRevoked")
+    @DisplayName("revokeAllForUser and isRevoked")
     class RevokeAll {
 
         @Test
-        @DisplayName("guarda el instante en segundos (la precisión de iat) con la vida de un token")
+        @DisplayName("stores the instant in seconds (the precision of iat) with a token's lifetime")
         void revokeAllForUser_shouldTruncateToSeconds() {
             service.revokeAllForUser("ana", "password changed");
 
@@ -66,13 +66,13 @@ class TokenRevocationServiceImplTest {
         }
 
         @Test
-        @DisplayName("un token está revocado si su jti lo está o si se emitió hasta el instante de revocación")
+        @DisplayName("a token is revoked if its jti is or if it was issued up to the revocation instant")
         void isRevoked_shouldCheckTokenIdAndIssueDate() {
             var revokedAt = Instant.parse("2026-10-14T12:00:00Z");
-            given(repository.isRevoked("revocado")).willReturn(true);
+            given(repository.isRevoked("revoked")).willReturn(true);
             given(repository.revokedBefore("ana")).willReturn(Optional.of(revokedAt));
 
-            assertThat(service.isRevoked("revocado", "bea", revokedAt)).isTrue();
+            assertThat(service.isRevoked("revoked", "bea", revokedAt)).isTrue();
             assertThat(service.isRevoked("jti", "ana", revokedAt.minusSeconds(30))).isTrue();
             assertThat(service.isRevoked("jti", "ana", revokedAt)).isTrue();
             assertThat(service.isRevoked("jti", "ana", revokedAt.plusSeconds(1))).isFalse();

@@ -4,9 +4,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * Punto de entrada único del sistema: valida el JWT y que no esté revocado, enruta a las réplicas registradas en
- * Eureka, limita la tasa de peticiones con Redis, corta con un circuit breaker los servicios caídos, devuelve el
- * {@code X-Trace-Id} y agrega la documentación de todos los servicios en un único Swagger UI.
+ * Single entry point of the system: validates the JWT and that it is not revoked, routes to the replicas registered
+ * in Eureka, rate limits requests with Redis, cuts off downed services with a circuit breaker, returns the
+ * {@code X-Trace-Id} and aggregates the documentation of all services in a single Swagger UI.
  */
 @SpringBootApplication
 public class GatewayApplication {

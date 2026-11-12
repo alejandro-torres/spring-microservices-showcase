@@ -1,7 +1,7 @@
 package com.showcase.common.domain.exception;
 
 /**
- * El usuario está autenticado pero no tiene permiso para la operación.
+ * The user is authenticated but lacks permission for the operation.
  */
 public class ForbiddenException extends DomainException {
 

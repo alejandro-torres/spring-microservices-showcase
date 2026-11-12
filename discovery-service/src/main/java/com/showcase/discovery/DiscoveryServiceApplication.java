@@ -5,8 +5,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.netflix.eureka.server.EnableEurekaServer;
 
 /**
- * Registro de servicios. Cada réplica de cada servicio se registra con un instance-id único; el gateway y los
- * clientes Feign piden aquí la lista de réplicas vivas y reparten las peticiones entre ellas.
+ * Service registry. Each replica of each service registers with a unique instance-id; the gateway and the
+ * Feign clients ask here for the list of live replicas and distribute requests among them.
  */
 @SpringBootApplication
 @EnableEurekaServer

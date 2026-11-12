@@ -19,7 +19,7 @@ class JwtAuthoritiesConverterTest {
     }
 
     @Test
-    @DisplayName("convierte roles en ROLE_*, permisos tal cual y usa el sub como nombre")
+    @DisplayName("converts roles to ROLE_*, permissions as they are, and uses sub as the name")
     void convert_userToken_shouldMapRolesAndPermissions() {
         var token = converter.convert(jwt()
                 .claim("roles", List.of("ADMIN", "USER"))
@@ -32,7 +32,7 @@ class JwtAuthoritiesConverterTest {
     }
 
     @Test
-    @DisplayName("convierte el scope de los tokens entre servicios en SCOPE_*")
+    @DisplayName("converts the scope of service-to-service tokens to SCOPE_*")
     void convert_clientToken_shouldMapScopes() {
         var fromText = converter.convert(jwt().claim("scope", "internal products.read").build());
         var fromList = converter.convert(jwt().claim("scope", List.of("internal")).build());
@@ -44,7 +44,7 @@ class JwtAuthoritiesConverterTest {
     }
 
     @Test
-    @DisplayName("un token sin roles, permisos ni scope no da ninguna autoridad")
+    @DisplayName("a token without roles, permissions or scope gives no authority")
     void convert_withoutClaims_shouldHaveNoAuthorities() {
         assertThat(converter.convert(jwt().build()).getAuthorities()).isEmpty();
     }

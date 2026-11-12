@@ -25,7 +25,7 @@ class RateLimitConfigTest {
     class ClientIp {
 
         @Test
-        @DisplayName("sin proxies de confianza usa la IP de la conexión e ignora X-Forwarded-For (se puede falsificar)")
+        @DisplayName("without trusted proxies it uses the connection IP and ignores X-Forwarded-For (it can be forged)")
         void clientIp_withoutTrustedProxies_shouldIgnoreForwardedFor() {
             var config = new RateLimitConfig(0);
 
@@ -33,16 +33,16 @@ class RateLimitConfigTest {
         }
 
         @Test
-        @DisplayName("con un proxy de confianza usa la IP que añadió ese proxy, no las que inventa el cliente")
+        @DisplayName("with a trusted proxy it uses the IP that proxy added, not those the client invents")
         void clientIp_withOneTrustedProxy_shouldUseLastForwardedAddress() {
             var config = new RateLimitConfig(1);
 
-            // El cliente envía "1.2.3.4" falsificado; el proxy añade la IP real 203.0.113.7 al final.
+            // The client sends a forged "1.2.3.4"; the proxy appends the real IP 203.0.113.7 at the end.
             assertThat(config.clientIp(exchange("1.2.3.4, 203.0.113.7"))).isEqualTo("203.0.113.7");
         }
 
         @Test
-        @DisplayName("con un proxy de confianza pero sin cabecera, usa la IP de la conexión")
+        @DisplayName("with a trusted proxy but no header, it uses the connection IP")
         void clientIp_withTrustedProxyButNoHeader_shouldUseRemoteAddress() {
             var config = new RateLimitConfig(1);
 
